@@ -19,3 +19,7 @@ If paths under `qbitOS/uvspeed` change (e.g. `docs/ugrad-*.md`), update **README
 | [qbitOS/qbitos-ugrad](https://github.com/qbitOS/qbitos-ugrad) | μgrad staircase reference |
 | [qbitOS/qbitos-iron-line](https://github.com/qbitOS/qbitos-iron-line) | Iron Line L0–L7 |
 | [qbitOS/qbitos-gluelam](https://github.com/qbitOS/qbitos-gluelam) | Shared modules (prefixes, DAC, steno) |
+
+## Local workspace
+
+Link the monorepo for editing: **`./scripts/link-uvspeed-workspace.sh`** → **`workspace/uvspeed/`** (see [WORKSPACE.md](WORKSPACE.md)). The symlink is gitignored; each clone runs the script once.

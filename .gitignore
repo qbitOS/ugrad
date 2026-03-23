@@ -5,3 +5,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.log
+
+# Local symlink to uvspeed checkout (per machine — run scripts/link-uvspeed-workspace.sh)
+workspace/uvspeed

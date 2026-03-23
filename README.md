@@ -36,6 +36,14 @@ Related mirrors: [qbitos-ugrad](https://github.com/qbitOS/qbitos-ugrad) (μgrad 
 - [ugrad enterprise readiness](https://github.com/qbitOS/uvspeed/blob/main/docs/ugrad-enterprise-readiness.md)
 - [ugrad raw feeds](https://github.com/qbitOS/uvspeed/blob/main/docs/ugrad-raw-feeds.md)
 
+## Workspace (all μgrad working components)
+
+Runnable μgrad code lives in the **uvspeed** monorepo. This repo keeps org docs here and a **linked checkout** under **`workspace/uvspeed`** so everything you need is in one folder tree.
+
+1. Run `./scripts/link-uvspeed-workspace.sh` (see **[WORKSPACE.md](WORKSPACE.md)**).
+2. Edit PWAs and tooling under **`workspace/uvspeed/web/`**, **`npm/ugrad-cli/`**, **`qbit/ugrad/`**, etc.
+3. Path index: **[workspace/ugrad-paths.md](workspace/ugrad-paths.md)** · manifest: **[workspace/ugrad-component-manifest.json](workspace/ugrad-component-manifest.json)**
+
 ## Community
 
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** — Contributor Covenant; report issues via [GitHub Issues](https://github.com/qbitOS/ugrad/issues).

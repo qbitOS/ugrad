@@ -36,6 +36,14 @@ git pull --rebase origin main
 git push origin main
 ```
 
+## After clone (this machine)
+
+Link the uvspeed monorepo for **`workspace/uvspeed`** (see [WORKSPACE.md](WORKSPACE.md)):
+
+```bash
+./scripts/link-uvspeed-workspace.sh
+```
+
 ## Sync from another machine
 
 Copy edits from `~/dev/projects/ugrad` or edit here; keep **UPSTREAM.md** accurate if you add automation.
