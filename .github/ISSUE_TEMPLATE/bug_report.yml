@@ -1,0 +1,31 @@
+name: Bug Report
+description: Wrong link, outdated upstream reference, or typo in this org umbrella repo
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repo is **documentation only**. For **code** issues, use **[qbitOS/uvspeed](https://github.com/qbitOS/uvspeed/issues)**.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: What is wrong?
+      options:
+        - README / badges
+        - COMPLIANCE.qmd / COMPLIANCE.md
+        - NOTICES.md / upstream table
+        - CONTRIBUTING / SECURITY
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What did you expect vs what you see?
+    validations:
+      required: true

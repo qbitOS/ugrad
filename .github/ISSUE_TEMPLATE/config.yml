@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Upstream monorepo (uvspeed)
+    url: https://github.com/qbitOS/uvspeed
+    about: Bugs and features for web apps, μgrad R0, WASM, CLI, and shared modules belong in uvspeed unless this umbrella’s docs/links only.
+  - name: ugrad-gameHUB (Pages landing)
+    url: https://github.com/qbitOS/ugrad-gameHUB
+    about: Static landing and GitHub Pages entry for the μgrad games hub.
+  - name: Iron Line · Gluelam (reference)
+    url: https://github.com/qbitOS/qbitos-iron-line
+    about: L0–L7 pipeline spec (sibling); Gluelam is shared-module story.

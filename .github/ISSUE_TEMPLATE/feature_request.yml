@@ -1,0 +1,25 @@
+name: Feature Request
+description: Propose a change to org README, compliance text, or cross-repo links
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Product** changes belong in **[qbitOS/uvspeed](https://github.com/qbitOS/uvspeed)**. Use this template for **umbrella** docs (org narrative, diligence links, repo table).
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change?
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this needed for investors, partners, or contributors?
+    validations:
+      required: true

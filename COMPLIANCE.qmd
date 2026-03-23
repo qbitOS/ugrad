@@ -1,0 +1,31 @@
+<!--
+Copyright (c) 2026 qbitOS / ugrad.ai. All rights reserved.
+Principal: Tad R. Ericson · AI tooling: Cursor, Claude, GPT, Mistral-class (assistive; human review)
+SPDX-License-Identifier: Apache-2.0
+Source: https://github.com/qbitOS/ugrad
+Provenance: org-wide-compliance-baseline-seed
+-->
+
+# qbitos{ugrad} Compliance Baseline
+
+**Maintainer:** Tad R. Ericson · qbitOS / ugrad.ai
+
+## Compliance Root
+
+- Canonical policy: <https://github.com/qbitOS/compliance>
+
+## Runtime Path
+
+`DAC -> Iron Line -> Prefixes -> Quantum Gutter -> .qbit -> preflight`
+
+## Control Envelope
+
+`DAC/Prefix/Steno/Iron-Line/Preflight/search-history controls`
+
+## Repository scope
+
+This repository is the **qbitOS org umbrella** for μgrad-related documentation. Child repos (e.g. [ugrad-gameHUB](https://github.com/qbitOS/ugrad-gameHUB)) carry their own baselines; application code lives primarily in [qbitOS/uvspeed](https://github.com/qbitOS/uvspeed).
+
+## Extended IP, privacy, and contact
+
+See [COMPLIANCE.md](COMPLIANCE.md) for trademark disclaimers, privacy notes, enterprise expectations, and issue routing.

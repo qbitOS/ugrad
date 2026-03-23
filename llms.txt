@@ -1,0 +1,25 @@
+# qbitOS ugrad — llms.txt
+
+> https://github.com/qbitOS/ugrad
+
+## Summary
+
+Organization **umbrella** for μgrad / ugrad under qbitOS: compliance baseline, repo index, links to upstream [qbitOS/uvspeed](https://github.com/qbitOS/uvspeed). Documentation only in this repo.
+
+## Key files
+
+- COMPLIANCE.qmd — org baseline (Freya pattern)
+- COMPLIANCE.md — IP, distribution, contact routing
+- README.md — sibling repos and upstream docs
+- NOTICES.md — upstream and license pointers
+
+## Upstream code
+
+https://github.com/qbitOS/uvspeed
+
+## Related
+
+https://github.com/qbitOS/ugrad-gameHUB — Pages landing
+https://github.com/qbitOS/qbitos-iron-line — Iron Line
+https://github.com/qbitOS/qbitos-gluelam — Gluelam
+https://github.com/qbitOS/qbitos-ugrad — μgrad staircase reference
