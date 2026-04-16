@@ -1,0 +1,111 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<title>μgrad terminal install — HexTerm · ugrad-cli · benchmarks · sync</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon.png">
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-hub-live.css">
+<style>
+:root{--gt-fg:rgba(250,250,252,.94);--gt-muted:rgba(250,250,252,.46);--gt-faint:rgba(250,250,252,.09);--gt-edge:rgba(250,250,252,.16);--gt-surface:rgba(14,14,16,.82);--gt-page:#000;}
+html,body{margin:0;min-height:100%;background:var(--gt-page);color:var(--gt-fg);font-family:ui-sans-serif,system-ui,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:14px 16px 40px}
+.gt-hd{font:800 1.1rem ui-sans-serif,system-ui,sans-serif;margin:0 0 6px}
+.gt-kicker{font:600 9px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#58a6ff;margin:0 0 16px}
+.gt-card{border:1px solid var(--gt-edge);border-radius:14px;background:var(--gt-surface);padding:14px 16px;margin-bottom:14px;box-shadow:inset 0 1px 0 rgba(250,250,252,.04)}
+.gt-card h2{font:700 11px ui-monospace,monospace;margin:0 0 10px;color:var(--gt-fg)}
+.gt-card p,.gt-card li{font:500 10px ui-monospace,monospace;color:var(--gt-muted);line-height:1.55;margin:0 0 8px}
+.gt-card ul{padding-left:1.1rem;margin:0}
+.gt-card code{font-size:9px;background:rgba(0,0,0,.35);padding:2px 6px;border-radius:4px;color:var(--gt-fg)}
+.gt-pre{margin:10px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--gt-faint);background:#08080a;font:500 10px/1.45 ui-monospace,monospace;overflow:auto;color:#a8b3bf;white-space:pre-wrap}
+.ghd-bar a.ghd-pill.gt-accent{border-color:#58a6ff;color:#58a6ff}
+[data-theme="light"] .gt-page{background:#fafafa}
+</style>
+</head>
+<body data-ugrad-game="terminal-install">
+<header class="ghd">
+  <div class="ghd-row">
+    <span class="gh-slab">μgrad · terminal install</span>
+    <span class="ghd-spacer"></span>
+    <div data-qp-theme-host class="ghd-theme" title="Light / dark"></div>
+  </div>
+  <div class="ghd-bar" role="toolbar">
+    <a class="ghd-pill gh-primary" href="games-ugrad-hub.html">← games hub</a>
+    <a class="ghd-pill gt-accent" href="terminal.html" title="HexTerm — where ugrad commands run">HexTerm</a>
+    <a class="ghd-pill" href="raw-games-ugrad.html">raw index</a>
+    <a class="ghd-pill" href="kbatch.html">kbatch</a>
+    <a class="ghd-pill" href="freya.html">FreyaUnits</a>
+    <a class="ghd-pill" href="digital_alphabet.html">digital alphabet</a>
+    <a class="ghd-pill" href="uterm.html">uterm</a>
+    <a class="ghd-pill" href="launcher.html">launcher</a>
+  </div>
+</header>
+<div class="wrap">
+  <h1 class="gt-hd">Terminal install &amp; ops</h1>
+  <p class="gt-kicker">Companion to games hub · zsh opens files · commands execute in browser</p>
+
+  <div class="gt-card">
+    <h2>1 · Why <code>ugrad</code> fails in Terminal.app</h2>
+    <p><code>ugrad games</code> is a <strong>HexTerm</strong> command (in <code>terminal.html</code>), not a macOS binary. Use the steps below for everyone else: npm bridge, hosted Pages, or clone + <code>npx</code>.</p>
+  </div>
+
+  <div class="gt-card">
+    <h2>2 · npm <code>ugrad-cli</code> (zsh → open PWA)</h2>
+    <p>From a uvspeed checkout (package updates track repo <code>npm/ugrad-cli</code>):</p>
+    <pre class="gt-pre">cd /path/to/uvspeed
+npm install -g ./npm/ugrad-cli          # optional global
+npx ugrad-cli help
+npx ugrad-cli open      # HexTerm — then type: ugrad games | ugrad go | goboard watch
+npx ugrad-cli raw       # raw-games-ugrad.html
+npx ugrad-cli hub
+npx ugrad-cli alphabet</pre>
+    <p>Published (no clone): <a href="https://qbitos.github.io/uvspeed/web/terminal.html" style="color:#58a6ff">GitHub Pages HexTerm</a></p>
+  </div>
+
+  <div class="gt-card">
+    <h2>3 · Speed benchmarks (repo)</h2>
+    <ul>
+      <li><code>nu scripts/pre.nu</code> — pre-push audit</li>
+      <li><code>nu scripts/audit.nu</code> — health / versions</li>
+      <li><code>cargo test -p uvspeed-prefix-engine</code> — T5-native classifier</li>
+      <li><code>uv run pytest</code> — Python tests</li>
+    </ul>
+    <p>See <code>PROGRESS.md</code> and <code>docs/ugrad-enterprise-readiness.md</code> for throughput / Worker path.</p>
+  </div>
+
+  <div class="gt-card">
+    <h2>4 · Sync (HexTerm)</h2>
+    <p>Phone ↔ desktop lanes (from HexTerm <code>help</code>):</p>
+    <pre class="gt-pre">sync &lt;IP&gt;          # kb + hexcast to device
+sync serve         # broadcast
+sync status
+kb sync &lt;IP&gt;
+kb serve</pre>
+  </div>
+
+  <div class="gt-card">
+    <h2>5 · Corpus &amp; registry</h2>
+    <p>On <a href="games-ugrad-hub.html" style="color:#58a6ff">games hub</a>: <strong>Export corpus snapshot (JSONL)</strong> · <strong>Open raw index</strong>. Same data shape for Freya · kbatch · LLM pipelines.</p>
+  </div>
+</div>
+<p class="foot" style="text-align:center;font:500 9px ui-monospace,monospace;padding:16px;color:var(--gt-muted)">
+  <code>games-ugrad-terminal.html</code> · <a href="games-ugrad-hub.html">hub</a> · <a href="https://github.com/qbitOS/uvspeed/blob/main/docs/ugrad-arena-cli.md">ugrad-arena-cli.md</a>
+</p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script>
+(function(){
+  if(window.QuantumPrefixes&&QuantumPrefixes.broadcastState){
+    QuantumPrefixes.broadcastState('games-ugrad-terminal',{app:'games-ugrad-terminal',version:'0.1.0',ts:Date.now()});
+  }
+})();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+<script src="ugrad-game-presence.js"></script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<!-- beyondBINARY quantum-prefixed | uvspeed | raw μgrad corpus index (Apache-style listing) -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Index of /ugrad/raw — games corpus</title>
+<style>
+  body{font:13px/1.45 ui-monospace,monospace;margin:0;padding:12px 16px;background:#f0f0f0;color:#222}
+  h1{font-size:1.1rem;font-weight:700;margin:0 0 8px}
+  p.meta{color:#444;margin:0 0 14px;font-size:12px}
+  pre{background:#fff;border:1px solid #ccc;padding:10px;overflow:auto;max-height:42vh}
+  table{border-collapse:collapse;width:100%;background:#fff;border:1px solid #ccc;margin:12px 0}
+  th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:12px}
+  th{background:#eee;font-weight:600}
+  tr:nth-child(even){background:#fafafa}
+  .banner{background:#ffffe0;border:1px solid #e6db55;padding:8px 10px;margin-bottom:12px;font-size:12px}
+  .banner-warn{background:#ffe8e8;border:1px solid #c77;padding:8px 10px;margin-bottom:12px;font-size:12px}
+  a{color:#06c}
+  .muted{color:#666;font-size:11px}
+</style>
+</head>
+<body>
+<h1>Index of /ugrad/raw</h1>
+<p class="meta">Static viewer — same-origin <code>localStorage</code> only. Deploy as <strong>raw.games.ugrad.ai</strong> beside the hub; for cross-device data use Worker + D1 ingest (<a href="https://github.com/qbitOS/uvspeed/blob/main/docs/ugrad-enterprise-readiness.md">readiness</a> · <a href="https://github.com/qbitOS/uvspeed/blob/main/docs/ugrad-raw-feeds.md">raw feeds</a>).</p>
+<p class="meta"><a href="games-ugrad-hub.html">← μgrad games hub</a> · <a href="terminal.html">HexTerm</a> (mobile-friendly PWA terminal) · <a href="uterm.html">uterm</a> (faster Tauri-style L0) · <button type="button" id="raw-reload" style="font:inherit;cursor:pointer">Reload</button></p>
+<div class="banner" id="raw-origin"></div>
+<div class="banner-warn" id="raw-ip">Loading compliance note…</div>
+
+<h2 class="muted" style="font-size:12px;margin:16px 0 6px">HTTP raw feeds (JSON / NDJSON)</h2>
+<p class="meta">Click-through URLs for static files under <code>web/raw/</code>. Override base: <code>?feed_base=https://your.cdn/raw</code></p>
+<table id="raw-feeds" aria-label="Raw HTTP feed URLs">
+  <thead><tr><th>Feed</th><th>Same-origin</th><th>ugrad.github.io/raw (canonical)</th></tr></thead>
+  <tbody id="raw-feeds-body"></tbody>
+</table>
+
+<h2 class="muted" style="font-size:12px;margin:16px 0 6px">Games by type</h2>
+<p class="meta">Taxonomy ↔ <code>ugrad-game-registry</code> ids. See <a href="arena-ugrad.html">arena-ugrad</a> for narrative links. Refs:
+<a href="https://en.wikipedia.org/wiki/Abstract_strategy_game">abstract strategy</a>,
+<a href="https://en.wikipedia.org/wiki/List_of_board_games">board games</a>,
+<a href="https://en.wikipedia.org/wiki/List_of_mancala_games">mancala</a>,
+<a href="https://en.wikipedia.org/wiki/List_of_cross_and_circle_games">cross &amp; circle</a>,
+<a href="https://en.wikipedia.org/wiki/Games_100">Games 100</a>,
+<a href="https://en.wikipedia.org/wiki/Hanafuda">Hanafuda</a>,
+<a href="https://arxiv.org/abs/2107.08387">arXiv:2107.08387</a> (GNN + AlphaZero scale-up),
+<a href="https://freya.qbitos.ai/freya-units.html">Freya units</a>.</p>
+<table aria-label="Games by type">
+  <thead><tr><th>Type</th><th>Registry ids</th><th>Primary shells</th></tr></thead>
+  <tbody>
+    <tr><td>Abstract strategy / connection</td><td>go, gomoku, chess, checkers</td><td>go-ugrad, gomoku-ugrad, chess-ugrad, checkers-ugrad</td></tr>
+    <tr><td>Race / tables / economics boards</td><td>backgammon, kobenhavn</td><td>backgammon-ugrad, kobenhavn-ugrad</td></tr>
+    <tr><td>Count-and-capture (mancala family)</td><td>mancala</td><td>mancala-ugrad</td></tr>
+    <tr><td>Hidden information / grids</td><td>battleship</td><td>battleship-ugrad</td></tr>
+    <tr><td>Arcade / telemetry shells</td><td>pong, snake, sportsfield, webgrid, rubiks, cupstack, dexterity, visualspeed</td><td>pong-ugrad, snake-ugrad, sports-field-ugrad, webgrid-ugrad, …</td></tr>
+    <tr><td>Cards &amp; oracles</td><td>cards, blackjack, tarot, cartomancy, iching, hanafuda, mahjong</td><td>cards-ugrad, tarot-ugrad, hanafuda-ugrad, …</td></tr>
+    <tr><td>Training / drills</td><td>flashcards, mindmaze, memory, math, language, typing, calligraphy, robotics</td><td>…-ugrad</td></tr>
+    <tr><td>Meta / catalog</td><td>hub, arena, terminal-install, hub-monitor, go-monitor</td><td>games-ugrad-hub, arena-ugrad, games-ugrad-terminal, …</td></tr>
+  </tbody>
+</table>
+
+<h2 class="muted" style="font-size:12px;margin:16px 0 6px">Registry snapshot</h2>
+<table id="raw-reg" aria-label="ugrad-game-registry">
+  <thead><tr><th>id</th><th>title</th><th>lane</th><th>file</th></tr></thead>
+  <tbody id="raw-reg-body"></tbody>
+</table>
+
+<h2 class="muted" style="font-size:12px;margin:16px 0 6px">Presence keys (this origin)</h2>
+<pre id="raw-pres">—</pre>
+
+<h2 class="muted" style="font-size:12px;margin:16px 0 6px">UgradCorpusLog (NDJSON lines)</h2>
+<pre id="raw-corpus">—</pre>
+
+<h2 class="muted" style="font-size:12px;margin:16px 0 6px">Digital alphabet leaderboard</h2>
+<pre id="raw-da-lb">—</pre>
+
+<script src="ugrad-game-registry.js"></script>
+<script src="ugrad-corpus-export.js"></script>
+<script src="da-terminal-leaderboard.js"></script>
+<script>
+(function(){
+  var CANON_RAW = 'https://ugrad.github.io/raw';
+  var FEED_PATHS = [
+    { id: 'manifest', title: 'Feeds manifest', path: 'feeds.json' },
+    { id: 'go', title: 'Go leaderboard (placeholder)', path: 'go/leaderboard.json' },
+    { id: 'da', title: 'Digital alphabet leaderboard (placeholder)', path: 'digital-alphabet/leaderboard.json' },
+    { id: 'corpus', title: 'Corpus NDJSON sample', path: 'corpus/sample-export.ndjson' }
+  ];
+  function feedBases(){
+    var canon = CANON_RAW;
+    var same = '';
+    try {
+      var q = new URLSearchParams(location.search).get('feed_base');
+      if (q) {
+        var b = q.replace(/\/$/, '');
+        return { same: b, canon: b };
+      }
+    } catch (e0) {}
+    try {
+      same = new URL('raw/', location.href).href.replace(/\/$/, '');
+    } catch (e1) {
+      same = '';
+    }
+    return { same: same, canon: canon };
+  }
+  function feedRows(){
+    var b = feedBases();
+    var tb = document.getElementById('raw-feeds-body');
+    tb.innerHTML = '';
+    FEED_PATHS.forEach(function (f) {
+      var tr = document.createElement('tr');
+      var a1 = b.same ? '<a href="' + b.same + '/' + f.path + '">' + esc(f.path) + '</a>' : esc(f.path);
+      var a2 = '<a href="' + b.canon + '/' + f.path + '" rel="noopener">' + esc(f.path) + '</a>';
+      tr.innerHTML = '<td>' + esc(f.title) + '</td><td>' + a1 + '</td><td>' + a2 + '</td>';
+      tb.appendChild(tr);
+    });
+  }
+  function ipNote(){
+    document.getElementById('raw-ip').textContent =
+      'IP / launch: registry rows are web demos and labs — not individually certified for third-party IP, accessibility, or enterprise compliance. Do not present as legally cleared product without your own review. Global leaderboards + audit trails require Worker+D1 (see readiness doc).';
+  }
+  function presDump(){
+    var o={};
+    try{
+      var keys=Object.keys(localStorage);
+      var i,k,pre='ugrad-presence-v1:';
+      for(i=0;i<keys.length;i++){
+        k=keys[i];
+        if(k.indexOf(pre)!==0)continue;
+        o[k]=localStorage.getItem(k);
+      }
+    }catch(e){}
+    return JSON.stringify(o,null,2);
+  }
+  function fill(){
+    document.getElementById('raw-origin').textContent='origin: '+location.origin+' · '+new Date().toISOString();
+    var tb=document.getElementById('raw-reg-body');
+    tb.innerHTML='';
+    if(window.UgradGameRegistry&&UgradGameRegistry.GAMES){
+      UgradGameRegistry.GAMES.forEach(function(g){
+        var tr=document.createElement('tr');
+        tr.innerHTML='<td>'+esc(g.id)+'</td><td>'+esc(g.title)+'</td><td>'+esc(g.lane||'')+'</td><td>'+esc(g.file)+'</td>';
+        tb.appendChild(tr);
+      });
+    }
+    document.getElementById('raw-pres').textContent=presDump()||'{}';
+    var cj='—';
+    if(window.UgradCorpusLog&&UgradCorpusLog.buildJSONL) cj=UgradCorpusLog.buildJSONL();
+    document.getElementById('raw-corpus').textContent=cj.slice(0,120000)||'—';
+    var dal='—';
+    if(window.DATerminalLB) dal=DATerminalLB.asciiTable(null,80);
+    document.getElementById('raw-da-lb').textContent=dal;
+  }
+  function esc(s){
+    var t=document.createElement('div');
+    t.textContent=s==null?'':String(s);
+    return t.innerHTML;
+  }
+  document.getElementById('raw-reload').addEventListener('click',fill);
+  ipNote();
+  feedRows();
+  fill();
+})();
+</script>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script>
+'use strict';
+// ===== QUANTUM PREFIX LIVE SYNC =====
+(function(){
+  try {
+    if (window.QuantumPrefixes) {
+      QuantumPrefixes.broadcastState('raw-games-ugrad',{coverage:0,totalLines:0,classifiedLines:0,prefixCounts:{},role:'corpus-index'});
+    }
+  } catch(e){}
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+</script>
+</body>
+</html>

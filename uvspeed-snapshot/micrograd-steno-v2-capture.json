@@ -1,0 +1,50 @@
+{
+  "initial": {
+    "log": "R0: micrograd + steno v2 loaded\nMLP(2→4→4→1) · backprop autograd · steno whitespace codec\nclick train cold to begin",
+    "viz": "metrics appear here after training",
+    "footer": "ready\nepoch: —\nloss: —\nsteno: —\nspeed: —",
+    "fStatus": "ready",
+    "fEpoch": "epoch: —",
+    "fLoss": "loss: —",
+    "fSteno": "steno: —",
+    "fSpeed": "speed: —",
+    "btnWarmText": "train warm",
+    "btnBenchText": "benchmark"
+  },
+  "afterCold": {
+    "log": "R0: micrograd + steno v2 — self-optimizing autograd\nMLP(2→4→4→1) · 37 params · XOR · 200 ep · lr 0.05\n▸ cold training (random init)...\nep 0 0.490053\nep 50 0.167188\nep 100 0.095163\nep 150 0.034447\n✓ cold done 19.5ms 200 epochs\nXOR: 4/4 correct final loss: 0.007765\n▸ steno encode → decode → verify...\n665b hidden in 68 lines (100 bytes changed, 47.7% util)\nround-trip: PASS weights saved to localStorage\n→ click ▸ train warm to see early-stopping speedup",
+    "viz": "R0 metrics\ncold (200 ep)\nloss\nepoch\ncold:\n19.5ms (200 ep)\npredictions\n 0,0 → 0.0545\n 0,1 → 0.9290\n 1,0 → 0.9031\n 1,1 → 0.1122\nsteno channel\nbits:\n665\nlines:\n68/68\nutil:\n47.7%\ndecoded: 35 records",
+    "footer": "cold done\nepoch: 199\nloss: 0.007765\nsteno: 665b\nspeed: 19.5ms",
+    "fStatus": "cold done",
+    "fEpoch": "epoch: 199",
+    "fLoss": "loss: 0.007765",
+    "fSteno": "steno: 665b",
+    "fSpeed": "speed: 19.5ms",
+    "btnWarmText": "▸ train warm",
+    "btnBenchText": "benchmark"
+  },
+  "afterWarm": {
+    "log": "R0: micrograd + steno v2 — self-optimizing autograd\nMLP(2→4→4→1) · 37 params · XOR · 200 ep · lr 0.05\n▸ cold training (random init)...\nep 0 0.490053\nep 50 0.167188\nep 100 0.095163\nep 150 0.034447\n✓ cold done 19.5ms 200 epochs\nXOR: 4/4 correct final loss: 0.007765\n▸ steno encode → decode → verify...\n665b hidden in 68 lines (100 bytes changed, 47.7% util)\nround-trip: PASS weights saved to localStorage\n→ click ▸ train warm to see early-stopping speedup\n▸ warm training (steno-primed + early stopping)...\n37 weights injected · stop threshold: 0.0005\nep 0 0.007502\nep 72 0.000482\n✓ warm done 4.7ms 73 epochs (early stop)\nspeedup: 4.1x (19.5ms → 4.7ms)\nepochs saved: 127 of 200\nXOR: 4/4 correct\ninsight: weights carried in whitespace skipped 127 epochs of gradient search\nthe source code optimized itself. → click ▸ benchmark",
+    "viz": "R0 metrics\nstop\nwarm (73 ep)\ncold (200 ep)\nloss\nepoch\ncold:\n19.5ms (200 ep)\nwarm:\n4.7ms (73 ep)\nspeedup:\n4.1x\nepochs saved:\n127\npredictions\n 0,0 → 0.0131\n 0,1 → 0.9823\n 1,0 → 0.9762\n 1,1 → 0.0282\nsteno channel\nbits:\n665\nlines:\n68/68\nutil:\n47.7%\ndecoded: 35 records\ninsight: weights in whitespace eliminated 127 epochs of gradient search. code that carries its own optimization.",
+    "footer": "warm done\nepoch: 72\nloss: 0.000482\nsteno: 665b\nspeed: 4.1x",
+    "fStatus": "warm done",
+    "fEpoch": "epoch: 72",
+    "fLoss": "loss: 0.000482",
+    "fSteno": "steno: 665b",
+    "fSpeed": "speed: 4.1x",
+    "btnWarmText": "train warm",
+    "btnBenchText": "▸ benchmark"
+  },
+  "afterBench": {
+    "log": "R0: micrograd + steno v2 — self-optimizing autograd\nMLP(2→4→4→1) · 37 params · XOR · 200 ep · lr 0.05\n▸ cold training (random init)...\nep 0 0.490053\nep 50 0.167188\nep 100 0.095163\nep 150 0.034447\n✓ cold done 19.5ms 200 epochs\nXOR: 4/4 correct final loss: 0.007765\n▸ steno encode → decode → verify...\n665b hidden in 68 lines (100 bytes changed, 47.7% util)\nround-trip: PASS weights saved to localStorage\n→ click ▸ train warm to see early-stopping speedup\n▸ warm training (steno-primed + early stopping)...\n37 weights injected · stop threshold: 0.0005\nep 0 0.007502\nep 72 0.000482\n✓ warm done 4.7ms 73 epochs (early stop)\nspeedup: 4.1x (19.5ms → 4.7ms)\nepochs saved: 127 of 200\nXOR: 4/4 correct\ninsight: weights carried in whitespace skipped 127 epochs of gradient search\nthe source code optimized itself. → click ▸ benchmark\n▸ benchmark: 20 cold + 20 warm (early stop) runs...\ncold avg: 6.89ms med: 6.30ms ep avg: 200\nwarm avg: 3.84ms med: 4.20ms ep avg: 124\navg speedup: 1.8x med: 1.5x best: 56.0x\nepochs saved avg: 76 (200 → 124)\nsteno capacity (engine source)\n169B hidden capacity 35/68 lines 26.1% whitespace",
+    "viz": "R0 metrics\nstop\nwarm (73 ep)\ncold (200 ep)\nloss\nepoch\ncold:\n19.5ms (200 ep)\nwarm:\n4.7ms (73 ep)\nspeedup:\n4.1x\nepochs saved:\n127\npredictions\n 0,0 → 0.0131\n 0,1 → 0.9823\n 1,0 → 0.9762\n 1,1 → 0.0282\nsteno channel\nbits:\n665\nlines:\n68/68\nutil:\n47.7%\ndecoded: 35 records\ninsight: weights in whitespace eliminated 127 epochs of gradient search. code that carries its own optimization.",
+    "footer": "benchmark done\nepoch: 72\nloss: 0.000482\nsteno: 665b\nspeed: 1.8x avg",
+    "fStatus": "benchmark done",
+    "fEpoch": "epoch: 72",
+    "fLoss": "loss: 0.000482",
+    "fSteno": "steno: 665b",
+    "fSpeed": "speed: 1.8x avg",
+    "btnWarmText": "train warm",
+    "btnBenchText": "▸ benchmark"
+  }
+}

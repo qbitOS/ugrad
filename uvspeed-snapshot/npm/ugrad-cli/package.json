@@ -1,0 +1,18 @@
+{
+  "name": "ugrad-cli",
+  "version": "0.1.0",
+  "description": "Open uvspeed HexTerm / raw corpus viewer from zsh (μgrad PWA is browser-first)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qbitOS/uvspeed.git"
+  },
+  "homepage": "https://github.com/qbitOS/uvspeed/tree/main/npm/ugrad-cli",
+  "bin": {
+    "ugrad-cli": "bin/ugrad.js",
+    "ugrad": "bin/ugrad.js"
+  },
+  "files": ["bin/ugrad.js", "README.md"],
+  "engines": { "node": ">=18" },
+  "keywords": ["ugrad", "uvspeed", "qbitos", "hexterm", "mugrad"]
+}

@@ -1,0 +1,105 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f1419">
+<title>Arena catalog — μgrad games by type</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<style>
+html,body{margin:0;background:#0a0a0b;color:#e8edf4;font-family:ui-sans-serif,system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:16px 18px 48px}
+h1{font-size:1.35rem;margin:0 0 8px}
+.lead{font:500 13px ui-sans-serif;color:#8b949e;margin:0 0 20px;max-width:52rem}
+nav{font:500 11px ui-monospace;margin:0 0 24px;padding:12px;border:1px solid #30363d;border-radius:10px;background:rgba(0,0,0,.2)}
+nav a{color:#58a6ff;margin-right:12px;text-decoration:none}
+nav a:hover{text-decoration:underline}
+section{margin-bottom:28px}
+h2{font-size:1rem;margin:0 0 10px;color:#58a6ff;border-bottom:1px solid #30363d;padding-bottom:6px}
+ul{margin:0;padding-left:1.2rem}
+li{margin:6px 0}
+code{font:600 11px ui-monospace;background:rgba(250,250,252,.06);padding:2px 6px;border-radius:4px}
+.foot{font:500 10px ui-monospace;color:#8b949e;margin-top:32px}
+.note{font:500 11px ui-monospace;color:#8b949e;border-left:3px solid #30363d;padding-left:12px;margin:12px 0}
+</style>
+</head>
+<body data-ugrad-game="arena">
+<div class="wrap">
+  <h1>Arena catalog</h1>
+  <p class="lead">Typed index of μgrad boards and shells: abstract strategy lineage, race games, arcade telemetry, cards/oracles. Wikipedia + research links for designers; playable stubs link from the <a href="games-ugrad-hub.html">games hub</a>. Most <code>*-ugrad.html</code> labs share the <code>ugrad-parity-lab.css</code> shell (tensor lane, snapshots, train/export) — reference surfaces: <a href="go-ugrad.html">go-ugrad</a>, <a href="gomoku-ugrad.html">gomoku-ugrad</a>, <a href="chess-ugrad.html">chess-ugrad</a>.</p>
+  <nav>
+    <a href="#abstract">Abstract</a>
+    <a href="#race">Race &amp; economics</a>
+    <a href="#mancala">Mancala</a>
+    <a href="#cards">Cards &amp; divination</a>
+    <a href="#sports">Sports sim</a>
+    <a href="#research">Research</a>
+  </nav>
+
+  <section id="abstract">
+    <h2>Abstract strategy &amp; grid lineage</h2>
+    <ul>
+      <li><a href="go-ugrad.html"><code>go-ugrad.html</code></a> — 19×19 Weiqi; scaling / policy research: <a href="https://en.wikipedia.org/wiki/AlphaGo" target="_blank" rel="noopener">AlphaGo</a>.</li>
+      <li><a href="gomoku-ugrad.html"><code>gomoku-ugrad.html</code></a> — five in a row on Go intersections; rules &amp; variants: <a href="https://en.wikipedia.org/wiki/Gomoku" target="_blank" rel="noopener">Gomoku</a>, Renju, Swap2.</li>
+      <li><a href="chess-ugrad.html">Chess</a> · <a href="checkers-ugrad.html">Checkers</a> — combinatorial classics; taxonomy: <a href="https://en.wikipedia.org/wiki/Abstract_strategy_game" target="_blank" rel="noopener">Abstract strategy game</a>.</li>
+      <li><a href="https://en.wikipedia.org/wiki/List_of_Japanese_board_games" target="_blank" rel="noopener">Japanese board games</a> (Shogi, Gomoku, Renju, Sugoroku, …) — cultural cross-links to our Go/Gomoku surfaces.</li>
+      <li><em>Games magazine</em> abstract picks (historical): <a href="https://en.wikipedia.org/wiki/Games_100" target="_blank" rel="noopener">Games 100</a> category “Abstract strategy” (e.g. Quoridor, GIPF lineage) — roadmap for future ports.</li>
+    </ul>
+  </section>
+
+  <section id="race">
+    <h2>Race, cross-and-circle, economics</h2>
+    <ul>
+      <li><a href="https://en.wikipedia.org/wiki/List_of_cross_and_circle_games" target="_blank" rel="noopener">Cross and circle games</a> — Pachisi, Backgammon family, Yut, Bul-adjacent race idioms.</li>
+      <li><a href="backgammon-ugrad.html"><code>backgammon-ugrad.html</code></a> — stub; tables / Nard / variants roadmap.</li>
+      <li><a href="kobenhavn-ugrad.html"><code>kobenhavn-ugrad.html</code></a> — circular economics board (København / <em>Monopoly</em>-class); see <a href="https://en.wikipedia.org/wiki/List_of_board_games#Economics_strategy_games" target="_blank" rel="noopener">economics strategy games</a>.</li>
+    </ul>
+  </section>
+
+  <section id="mancala">
+    <h2>Mancala family</h2>
+    <ul>
+      <li><a href="mancala-ugrad.html"><code>mancala-ugrad.html</code></a> — stub pit board; rule sets: <a href="https://en.wikipedia.org/wiki/List_of_mancala_games" target="_blank" rel="noopener">List of mancala games</a> (Oware, Kalah, Bao, …).</li>
+    </ul>
+  </section>
+
+  <section id="cards">
+    <h2>Cards, Hanafuda, oracles</h2>
+    <ul>
+      <li><a href="cards-ugrad.html">cards-ugrad</a> · <a href="tarot-ugrad.html">tarot</a> · <a href="iching-ugrad.html">I Ching</a> · <a href="cartomancy-ugrad.html">cartomancy</a> · <a href="mahjong-ugrad.html">mahjong</a></li>
+      <li><a href="hanafuda-ugrad.html"><code>hanafuda-ugrad.html</code></a> — flower-card notes; <a href="https://en.wikipedia.org/wiki/Hanafuda" target="_blank" rel="noopener">Hanafuda</a> · Koi-Koi · pop-culture context (e.g. streaming features) — not affiliated with publishers.</li>
+      <li>Galactic / unit tools: <a href="https://freya.qbitos.ai/freya-units.html" target="_blank" rel="noopener">Freya units</a> (<code>freya.qbitos.ai</code>).</li>
+    </ul>
+    <p class="note">Divination demos are entertainment / design research, not professional advice.</p>
+  </section>
+
+  <section id="sports">
+    <h2>Sports field &amp; arcade</h2>
+    <ul>
+      <li><a href="sports-field-ugrad.html"><code>sports-field-ugrad.html</code></a> — pitch + ball telemetry → <code>hexcast-stream</code> (see <a href="hexcast.html">hexcast</a>).</li>
+      <li><a href="pong-ugrad.html">pong-ugrad</a> — reference arena for latency + paddle AI.</li>
+      <li><a href="snake-ugrad.html">snake-ugrad</a> — grid chase; Tron-style pairing roadmap.</li>
+      <li><a href="battleship-ugrad.html"><code>battleship-ugrad.html</code></a> — hidden-information grid stub (analysis / simulation framing only).</li>
+    </ul>
+  </section>
+
+  <section id="research">
+    <h2>Scaling &amp; learning (references)</h2>
+    <ul>
+      <li>Ben-Assayag &amp; El-Yaniv, <a href="https://arxiv.org/abs/2107.08387" target="_blank" rel="noopener">Train on Small, Play the Large: Scaling Up Board Games with AlphaZero and GNN</a>.</li>
+      <li>Broad lists: <a href="https://en.wikipedia.org/wiki/List_of_board_games" target="_blank" rel="noopener">List of board games</a>.</li>
+    </ul>
+  </section>
+
+  <p class="foot"><code>arena-ugrad.html</code> · <a href="raw-games-ugrad.html">raw index</a> · hub <a href="games-ugrad-hub.html">games-ugrad-hub</a></p>
+</div>
+<script src="quantum-prefixes.js"></script><script src="qbit-dac.js"></script><script src="qbit-steno.js"></script>
+<script>
+if(window.QuantumPrefixes&&QuantumPrefixes.broadcastState)
+  QuantumPrefixes.broadcastState('arena-ugrad',{app:'arena-ugrad',version:'0.1.0',ts:Date.now()});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+<script src="ugrad-game-presence.js"></script>
+</body>
+</html>

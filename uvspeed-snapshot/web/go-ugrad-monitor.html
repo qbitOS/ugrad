@@ -1,0 +1,352 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419">
+<title>Go monitor — ugrad-go-board · multi-source</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<style>
+:root{font-family:ui-sans-serif,system-ui,sans-serif}
+html,body{min-height:100%;margin:0;background:var(--ugb-page,#0a0a0b);color:var(--qp-fg-primary,#e8edf4)}
+.gom-hd{border-bottom:1px solid var(--qp-border,#30363d);background:rgba(0,0,0,.28);padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.gom-hd strong{font-size:12px;letter-spacing:.02em}
+.gom-hd a{font:600 10px ui-monospace,monospace;color:var(--qp-fg-muted);text-decoration:none;border-bottom:1px solid var(--qp-border)}
+.gom-hd a:hover{color:var(--qp-fg-primary)}
+.gom-stats{font:600 10px ui-monospace,monospace;color:var(--qp-fg-muted)}
+.gom-wrap{max-width:1400px;margin:0 auto;padding:14px;box-sizing:border-box}
+.gom-hero{font:500 11px ui-monospace,monospace;color:var(--qp-fg-muted);line-height:1.55;margin:0 0 14px;max-width:52rem}
+.gom-hero code{font-weight:600;color:var(--qp-fg-body)}
+.gom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.gom-card{
+  border:1px solid var(--qp-border);border-radius:12px;padding:10px;background:rgba(0,0,0,.22);
+  transition:opacity .2s ease;
+}
+.gom-card.gom-stale{opacity:.45}
+.gom-card-hd{font:600 10px ui-monospace,monospace;margin:0 0 8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;justify-content:space-between}
+.gom-card-hd .gom-title{color:var(--qp-fg-body);font-weight:700}
+.gom-card-hd .gom-src{font-size:9px;color:var(--qp-fg-muted);word-break:break-all}
+.gom-card-hd .gom-ts{font-size:9px;color:var(--qp-fg-muted)}
+.gom-svg-wrap{width:100%;max-width:280px;margin:0 auto}
+.gom-svg-wrap svg{display:block;width:100%;height:auto;cursor:default}
+.gom-meta{font:600 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin-top:8px;line-height:1.45}
+.gom-meta span{color:var(--qp-fg-body)}
+.gom-empty{font:500 11px ui-monospace,monospace;color:var(--qp-fg-muted);padding:24px;text-align:center;border:1px dashed var(--qp-border);border-radius:12px}
+.gom-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.gom-tools button{font:600 10px ui-monospace,monospace;padding:6px 12px;border-radius:999px;border:1px solid var(--qp-border);background:transparent;cursor:pointer;color:var(--qp-fg-primary)}
+.gom-tools button:hover{border-color:var(--qp-fg-muted)}
+body[data-theme="light"]{--ugb-page:#fafafa}
+</style>
+</head>
+<body data-ugrad-game="go-monitor" class="ugb-surface">
+<header class="gom-hd">
+  <strong>go-ugrad multi-monitor</strong>
+  <span class="gom-stats" id="gom-stats">sources · 0</span>
+  <span class="gom-header-spacer" style="flex:1"></span>
+  <a href="go-ugrad.html">go-ugrad.html</a>
+  <a href="games-ugrad-hub.html">μgrad games hub</a>
+  <div data-qp-theme-host title="Theme"></div>
+</header>
+<div class="gom-wrap">
+  <p class="gom-hero">
+    Listens on <code>BroadcastChannel('ugrad-go-board')</code> for <code>go-ugrad-state</code> messages.
+    Each <strong>broadcasting</strong> <code>go-ugrad.html</code> tab (Broadcast on) appears as its own board, keyed by <code>source</code>.
+    Optional <strong>Name</strong> field on the Go tab is shown here. Open several Go tabs with different names to track multiple games in one window.
+  </p>
+  <div class="gom-tools">
+    <button type="button" id="gom-clear-stale" title="Remove boards not updated in 45s">Clear stale</button>
+    <button type="button" id="gom-clear-all">Clear all</button>
+  </div>
+  <div class="gom-empty" id="gom-empty">No live sources yet — open <a href="go-ugrad.html">go-ugrad.html</a> with <strong>Broadcast</strong> checked.</div>
+  <div class="gom-grid" id="gom-grid" role="list" hidden></div>
+</div>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script>
+(function () {
+  'use strict';
+  var BC_NAME = 'ugrad-go-board';
+  var STALE_MS = 45000;
+  var ns = 'http://www.w3.org/2000/svg';
+  var gridEl = document.getElementById('gom-grid');
+  var emptyEl = document.getElementById('gom-empty');
+  var statsEl = document.getElementById('gom-stats');
+  /** @type {Record<string, { el: HTMLElement, lastTs: number }>} */
+  var slots = {};
+  /** @type {Record<string, object>} */
+  var lastPayload = {};
+
+  function idx(x, y, N) { return y * N + x; }
+  function neighbors(x, y, N) {
+    var arr = [];
+    if (x > 0) arr.push([x - 1, y]);
+    if (x < N - 1) arr.push([x + 1, y]);
+    if (y > 0) arr.push([x, y - 1]);
+    if (y < N - 1) arr.push([x, y + 1]);
+    return arr;
+  }
+  function collectGroup(boardArr, sx, sy, color, N) {
+    if (boardArr[idx(sx, sy, N)] !== color) return [];
+    var stack = [[sx, sy]];
+    var visited = new Uint8Array(N * N);
+    var group = [];
+    while (stack.length) {
+      var p = stack.pop();
+      var vi = idx(p[0], p[1], N);
+      if (visited[vi]) continue;
+      if (boardArr[vi] !== color) continue;
+      visited[vi] = 1;
+      group.push(p);
+      neighbors(p[0], p[1], N).forEach(function (nb) {
+        var j = idx(nb[0], nb[1], N);
+        if (!visited[j] && boardArr[j] === color) stack.push(nb);
+      });
+    }
+    return group;
+  }
+  function libertyCount(boardArr, group, N) {
+    var libSeen = new Uint8Array(N * N);
+    var c = 0;
+    var gi;
+    for (gi = 0; gi < group.length; gi++) {
+      var p = group[gi];
+      neighbors(p[0], p[1], N).forEach(function (nb) {
+        var k = idx(nb[0], nb[1], N);
+        if (boardArr[k] === 0 && !libSeen[k]) {
+          libSeen[k] = 1;
+          c++;
+        }
+      });
+    }
+    return c;
+  }
+  function removeDeadOpponentGroups(b, x, y, col, N) {
+    var opp = -col;
+    var processed = new Set();
+    neighbors(x, y, N).forEach(function (nb) {
+      var nx = nb[0], ny = nb[1], i = idx(nx, ny, N);
+      if (b[i] !== opp) return;
+      var g = collectGroup(b, nx, ny, opp, N);
+      var key = g.map(function (p) { return idx(p[0], p[1], N); }).sort(function (a, z) { return a - z; }).join(',');
+      if (processed.has(key)) return;
+      processed.add(key);
+      if (libertyCount(b, g, N) === 0) {
+        g.forEach(function (p) { b[idx(p[0], p[1], N)] = 0; });
+      }
+    });
+  }
+  function applyMoveWithCapture(boardArr, x, y, col, N) {
+    if (boardArr[idx(x, y, N)] !== 0) return false;
+    var b = new Int8Array(boardArr);
+    b[idx(x, y, N)] = col;
+    removeDeadOpponentGroups(b, x, y, col, N);
+    var myGroup = collectGroup(b, x, y, col, N);
+    if (libertyCount(b, myGroup, N) === 0) return false;
+    boardArr.set(b);
+    return true;
+  }
+  function buildBoardFromMoves(moves, n) {
+    var N = n;
+    var board = new Int8Array(N * N);
+    var i, m;
+    for (i = 0; i < moves.length; i++) {
+      m = moves[i];
+      if (!m || m.x == null) continue;
+      if (!applyMoveWithCapture(board, m.x, m.y, m.c, N)) break;
+    }
+    return board;
+  }
+  function hoshiForN(n) {
+    if (n === 19) return [[3, 3], [3, 15], [9, 9], [15, 3], [15, 15]];
+    if (n === 13) return [[3, 3], [3, 9], [9, 3], [9, 9], [6, 6]];
+    if (n === 9) return [[2, 2], [2, 6], [6, 2], [6, 6], [4, 4]];
+    return [];
+  }
+  function formatClock(sec) {
+    if (sec == null || !isFinite(sec)) return '—';
+    if (sec <= 0) return '0:00';
+    var s = Math.floor(sec);
+    var m = (s / 60) | 0;
+    var r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  function drawMiniSvg(board, N, isLight) {
+    var gridStroke = isLight ? 'rgba(31,35,40,.2)' : 'rgba(250,250,252,.16)';
+    var hoshiFill = isLight ? 'rgba(31,35,40,.45)' : 'rgba(250,250,252,.35)';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '-0.5 -0.5 ' + N + ' ' + N);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    var i, l, c, x, y, v;
+    for (i = 0; i < N; i++) {
+      l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', i); l.setAttribute('y1', 0);
+      l.setAttribute('x2', i); l.setAttribute('y2', N - 1);
+      l.setAttribute('stroke', gridStroke); l.setAttribute('stroke-width', 0.06);
+      svg.appendChild(l);
+      l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', 0); l.setAttribute('y1', i);
+      l.setAttribute('x2', N - 1); l.setAttribute('y2', i);
+      l.setAttribute('stroke', gridStroke); l.setAttribute('stroke-width', 0.06);
+      svg.appendChild(l);
+    }
+    hoshiForN(N).forEach(function (p) {
+      c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]); c.setAttribute('r', 0.22);
+      c.setAttribute('fill', hoshiFill);
+      svg.appendChild(c);
+    });
+    for (y = 0; y < N; y++) {
+      for (x = 0; x < N; x++) {
+        v = board[idx(x, y, N)];
+        if (!v) continue;
+        c = document.createElementNS(ns, 'circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', y);
+        c.setAttribute('r', v === 1 ? 0.38 : 0.36);
+        if (v === 1) {
+          c.setAttribute('fill', isLight ? 'rgba(20,24,32,.9)' : 'rgba(250,250,252,.85)');
+        } else {
+          c.setAttribute('fill', isLight ? 'rgba(255,255,255,.95)' : 'rgba(230,230,235,.22)');
+          c.setAttribute('stroke', isLight ? 'rgba(20,24,32,.35)' : 'rgba(250,250,252,.5)');
+          c.setAttribute('stroke-width', 0.08);
+        }
+        svg.appendChild(c);
+      }
+    }
+    return svg;
+  }
+
+  function renderCard(source, d) {
+    lastPayload[source] = d;
+    var n = parseInt(d.n, 10) || 19;
+    if ([9, 13, 19].indexOf(n) < 0) n = 19;
+    var moves = d.moves || [];
+    var board = buildBoardFromMoves(moves, n);
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var label = (d.label && String(d.label).trim()) || '';
+    var title = label || source.slice(0, 14) + (source.length > 14 ? '…' : '');
+    var turn = d.turn != null ? d.turn : 1;
+    var el = slots[source] && slots[source].el;
+    if (!el) {
+      el = document.createElement('article');
+      el.className = 'gom-card';
+      el.setAttribute('role', 'listitem');
+      el.dataset.source = source;
+      el.innerHTML =
+        '<div class="gom-card-hd"><span class="gom-title"></span><span class="gom-ts"></span></div>' +
+        '<div class="gom-svg-wrap"></div>' +
+        '<div class="gom-meta"></div>' +
+        '<div class="gom-src"></div>';
+      gridEl.appendChild(el);
+      slots[source] = { el: el, lastTs: d.ts || Date.now() };
+    }
+    slots[source].lastTs = d.ts || Date.now();
+    el.classList.toggle('gom-stale', Date.now() - slots[source].lastTs > STALE_MS);
+    el.querySelector('.gom-title').textContent = title;
+    el.querySelector('.gom-ts').textContent = (d.ts ? new Date(d.ts).toLocaleTimeString() : '—');
+    el.querySelector('.gom-src').textContent = source;
+    var wrap = el.querySelector('.gom-svg-wrap');
+    while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+    wrap.appendChild(drawMiniSvg(board, n, isLight));
+    var meta = el.querySelector('.gom-meta');
+    meta.innerHTML =
+      '<span>' +
+      n +
+      '×' +
+      n +
+      '</span> · moves ' +
+      moves.length +
+      ' · to play ' +
+      (turn === 1 ? '●' : '○') +
+      '<br>B ' +
+      formatClock(d.timeB) +
+      ' · W ' +
+      formatClock(d.timeW) +
+      (d.clockPaused ? ' · <span>paused</span>' : '');
+    syncVisibility();
+  }
+
+  function syncVisibility() {
+    var n = Object.keys(slots).length;
+    statsEl.textContent = 'sources · ' + n;
+    emptyEl.hidden = n > 0;
+    gridEl.hidden = n === 0;
+  }
+
+  function onMessage(ev) {
+    var d = ev.data;
+    if (!d || d.type !== 'go-ugrad-state' || !d.source) return;
+    renderCard(d.source, d);
+  }
+
+  function clearStale() {
+    var now = Date.now();
+    Object.keys(slots).forEach(function (src) {
+      if (now - slots[src].lastTs > STALE_MS) {
+        slots[src].el.remove();
+        delete slots[src];
+        delete lastPayload[src];
+      }
+    });
+    syncVisibility();
+  }
+
+  function clearAll() {
+    Object.keys(slots).forEach(function (src) {
+      slots[src].el.remove();
+    });
+    slots = {};
+    lastPayload = {};
+    syncVisibility();
+  }
+
+  document.getElementById('gom-clear-stale').addEventListener('click', clearStale);
+  document.getElementById('gom-clear-all').addEventListener('click', clearAll);
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      var ch = new BroadcastChannel(BC_NAME);
+      ch.onmessage = onMessage;
+    }
+  } catch (e) {}
+
+  setInterval(function () {
+    var now = Date.now();
+    Object.keys(slots).forEach(function (src) {
+      var s = slots[src];
+      s.el.classList.toggle('gom-stale', now - s.lastTs > STALE_MS);
+    });
+  }, 4000);
+
+  syncVisibility();
+
+  try {
+    if (window.QuantumPrefixes && QuantumPrefixes.onThemeChange) {
+      QuantumPrefixes.onThemeChange(function () {
+        Object.keys(lastPayload).forEach(function (src) {
+          renderCard(src, lastPayload[src]);
+        });
+      });
+    }
+  } catch (e2) {}
+  if (window.QuantumPrefixes && QuantumPrefixes.broadcastState) {
+    QuantumPrefixes.broadcastState('go-ugrad-monitor', { app: 'go-ugrad-monitor', version: '0.1.0', ts: Date.now() });
+  }
+})();
+// ===== QUANTUM PREFIX LIVE SYNC =====
+(function () {
+  if (typeof BroadcastChannel === 'undefined' || !window.QuantumPrefixes || !QuantumPrefixes.broadcastState) return;
+  var ch = new BroadcastChannel('quantum-prefixes');
+  ch.onmessage = function (e) {
+    if (e.data && e.data.type === 'requestSync') {
+      QuantumPrefixes.broadcastState('go-ugrad-monitor', { app: 'go-ugrad-monitor', version: '0.1.0', ts: Date.now() });
+    }
+  };
+})();
+</script>
+<script src="ugrad-game-presence.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!-- Copyright (c) 2026 qbitOS / ugrad.ai. All rights reserved. -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Source: https://github.com/qbitOS/uvspeed -->
+<!-- Provenance: ai-created-control-envelope -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>redirecting to ugrad model lab</title>
+</head>
+<body data-ugrad-game="prompt-tester">
+  <p>Redirecting to <a href="ugrad-model-lab.html">ugrad-model-lab.html</a>...</p>
+  <script src="quantum-prefixes.js"></script>
+  <script src="qbit-dac.js"></script>
+  <script src="qbit-steno.js"></script>
+  <script src="qbit-preflight.js"></script>
+  <script src="history-search-engine.js"></script>
+  <script>
+    (function () {
+      // ===== QUANTUM PREFIX LIVE SYNC =====
+      try {
+        var QP = window.QuantumPrefixes;
+        var _ironLine = new BroadcastChannel('iron-line');
+        _ironLine.postMessage({ type: 'ugrad-prompt-tester-ready', source: 'ugrad-prompt-tester', ts: Date.now() });
+        _ironLine.close();
+        var _historyBus = new BroadcastChannel('history-search');
+        _historyBus.postMessage({ type: 'ugrad-prompt-tester-ready', source: 'ugrad-prompt-tester', ts: Date.now() });
+        _historyBus.close();
+        if (QP && QP.requestStateSync) QP.requestStateSync();
+        if (QP && QP.broadcastState) QP.broadcastState('ugrad-prompt-tester', { app: 'ugrad-prompt-tester', ts: Date.now() });
+      } catch (_) {}
+      try {
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+      } catch (_) {}
+      window.location.replace('ugrad-model-lab.html');
+    })();
+  </script>
+</body>
+</html>

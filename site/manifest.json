@@ -1,0 +1,32 @@
+{
+  "name": "μgrad R0 — foundational AI terminal",
+  "short_name": "μgrad R0",
+  "description": "Scalar autograd, R1–R4 tensor/transformer stack, quantum prefixes, steno, preflight — bundle synced from qbitOS/uvspeed.",
+  "start_url": "ugrad-r0.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020408",
+  "theme_color": "#c9a84c",
+  "categories": ["developer tools", "education", "utilities"],
+  "icons": [
+    {
+      "src": "icons/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/hexterm-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

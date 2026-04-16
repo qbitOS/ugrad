@@ -1,0 +1,1442 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!--
+  go-ugrad.html — go.ugrad.ai surface: 9/13/19 lab board + 9-cell μgrad tensor slice,
+  iteration snapshots, local game history, analyze vs Datasets.goboard-style heuristic,
+  light MLP train (compatible with ugrad-pad-lab / ugrad-r0 goboard dim).
+  v0.1.6 — shared ugrad-parity-lab.css (shell + Go SVG fullscreen) · board size · chess clock · BC mirror.
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="gu-meta-theme">
+<title>Go — μgrad tensor slice · go.ugrad.ai</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+</head>
+<body data-ugrad-game="go" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>go.ugrad.ai</strong>
+    <span class="gu-bar-out">
+      <a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a>
+    </span>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark (syncs with μgrad stack)"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="gu-open-monitor" title="Open multi-board monitor (all broadcasting tabs)">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slices from other tensor envs (BroadcastChannel ugrad-tensor-lane)">
+      <label><input type="checkbox" id="gu-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gu-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gu-mode"><option value="play">Play &amp; record</option><option value="train">Tensor train</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="gu-color"><option value="1">Black (●)</option><option value="-1">White (○)</option></select></label>
+    <button type="button" class="gu-primary" id="gu-pass">Pass</button>
+    <button type="button" id="gu-undo">Undo</button>
+    <button type="button" id="gu-clear">Clear board</button>
+    <button type="button" id="gu-save-game">Save game</button>
+    <label>Tensor env <select id="gu-tensor-env" title="Synthetic training target (9→16→8→1 head)"></select></label>
+    <label>Train steps <input type="number" id="gu-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gu-train">Train slice MLP</button>
+    <button type="button" id="gu-ai-move">AI move</button>
+    <button type="button" id="gu-snap">Snapshot</button>
+    <button type="button" id="gu-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gu-fs" title="Fullscreen board panel">Fullscreen board</button>
+    <label title="Standard Go board sizes">Board <select id="gu-board-size">
+      <option value="9">9×9</option><option value="13">13×13</option><option value="19" selected>19×19</option>
+    </select></label>
+    <label title="Mirror another tab via BroadcastChannel"><input type="checkbox" id="gu-bc-follow"> Follow remote</label>
+    <label title="Publish position + clock to other tabs"><input type="checkbox" id="gu-bc-send" checked> Broadcast</label>
+    <label title="Shown on go-ugrad-monitor.html grid">Name <input type="text" id="gu-bc-label" maxlength="32" placeholder="optional" style="max-width:7rem"></label>
+  </div>
+</header>
+<div class="gu-main">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2><span id="gu-h2-title">19×19 lab</span> · click intersection · <span id="gu-status">Black to play</span></h2>
+    <div class="gu-clock-strip" role="group" aria-label="Game clock · per-move · pause syncs both sides">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="gu-clock-b" title="Black main time">B · —:—</span>
+        <span class="gu-clock-face" id="gu-clock-w" title="White main time">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="gu-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="gu-clock-min" value="5" min="1" max="120" step="1" title="Main time per side"></label>
+      <button type="button" id="gu-clock-pause" title="Pause / resume both clocks">Pause</button>
+      <button type="button" class="gu-primary" id="gu-clock-reset" title="Reset times (position unchanged)">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar" aria-label="Board view">
+      <button type="button" class="gu-fs-btn gu-primary" id="gu-fs-inline" title="Fullscreen board">⛶</button>
+    </div>
+    <svg id="gu-svg" viewBox="-0.5 -0.5 19 19" preserveAspectRatio="xMidYMid meet" aria-label="Go board"></svg>
+    <p style="font-size:10px;color:var(--qp-fg-muted);margin:10px 0 0">9-cell slice below = tensor input (downsampled regions, same shape as <code>ugrad-r0</code> <code>Datasets.goboard</code>). <strong>Clock</strong> counts the active side’s main time; pause stops both (sync). <strong>Broadcast / Follow remote</strong> uses <code>BroadcastChannel('ugrad-go-board')</code> — open a second tab: one plays (Broadcast on), one mirrors (Follow on). <a href="go-ugrad-monitor.html" style="color:inherit;font-weight:600">go-ugrad-monitor.html</a> aggregates every broadcasting tab in one grid (optional toolbar <strong>Name</strong>). Plays with <strong>capture</strong> (no-liberty groups removed) and <strong>suicide</strong> blocked unless capturing; <abbr title="Not implemented in this lab build">simple ko</abbr> not enforced. <strong>Tensor env</strong> selects which game/synthetic distribution trains the shared MLP head.</p>
+    <div class="gu-mini9" id="gu-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" id="gu-command-station" aria-label="Tensor command station">
+      <div class="gu-cmd-hd">Command station · live training slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gu-cmd-live" title="Last batch sample (3×3 tensor)"></div>
+        <div class="gu-cmd-readout" id="gu-cmd-readout">idle · pick Tensor env + Train</div>
+      </div>
+      <p class="gu-cmd-meta" id="gu-cmd-env-desc" style="margin:6px 0 0"></p>
+      <p class="gu-cmd-meta" id="gu-cmd-meta">Automation: <code>postMessage({ type: 'ugrad-tensor-train', env: 'go-board', steps: 80 })</code> · BroadcastChannel <code>ugrad-tensor-train</code> message <code>{ type: 'train', env, steps }</code> · <code>GoUgrad.runTrain(env, steps)</code></p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gu-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gu-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gu-log" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+<section class="gu-lane-sync" id="gu-lane-sync" aria-label="Tensor lane monitor">
+  <h3 class="gu-lane-sync-hd">Tensor lane · other games / tensors</h3>
+  <p class="gu-lane-sync-meta">Same 3×3 shape as <code>#gu-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code> · remote <code>{ type: 'tensor-slice', env, slice[9], source }</code>. Toolbar <strong>Publish slice</strong> shares this board’s downsampled window; <strong>Lane in</strong> receives foreign slices here and in the header rail.</p>
+  <div class="gu-lane-sync-grid" id="gu-lane-sync-grid"><p class="gu-lane-empty" id="gu-lane-empty">No remote slices yet — open another μgrad tab that publishes, or enable Publish on two Go tabs.</p></div>
+</section>
+<p class="gu-foot"><code>go-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">μgrad games hub</a> · <a href="ugrad-pad-lab.html">μPad lab</a> · <a href="ugrad-r0.html">ugrad-r0</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script>
+(function () {
+  'use strict';
+  var N = 19;
+  var STORAGE_GAMES = 'go-ugrad-games-v1';
+  var BC_NAME = 'ugrad-go-board';
+  var TENSOR_LANE_CHANNEL = 'ugrad-tensor-lane';
+  var tensorLaneChannel = null;
+  var laneStore = {};
+  var STORAGE_LANE_SEND = 'go-ugrad-lane-send';
+  var STORAGE_LANE_RECV = 'go-ugrad-lane-recv';
+  var timeB = 300;
+  var timeW = 300;
+  var clockPaused = false;
+  var clockArmed = false;
+  var lastClockTick = Date.now();
+  var lastBcClock = 0;
+  var goBoardChannel = null;
+  var applyingRemote = false;
+  var bcSid = (function () {
+    try {
+      var x = sessionStorage.getItem('go-ugrad-bcid');
+      if (x) return x;
+      x = 'go' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+      sessionStorage.setItem('go-ugrad-bcid', x);
+      return x;
+    } catch (e) {
+      return 'go' + Date.now();
+    }
+  })();
+  var STORAGE_MODEL = 'go-ugrad-mlp-v1';
+  var STORAGE_MAP = 'go-ugrad-mlp-map-v1';
+  var STORAGE_TENSOR_ENV = 'go-ugrad-tensor-env-v1';
+  var STORAGE_BC_LABEL = 'go-ugrad-bc-label';
+  var lastTrainTensor = null;
+  var svg = document.getElementById('gu-svg');
+  var boardWrap = document.getElementById('gu-board-wrap');
+  var logEl = document.getElementById('gu-log');
+  var snapStrip = document.getElementById('gu-snap-strip');
+  var mini9El = document.getElementById('gu-mini9');
+  var historySel = document.getElementById('gu-history');
+  var board = new Int8Array(N * N);
+  var moves = [];
+  var turn = 1;
+  var snapSeq = 0;
+  var lastModelJson = null;
+  var hoverPt = { x: 0, y: 0, ok: false };
+  var ns = 'http://www.w3.org/2000/svg';
+
+  function boardFromEvent(ev) {
+    var pt = svg.createSVGPoint();
+    pt.x = ev.clientX;
+    pt.y = ev.clientY;
+    var ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    var loc;
+    try {
+      loc = pt.matrixTransform(ctm.inverse());
+    } catch (e) {
+      return null;
+    }
+    var x = Math.round(loc.x);
+    var y = Math.round(loc.y);
+    if (x < 0 || x >= N || y < 0 || y >= N) return null;
+    return { x: x, y: y };
+  }
+
+  function paintHoverLayer() {
+    var layer = document.getElementById('gu-hover');
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    if (document.getElementById('gu-mode').value !== 'play' || !hoverPt.ok) return;
+    var x = hoverPt.x;
+    var y = hoverPt.y;
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var ch = isLight ? 'rgba(88,166,255,.85)' : 'rgba(130,190,255,.72)';
+    var chFade = isLight ? 'rgba(31,35,40,.2)' : 'rgba(250,250,252,.22)';
+    var line, circ;
+    line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', x);
+    line.setAttribute('x2', x);
+    line.setAttribute('y1', -0.5);
+    line.setAttribute('y2', N - 0.5);
+    line.setAttribute('stroke', ch);
+    line.setAttribute('stroke-width', 0.05);
+    line.setAttribute('stroke-dasharray', '0.18 0.12');
+    line.setAttribute('pointer-events', 'none');
+    layer.appendChild(line);
+    line = document.createElementNS(ns, 'line');
+    line.setAttribute('y1', y);
+    line.setAttribute('y2', y);
+    line.setAttribute('x1', -0.5);
+    line.setAttribute('x2', N - 0.5);
+    line.setAttribute('stroke', ch);
+    line.setAttribute('stroke-width', 0.05);
+    line.setAttribute('stroke-dasharray', '0.18 0.12');
+    line.setAttribute('pointer-events', 'none');
+    layer.appendChild(line);
+    line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', x);
+    line.setAttribute('x2', x);
+    line.setAttribute('y1', -0.5);
+    line.setAttribute('y2', N - 0.5);
+    line.setAttribute('stroke', chFade);
+    line.setAttribute('stroke-width', 0.028);
+    line.setAttribute('pointer-events', 'none');
+    layer.appendChild(line);
+    line = document.createElementNS(ns, 'line');
+    line.setAttribute('y1', y);
+    line.setAttribute('y2', y);
+    line.setAttribute('x1', -0.5);
+    line.setAttribute('x2', N - 0.5);
+    line.setAttribute('stroke', chFade);
+    line.setAttribute('stroke-width', 0.028);
+    line.setAttribute('pointer-events', 'none');
+    layer.appendChild(line);
+    if (!board[idx(x, y)]) {
+      var col = parseInt(document.getElementById('gu-color').value, 10) || 1;
+      circ = document.createElementNS(ns, 'circle');
+      circ.setAttribute('cx', x);
+      circ.setAttribute('cy', y);
+      circ.setAttribute('r', 0.36);
+      circ.setAttribute('fill', col === 1
+        ? (isLight ? 'rgba(20,24,32,.14)' : 'rgba(250,250,252,.16)')
+        : (isLight ? 'rgba(255,255,255,.35)' : 'rgba(230,230,235,.1)'));
+      circ.setAttribute('stroke', ch);
+      circ.setAttribute('stroke-width', 0.065);
+      circ.setAttribute('stroke-dasharray', '0.14 0.1');
+      circ.setAttribute('pointer-events', 'none');
+      layer.appendChild(circ);
+    }
+  }
+
+  function log(s) {
+    logEl.textContent = (logEl.textContent + s + '\n').slice(-8000);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function idx(x, y) { return y * N + x; }
+
+  function neighbors(x, y) {
+    var arr = [];
+    if (x > 0) arr.push([x - 1, y]);
+    if (x < N - 1) arr.push([x + 1, y]);
+    if (y > 0) arr.push([x, y - 1]);
+    if (y < N - 1) arr.push([x, y + 1]);
+    return arr;
+  }
+
+  function collectGroup(boardArr, sx, sy, color) {
+    if (boardArr[idx(sx, sy)] !== color) return [];
+    var stack = [[sx, sy]];
+    var visited = new Uint8Array(N * N);
+    var group = [];
+    while (stack.length) {
+      var p = stack.pop();
+      var vi = idx(p[0], p[1]);
+      if (visited[vi]) continue;
+      if (boardArr[vi] !== color) continue;
+      visited[vi] = 1;
+      group.push(p);
+      neighbors(p[0], p[1]).forEach(function (nb) {
+        var j = idx(nb[0], nb[1]);
+        if (!visited[j] && boardArr[j] === color) stack.push(nb);
+      });
+    }
+    return group;
+  }
+
+  function libertyCount(boardArr, group) {
+    var libSeen = new Uint8Array(N * N);
+    var c = 0;
+    var gi;
+    for (gi = 0; gi < group.length; gi++) {
+      var p = group[gi];
+      neighbors(p[0], p[1]).forEach(function (nb) {
+        var k = idx(nb[0], nb[1]);
+        if (boardArr[k] === 0 && !libSeen[k]) {
+          libSeen[k] = 1;
+          c++;
+        }
+      });
+    }
+    return c;
+  }
+
+  function removeDeadOpponentGroups(b, x, y, col) {
+    var opp = -col;
+    var removed = 0;
+    var processed = new Set();
+    neighbors(x, y).forEach(function (nb) {
+      var nx = nb[0], ny = nb[1];
+      var i = idx(nx, ny);
+      if (b[i] !== opp) return;
+      var g = collectGroup(b, nx, ny, opp);
+      var key = g.map(function (p) { return idx(p[0], p[1]); }).sort(function (a, z) { return a - z; }).join(',');
+      if (processed.has(key)) return;
+      processed.add(key);
+      if (libertyCount(b, g) === 0) {
+        g.forEach(function (p) {
+          b[idx(p[0], p[1])] = 0;
+          removed++;
+        });
+      }
+    });
+    return removed;
+  }
+
+  function applyMoveWithCapture(boardArr, x, y, col) {
+    if (boardArr[idx(x, y)] !== 0) return { ok: false, reason: 'occupied', captured: 0 };
+    var b = new Int8Array(boardArr);
+    b[idx(x, y)] = col;
+    var captured = removeDeadOpponentGroups(b, x, y, col);
+    var myGroup = collectGroup(b, x, y, col);
+    if (libertyCount(b, myGroup) === 0) {
+      return { ok: false, reason: 'suicide', captured: 0 };
+    }
+    boardArr.set(b);
+    return { ok: true, captured: captured };
+  }
+
+  function replayMoves(movesList) {
+    board.fill(0);
+    var i, m, r;
+    for (i = 0; i < movesList.length; i++) {
+      m = movesList[i];
+      if (!m || m.x == null) continue;
+      r = applyMoveWithCapture(board, m.x, m.y, m.c);
+      if (!r.ok) {
+        log('replay stopped @ plies ' + i + ' · ' + (r.reason || 'illegal'));
+        break;
+      }
+    }
+  }
+
+  function hoshiForN(n) {
+    if (n === 19) return [[3, 3], [3, 15], [9, 9], [15, 3], [15, 15]];
+    if (n === 13) return [[3, 3], [3, 9], [9, 3], [9, 9], [6, 6]];
+    if (n === 9) return [[2, 2], [2, 6], [6, 2], [6, 6], [4, 4]];
+    return [];
+  }
+
+  function applyMainMinutes() {
+    var inp = document.getElementById('gu-clock-min');
+    var m = inp ? parseInt(inp.value, 10) || 5 : 5;
+    if (m < 1) m = 1;
+    if (m > 120) m = 120;
+    return m * 60;
+  }
+
+  function resetClocksFromUI() {
+    var sec = applyMainMinutes();
+    timeB = sec;
+    timeW = sec;
+    clockPaused = false;
+    clockArmed = false;
+    lastClockTick = Date.now();
+    var pp = document.getElementById('gu-clock-pause');
+    if (pp) pp.textContent = 'Pause';
+    updateClockDisplay();
+    broadcastGoState();
+  }
+
+  function formatClock(sec) {
+    if (sec <= 0 || !isFinite(sec)) return '0:00';
+    var s = Math.floor(sec);
+    var m = (s / 60) | 0;
+    var r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function updateClockDisplay() {
+    var eb = document.getElementById('gu-clock-b');
+    var ew = document.getElementById('gu-clock-w');
+    var col = parseInt(document.getElementById('gu-color').value, 10) || 1;
+    var on = document.getElementById('gu-clock-on') && document.getElementById('gu-clock-on').checked;
+    if (eb) {
+      eb.textContent = 'B · ' + formatClock(timeB);
+      eb.classList.toggle('gu-clock-hot', !!(on && !clockPaused && clockArmed && col === 1));
+    }
+    if (ew) {
+      ew.textContent = 'W · ' + formatClock(timeW);
+      ew.classList.toggle('gu-clock-hot', !!(on && !clockPaused && clockArmed && col === -1));
+    }
+  }
+
+  function broadcastGoState() {
+    try {
+      if (applyingRemote) return;
+      var send = document.getElementById('gu-bc-send');
+      if (!send || !send.checked || !goBoardChannel) return;
+      goBoardChannel.postMessage({
+        type: 'go-ugrad-state',
+        v: 1,
+        source: bcSid,
+        n: N,
+        moves: moves.slice(),
+        timeB: timeB,
+        timeW: timeW,
+        clockPaused: clockPaused,
+        clockArmed: clockArmed,
+        turn: parseInt(document.getElementById('gu-color').value, 10) || 1,
+        label: (function () {
+          try {
+            var lb = document.getElementById('gu-bc-label');
+            return lb && lb.value ? String(lb.value).trim().slice(0, 32) : '';
+          } catch (e) {
+            return '';
+          }
+        })(),
+        ts: Date.now()
+      });
+      lastBcClock = Date.now();
+    } catch (e) {}
+  }
+
+  function applyRemoteState(d) {
+    if (!d || d.type !== 'go-ugrad-state' || !Array.isArray(d.moves)) return;
+    if (d.source && d.source === bcSid) return;
+    var follow = document.getElementById('gu-bc-follow');
+    if (!follow || !follow.checked) return;
+    var nn = parseInt(d.n, 10) || 19;
+    if ([9, 13, 19].indexOf(nn) < 0) nn = 19;
+    if (nn !== N) {
+      N = nn;
+      board = new Int8Array(N * N);
+      svg.setAttribute('viewBox', '-0.5 -0.5 ' + N + ' ' + N);
+      var siz = document.getElementById('gu-board-size');
+      if (siz) siz.value = String(N);
+    }
+    if (typeof d.timeB === 'number') timeB = d.timeB;
+    if (typeof d.timeW === 'number') timeW = d.timeW;
+    clockPaused = !!d.clockPaused;
+    clockArmed = !!d.clockArmed;
+    moves.length = 0;
+    d.moves.forEach(function (m) { moves.push(m); });
+    replayMoves(moves);
+    if (d.turn != null) document.getElementById('gu-color').value = String(d.turn);
+    var pp = document.getElementById('gu-clock-pause');
+    if (pp) pp.textContent = clockPaused ? 'Resume' : 'Pause';
+    applyingRemote = true;
+    try {
+      updateClockDisplay();
+      drawBoard();
+    } finally {
+      applyingRemote = false;
+    }
+  }
+
+  function clockTick() {
+    var on = document.getElementById('gu-clock-on') && document.getElementById('gu-clock-on').checked;
+    if (!on || clockPaused || !clockArmed) {
+      lastClockTick = Date.now();
+      updateClockDisplay();
+      return;
+    }
+    var now = Date.now();
+    var dt = (now - lastClockTick) / 1000;
+    lastClockTick = now;
+    var col = parseInt(document.getElementById('gu-color').value, 10) || 1;
+    if (col === 1) timeB -= dt;
+    else timeW -= dt;
+    if (timeB <= 0 || timeW <= 0) {
+      clockPaused = true;
+      log('clock · flag · ' + (timeB <= 0 ? 'Black' : 'White') + ' time');
+      var pp = document.getElementById('gu-clock-pause');
+      if (pp) pp.textContent = 'Resume';
+    }
+    updateClockDisplay();
+    if (now - lastBcClock > 1000 && document.getElementById('gu-bc-send') && document.getElementById('gu-bc-send').checked) {
+      broadcastGoState();
+    }
+  }
+
+  function setBoardSize(nn, noConfirm) {
+    nn = parseInt(nn, 10);
+    if ([9, 13, 19].indexOf(nn) < 0) return;
+    if (nn === N) return;
+    if (!noConfirm && moves.length > 0) {
+      if (!confirm('Changing board size clears stones and move list. Continue?')) return;
+    }
+    N = nn;
+    board = new Int8Array(N * N);
+    moves.length = 0;
+    svg.setAttribute('viewBox', '-0.5 -0.5 ' + N + ' ' + N);
+    resetClocksFromUI();
+    drawBoard();
+    log('board · ' + N + '×' + N);
+  }
+
+  function armClockOnFirstMove() {
+    if (!clockArmed) {
+      clockArmed = true;
+      lastClockTick = Date.now();
+    }
+  }
+
+  function board9from19() {
+    var r = [];
+    var ry, rx, y0, y1, x0, x1, y, x, sum, s, v;
+    for (ry = 0; ry < 3; ry++) {
+      y0 = Math.floor(ry * N / 3);
+      y1 = Math.floor((ry + 1) * N / 3);
+      for (rx = 0; rx < 3; rx++) {
+        x0 = Math.floor(rx * N / 3);
+        x1 = Math.floor((rx + 1) * N / 3);
+        sum = 0;
+        s = 0;
+        for (y = y0; y < y1; y++) {
+          for (x = x0; x < x1; x++) {
+            v = board[idx(x, y)];
+            if (v) { sum += v; s++; }
+          }
+        }
+        var avg = s ? sum / s : 0;
+        r.push(avg > 0.25 ? 1 : avg < -0.25 ? -1 : 0);
+      }
+    }
+    return r;
+  }
+
+  function heuristicLabel(b9) {
+    var b = b9.filter(function (v) { return v === 1; }).length;
+    var w = b9.filter(function (v) { return v === -1; }).length;
+    var c = b9[4];
+    var corners = [b9[0], b9[2], b9[6], b9[8]].filter(function (v) { return v === 1; }).length;
+    var lib = b9.filter(function (v) { return v === 0; }).length;
+    return b > w && lib > 3 && (c === 1 || corners >= 2) ? 1 : 0;
+  }
+
+  function paintMini9(b9) {
+    var i, s, sp;
+    mini9El.innerHTML = '';
+    for (i = 0; i < 9; i++) {
+      s = document.createElement('span');
+      sp = b9[i];
+      s.textContent = sp === 1 ? '●' : sp === -1 ? '○' : '·';
+      mini9El.appendChild(s);
+    }
+  }
+
+  function normSliceVal(v) {
+    var n = +v;
+    if (n > 0.25) return 1;
+    if (n < -0.25) return -1;
+    return 0;
+  }
+  function normalizeSlice9(s) {
+    if (!s || s.length < 9) return null;
+    var out = [];
+    var i;
+    for (i = 0; i < 9; i++) out.push(normSliceVal(s[i]));
+    return out;
+  }
+  function fillMini9(el, b9, micro) {
+    var norm = normalizeSlice9(b9) || b9;
+    el.innerHTML = '';
+    el.className = 'gu-mini9' + (micro ? ' gu-mini9--micro' : '');
+    var i, sp, s;
+    for (i = 0; i < 9; i++) {
+      s = document.createElement('span');
+      sp = norm[i];
+      s.textContent = sp === 1 ? '●' : sp === -1 ? '○' : '·';
+      el.appendChild(s);
+    }
+  }
+  function paintLaneRail() {
+    var rail = document.getElementById('gu-bar-rail');
+    if (!rail) return;
+    rail.innerHTML = '';
+    var keys = Object.keys(laneStore);
+    if (!keys.length) return;
+    keys.sort(function (a, b) {
+      return (laneStore[b].ts || 0) - (laneStore[a].ts || 0);
+    });
+    var i, k, slot, lbl, mini;
+    for (i = 0; i < Math.min(3, keys.length); i++) {
+      k = keys[i];
+      if (!laneStore[k] || !laneStore[k].slice) continue;
+      slot = document.createElement('div');
+      slot.className = 'gu-bar-rail-slot';
+      lbl = document.createElement('span');
+      lbl.className = 'gu-lane-env';
+      lbl.textContent = k.length > 14 ? k.slice(0, 12) + '…' : k;
+      lbl.title = k;
+      mini = document.createElement('div');
+      fillMini9(mini, laneStore[k].slice, true);
+      slot.appendChild(lbl);
+      slot.appendChild(mini);
+      rail.appendChild(slot);
+    }
+  }
+  function paintLaneSyncGrid() {
+    var grid = document.getElementById('gu-lane-sync-grid');
+    if (!grid) return;
+    var keys = Object.keys(laneStore);
+    if (!keys.length) {
+      grid.innerHTML =
+        '<p class="gu-lane-empty" id="gu-lane-empty">No remote slices yet — open another μgrad tab that publishes, or enable Publish on two Go tabs.</p>';
+      return;
+    }
+    grid.innerHTML = '';
+    keys.sort(function (a, b) {
+      return (laneStore[b].ts || 0) - (laneStore[a].ts || 0);
+    });
+    var i, k, card, hd, mini;
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      if (!laneStore[k] || !laneStore[k].slice) continue;
+      card = document.createElement('div');
+      card.className = 'gu-lane-card';
+      hd = document.createElement('div');
+      hd.className = 'gu-lane-card-hd';
+      hd.textContent = k + ' · ' + new Date(laneStore[k].ts || Date.now()).toLocaleTimeString();
+      mini = document.createElement('div');
+      fillMini9(mini, laneStore[k].slice, false);
+      card.appendChild(hd);
+      card.appendChild(mini);
+      grid.appendChild(card);
+    }
+  }
+  function emitTensorLane() {
+    try {
+      var el = document.getElementById('gu-lane-send');
+      if (!el || !el.checked || !tensorLaneChannel) return;
+      var b9 = board9from19();
+      tensorLaneChannel.postMessage({
+        type: 'tensor-slice',
+        v: 1,
+        env: 'go-board',
+        source: bcSid,
+        slice: b9.map(function (v) { return v; }),
+        ts: Date.now()
+      });
+    } catch (e) {}
+  }
+  function onTensorLaneMessage(ev) {
+    var d = ev.data;
+    if (!d || d.type !== 'tensor-slice' || !Array.isArray(d.slice) || d.slice.length !== 9) return;
+    if (d.source && d.source === bcSid) return;
+    var recv = document.getElementById('gu-lane-recv');
+    if (recv && !recv.checked) return;
+    var env = d.env || 'unknown';
+    laneStore[env] = { slice: d.slice.slice(), ts: d.ts || Date.now(), source: d.source || '' };
+    paintLaneRail();
+    paintLaneSyncGrid();
+  }
+
+  function drawBoard() {
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var gridStroke = isLight ? 'rgba(31,35,40,.2)' : 'rgba(250,250,252,.16)';
+    var hoshiFill = isLight ? 'rgba(31,35,40,.45)' : 'rgba(250,250,252,.35)';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var i, l, c, x, y, v;
+    for (i = 0; i < N; i++) {
+      l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', i); l.setAttribute('y1', 0);
+      l.setAttribute('x2', i); l.setAttribute('y2', N - 1);
+      l.setAttribute('stroke', gridStroke); l.setAttribute('stroke-width', 0.06);
+      svg.appendChild(l);
+      l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', 0); l.setAttribute('y1', i);
+      l.setAttribute('x2', N - 1); l.setAttribute('y2', i);
+      l.setAttribute('stroke', gridStroke); l.setAttribute('stroke-width', 0.06);
+      svg.appendChild(l);
+    }
+    hoshiForN(N).forEach(function (p) {
+      c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]); c.setAttribute('r', 0.22);
+      c.setAttribute('fill', hoshiFill);
+      svg.appendChild(c);
+    });
+    for (y = 0; y < N; y++) {
+      for (x = 0; x < N; x++) {
+        v = board[idx(x, y)];
+        if (!v) continue;
+        c = document.createElementNS(ns, 'circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', y);
+        c.setAttribute('r', v === 1 ? 0.38 : 0.36);
+        if (v === 1) {
+          c.setAttribute('fill', isLight ? 'rgba(20,24,32,.9)' : 'rgba(250,250,252,.85)');
+        } else {
+          c.setAttribute('fill', isLight ? 'rgba(255,255,255,.95)' : 'rgba(230,230,235,.22)');
+          c.setAttribute('stroke', isLight ? 'rgba(20,24,32,.35)' : 'rgba(250,250,252,.5)');
+          c.setAttribute('stroke-width', 0.08);
+        }
+        svg.appendChild(c);
+      }
+    }
+    var hoverG = document.createElementNS(ns, 'g');
+    hoverG.setAttribute('id', 'gu-hover');
+    hoverG.setAttribute('pointer-events', 'none');
+    svg.appendChild(hoverG);
+    paintHoverLayer();
+    refreshStatusLine();
+    paintMini9(board9from19());
+    var ht = document.getElementById('gu-h2-title');
+    if (ht) ht.textContent = N + '×' + N + ' lab';
+    updateClockDisplay();
+    emitTensorLane();
+  }
+
+  function refreshStatusLine() {
+    var face = document.getElementById('gu-color');
+    var want = face ? parseInt(face.value, 10) || 1 : 1;
+    var base = (want === 1 ? 'Black' : 'White') + ' placing (selector) · turn index ' + moves.length;
+    if (hoverPt.ok && document.getElementById('gu-mode').value === 'play') {
+      base += ' · @(' + hoverPt.x + ',' + hoverPt.y + ')';
+    }
+    document.getElementById('gu-status').textContent = base;
+  }
+
+  svg.addEventListener('mousemove', function (ev) {
+    var c = boardFromEvent(ev);
+    if (c) {
+      hoverPt.x = c.x;
+      hoverPt.y = c.y;
+      hoverPt.ok = true;
+    } else {
+      hoverPt.ok = false;
+    }
+    paintHoverLayer();
+    refreshStatusLine();
+  });
+  svg.addEventListener('mouseleave', function () {
+    hoverPt.ok = false;
+    paintHoverLayer();
+    refreshStatusLine();
+  });
+  svg.addEventListener('touchmove', function (ev) {
+    if (!ev.touches || !ev.touches[0]) return;
+    var c = boardFromEvent(ev.touches[0]);
+    if (c) {
+      hoverPt.x = c.x;
+      hoverPt.y = c.y;
+      hoverPt.ok = true;
+      paintHoverLayer();
+      refreshStatusLine();
+    }
+  }, { passive: true });
+
+  function syncFsButtons() {
+    var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    var b = document.getElementById('gu-fs');
+    var bi = document.getElementById('gu-fs-inline');
+    if (b) {
+      b.textContent = on ? 'Exit fullscreen' : 'Fullscreen board';
+      b.title = on ? 'Exit fullscreen (Esc)' : 'Fullscreen board panel';
+    }
+    if (bi) {
+      bi.textContent = on ? '✕' : '⛶';
+      bi.title = on ? 'Exit fullscreen' : 'Fullscreen board';
+    }
+  }
+
+  function toggleBoardFullscreen() {
+    var el = boardWrap;
+    if (!el) return;
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      var ex = document.exitFullscreen || document.webkitExitFullscreen;
+      if (ex) ex.call(document);
+    } else {
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) req.call(el);
+      else log('fullscreen API unavailable');
+    }
+  }
+
+  document.getElementById('gu-fs').addEventListener('click', toggleBoardFullscreen);
+  document.getElementById('gu-fs-inline').addEventListener('click', toggleBoardFullscreen);
+  document.addEventListener('fullscreenchange', function () {
+    syncFsButtons();
+    drawBoard();
+  });
+  document.addEventListener('webkitfullscreenchange', function () {
+    syncFsButtons();
+    drawBoard();
+  });
+  syncFsButtons();
+
+  document.getElementById('gu-mode').addEventListener('change', function () {
+    paintHoverLayer();
+    refreshStatusLine();
+  });
+  document.getElementById('gu-color').addEventListener('change', function () {
+    lastClockTick = Date.now();
+    paintHoverLayer();
+    refreshStatusLine();
+    updateClockDisplay();
+  });
+
+  svg.addEventListener('click', function (ev) {
+    if (document.getElementById('gu-mode').value !== 'play') return;
+    var cell = boardFromEvent(ev);
+    if (!cell) return;
+    var x = cell.x;
+    var y = cell.y;
+    var col = parseInt(document.getElementById('gu-color').value, 10) || 1;
+    var r = applyMoveWithCapture(board, x, y, col);
+    if (!r.ok) {
+      log('illegal · ' + (r.reason === 'suicide' ? 'suicide (no breath after captures)' : r.reason || 'move'));
+      return;
+    }
+    if (r.captured) log('capture · ' + r.captured + ' prisoner(s)');
+    armClockOnFirstMove();
+    moves.push({ x: x, y: y, c: col });
+    turn = -col;
+    document.getElementById('gu-color').value = String(turn);
+    lastClockTick = Date.now();
+    drawBoard();
+    broadcastGoState();
+  });
+
+  document.getElementById('gu-open-monitor').addEventListener('click', function () {
+    window.location.href = 'go-ugrad-monitor.html';
+  });
+
+  document.getElementById('gu-pass').addEventListener('click', function () {
+    armClockOnFirstMove();
+    moves.push(null);
+    var col = parseInt(document.getElementById('gu-color').value, 10) || 1;
+    turn = -col;
+    document.getElementById('gu-color').value = String(turn);
+    lastClockTick = Date.now();
+    log('pass · side now ' + (turn === 1 ? '●' : '○'));
+    updateClockDisplay();
+    broadcastGoState();
+  });
+
+  document.getElementById('gu-undo').addEventListener('click', function () {
+    if (moves.length === 0) return;
+    moves.pop();
+    replayMoves(moves);
+    if (moves.length === 0) clockArmed = false;
+    drawBoard();
+    log('undo · replayed ' + moves.length + ' plies');
+    broadcastGoState();
+  });
+
+  document.getElementById('gu-clear').addEventListener('click', function () {
+    board.fill(0);
+    moves.length = 0;
+    clockArmed = false;
+    resetClocksFromUI();
+    drawBoard();
+    log('board cleared');
+  });
+
+  function pushSnapshot(meta) {
+    snapSeq++;
+    var card = document.createElement('div');
+    card.className = 'gu-snap-card';
+    card.setAttribute('role', 'listitem');
+    var b9 = meta.b9 || board9from19();
+    var mini = '<div class="gu-mini9">';
+    var bi;
+    for (bi = 0; bi < 9; bi++) {
+      mini += '<span>' + (b9[bi] === 1 ? '●' : b9[bi] === -1 ? '○' : '·') + '</span>';
+    }
+    mini += '</div>';
+    card.innerHTML = '<div class="gu-s-t">' + (meta.title || 'snap ' + snapSeq) + '</div>' +
+      '<div>' + (meta.sub || '') + '</div>' + mini;
+    snapStrip.appendChild(card);
+    requestAnimationFrame(function () { snapStrip.scrollLeft = snapStrip.scrollWidth; });
+  }
+
+  document.getElementById('gu-snap').addEventListener('click', function () {
+    var b9 = board9from19();
+    pushSnapshot({
+      title: 'position · ' + new Date().toLocaleTimeString(),
+      sub: 'h=' + heuristicLabel(b9) + ' · moves ' + moves.length,
+      b9: b9
+    });
+  });
+
+  function loadHistorySelect() {
+    var raw, list;
+    try { raw = localStorage.getItem(STORAGE_GAMES); } catch (e) { raw = null; }
+    list = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) list = [];
+    historySel.innerHTML = '<option value="">— pick recorded game —</option>';
+    list.forEach(function (g, i) {
+      var o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = (g.ts || '') + ' · ' + (g.moves && g.moves.length ? g.moves.length + ' mv' : '0 mv');
+      historySel.appendChild(o);
+    });
+  }
+
+  function saveGames(list) {
+    try { localStorage.setItem(STORAGE_GAMES, JSON.stringify(list)); } catch (e) { log('storage write failed'); }
+    loadHistorySelect();
+  }
+
+  document.getElementById('gu-save-game').addEventListener('click', function () {
+    var raw, list;
+    try { raw = localStorage.getItem(STORAGE_GAMES); } catch (e) { raw = null; }
+    list = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(list)) list = [];
+    list.push({
+      ts: new Date().toISOString(),
+      n: N,
+      moves: moves.slice(),
+      b9: board9from19(),
+      h: heuristicLabel(board9from19())
+    });
+    saveGames(list);
+    log('game saved · ' + list.length + ' in vault');
+    pushSnapshot({ title: 'saved game', sub: 'moves ' + moves.length, b9: board9from19() });
+  });
+
+  historySel.addEventListener('change', function () {
+    if (this.value === '') return;
+    var raw, list, g;
+    try { raw = localStorage.getItem(STORAGE_GAMES); } catch (e) { raw = null; }
+    list = raw ? JSON.parse(raw) : [];
+    g = list[parseInt(this.value, 10)];
+    if (!g || !g.moves) return;
+    var targetN = g.n != null ? parseInt(g.n, 10) : 19;
+    if ([9, 13, 19].indexOf(targetN) < 0) targetN = 19;
+    if (targetN !== N) {
+      N = targetN;
+      board = new Int8Array(N * N);
+      svg.setAttribute('viewBox', '-0.5 -0.5 ' + N + ' ' + N);
+      var siz = document.getElementById('gu-board-size');
+      if (siz) siz.value = String(N);
+    }
+    moves.length = 0;
+    g.moves.forEach(function (m) { moves.push(m); });
+    replayMoves(moves);
+    var b9 = board9from19();
+    log('loaded · heuristic h=' + heuristicLabel(b9) + ' · stored h=' + (g.h != null ? g.h : '—'));
+    drawBoard();
+    pushSnapshot({ title: 'history replay', sub: 'h now ' + heuristicLabel(b9), b9: b9 });
+  });
+
+  document.getElementById('gu-export').addEventListener('click', function () {
+    var payload = {
+      app: 'go-ugrad',
+      version: '0.1.5',
+      boardSize: N,
+      rules: 'capture+suicide (simple ko not enforced)',
+      ts: new Date().toISOString(),
+      board: Array.from(board),
+      moves: moves.slice(),
+      b9: board9from19(),
+      heuristic: heuristicLabel(board9from19()),
+      tensorEnv: getTensorEnvId(),
+      tensorEnvIds: window.UgradTensorEnvs ? UgradTensorEnvs.ids() : [],
+      modelNote: lastModelJson ? 'localStorage ' + STORAGE_MODEL : 'none'
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'go-ugrad-position.json';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2e3);
+  });
+
+  function Value(d, ch, op) {
+    this.data = +d; this.grad = 0; this._prev = ch ? new Set(ch) : new Set();
+    this._op = op || ''; this._backward = function () {};
+  }
+  Value.prototype.add = function (o) {
+    o = o instanceof Value ? o : new Value(o);
+    var out = new Value(this.data + o.data, [this, o], '+');
+    var self = this, oo = o;
+    out._backward = function () { self.grad += out.grad; oo.grad += out.grad; };
+    return out;
+  };
+  Value.prototype.mul = function (o) {
+    o = o instanceof Value ? o : new Value(o);
+    var out = new Value(this.data * o.data, [this, o], '*');
+    var self = this, oo = o, sd = self.data, od = oo.data;
+    out._backward = function () { self.grad += od * out.grad; oo.grad += sd * out.grad; };
+    return out;
+  };
+  Value.prototype.tanh = function () {
+    var t = Math.tanh(this.data);
+    var out = new Value(t, [this], 'tanh');
+    var self = this;
+    out._backward = function () { self.grad += (1 - t * t) * out.grad; };
+    return out;
+  };
+  Value.prototype.neg = function () { return this.mul(-1); };
+  Value.prototype.sub = function (o) { o = o instanceof Value ? o : new Value(o); return this.add(o.neg()); };
+  Value.prototype.backward = function () {
+    var topo = [], vis = new Set();
+    var b = function (v) {
+      if (!vis.has(v)) { vis.add(v); v._prev.forEach(b); topo.push(v); }
+    };
+    b(this);
+    this.grad = 1;
+    for (var i = topo.length - 1; i >= 0; i--) topo[i]._backward();
+  };
+
+  function Neuron(nin) {
+    var s = Math.sqrt(2 / nin);
+    this.w = Array.from({ length: nin }, function () { return new Value((Math.random() * 2 - 1) * s); });
+    this.b = new Value(0);
+  }
+  Neuron.prototype.call = function (x) {
+    var a = this.b;
+    for (var i = 0; i < this.w.length; i++) a = a.add(this.w[i].mul(x[i]));
+    return a.tanh();
+  };
+  Neuron.prototype.params = function () { return this.w.concat([this.b]); };
+
+  function Layer(ni, no) {
+    this.neurons = Array.from({ length: no }, function () { return new Neuron(ni); });
+  }
+  Layer.prototype.call = function (x) {
+    return this.neurons.map(function (n) { return n.call(x); });
+  };
+  Layer.prototype.params = function () { return this.neurons.flatMap(function (n) { return n.params(); }); };
+
+  function MLP(sizes) {
+    this.layers = [];
+    for (var i = 0; i < sizes.length - 1; i++) {
+      this.layers.push(new Layer(sizes[i], sizes[i + 1]));
+    }
+  }
+  MLP.prototype.call = function (x) {
+    if (!Array.isArray(x)) x = [x];
+    var li;
+    for (li = 0; li < this.layers.length; li++) {
+      x = this.layers[li].call(x);
+    }
+    return x.length === 1 ? x[0] : x;
+  };
+  MLP.prototype.params = function () { return this.layers.flatMap(function (l) { return l.params(); }); };
+
+  function trainSteps(arch, data, steps, lr, onStep) {
+    var model = new MLP(arch);
+    var si, j, total, pred, diff, lv, params, acc;
+    for (si = 0; si < steps; si++) {
+      total = new Value(0);
+      for (j = 0; j < data.X.length; j++) {
+        pred = model.call(data.X[j].map(function (v) { return new Value(v); }));
+        diff = pred.sub(data.Y[j]);
+        total = total.add(diff.mul(diff));
+      }
+      total = total.mul(1 / data.X.length);
+      lv = total.data;
+      params = model.params();
+      params.forEach(function (p) { p.grad = 0; });
+      total.backward();
+      params.forEach(function (p) {
+        if (!isFinite(p.grad)) p.grad = 0;
+        p.data -= lr * p.grad;
+      });
+      acc = 0;
+      for (j = 0; j < data.X.length; j++) {
+        var o = model.call(data.X[j].map(function (v) { return new Value(v); }));
+        var pv = o.data != null ? o.data : o;
+        if (Math.round(pv) === data.Y[j]) acc++;
+      }
+      acc /= data.X.length;
+      if (onStep) onStep(si + 1, lv, acc);
+      if (!isFinite(lv)) break;
+    }
+    return { loss: lv, acc: acc, model: model };
+  }
+
+  function serializeModel(model, envId) {
+    return {
+      arch: [9, 16, 8, 1],
+      flat: model.params().map(function (p) { return p.data; }),
+      ts: Date.now(),
+      env: envId || 'go-board'
+    };
+  }
+
+  function saveModelForEnv(envId, json) {
+    try {
+      localStorage.setItem(STORAGE_MODEL, JSON.stringify(json));
+    } catch (e) {}
+    try {
+      var m = JSON.parse(localStorage.getItem(STORAGE_MAP) || '{}');
+      if (typeof m !== 'object' || m === null) m = {};
+      m[envId] = json;
+      localStorage.setItem(STORAGE_MAP, JSON.stringify(m));
+    } catch (e2) {}
+  }
+
+  function loadModelForEnv(envId) {
+    try {
+      var m = JSON.parse(localStorage.getItem(STORAGE_MAP) || '{}');
+      if (m && m[envId] && m[envId].flat) return m[envId];
+    } catch (e) {}
+    try {
+      var one = JSON.parse(localStorage.getItem(STORAGE_MODEL) || 'null');
+      if (one && one.flat && one.env === envId) return one;
+    } catch (e2) {}
+    return null;
+  }
+
+  function paintCmdStation(b9, step, loss, acc, envId) {
+    var el = document.getElementById('gu-cmd-live');
+    var ro = document.getElementById('gu-cmd-readout');
+    if (!el || !b9 || b9.length !== 9) return;
+    el.innerHTML = '';
+    var i;
+    var s;
+    var sp;
+    for (i = 0; i < 9; i++) {
+      s = document.createElement('span');
+      sp = b9[i];
+      s.textContent = sp === 1 ? '●' : sp === -1 ? '○' : '·';
+      el.appendChild(s);
+    }
+    if (ro) {
+      ro.textContent =
+        'env ' +
+        (envId || '') +
+        ' · step ' +
+        (step != null ? step : '—') +
+        '\nL=' +
+        (loss != null ? Number(loss).toFixed(4) : '—') +
+        ' · acc ' +
+        (acc != null ? (acc * 100).toFixed(0) + '%' : '—');
+    }
+  }
+
+  function getTensorEnvId() {
+    var sel = document.getElementById('gu-tensor-env');
+    if (!sel || !sel.value) return window.UgradTensorEnvs ? UgradTensorEnvs.defaultId : 'go-board';
+    return sel.value;
+  }
+
+  function runTrain(envId, stepsOverride) {
+    var env = envId || getTensorEnvId();
+    var steps = stepsOverride != null ? +stepsOverride : parseInt(document.getElementById('gu-steps').value, 10) || 80;
+    if (!window.UgradTensorEnvs) {
+      log('train: UgradTensorEnvs missing');
+      return;
+    }
+    var meta = UgradTensorEnvs.meta(env);
+    if (!meta) {
+      log('unknown tensor env: ' + env);
+      return;
+    }
+    var n = 96;
+    var data = UgradTensorEnvs.synthBatch(env, n);
+    if (!data.X.length) {
+      log('synth batch empty');
+      return;
+    }
+    log('train · env ' + env + ' · ' + (meta.name || '') + ' · synth ' + n + ' · arch 9→16→8→1');
+    var out = trainSteps([9, 16, 8, 1], data, steps, 0.05, function (step, loss, acc) {
+      var sample = data.X[((step * 7) % data.X.length) | 0];
+      lastTrainTensor = sample;
+      paintCmdStation(sample, step, loss, acc, env);
+      var nSnap = Math.max(1, (steps / 6) | 0);
+      if (step % nSnap === 0 || step === steps) {
+        pushSnapshot({
+          title: 'train ' + step + '/' + steps + ' · ' + env,
+          sub: 'L=' + loss.toFixed(4) + ' acc ' + (acc * 100).toFixed(0) + '%',
+          b9: board9from19()
+        });
+      }
+    });
+    lastModelJson = serializeModel(out.model, env);
+    saveModelForEnv(env, lastModelJson);
+    log(
+      'train done · env ' +
+        env +
+        ' · loss ' +
+        (out.loss != null ? out.loss.toFixed(4) : '?') +
+        ' acc ' +
+        ((out.acc || 0) * 100).toFixed(0) +
+        '% · saved ' +
+        STORAGE_MODEL
+    );
+    pushSnapshot({ title: 'train complete · ' + env, sub: 'tensor head in localStorage', b9: board9from19() });
+    paintCmdStation(lastTrainTensor || data.X[0], steps, out.loss, out.acc, env);
+  }
+
+  document.getElementById('gu-train').addEventListener('click', function () {
+    runTrain(getTensorEnvId(), null);
+  });
+
+  document.getElementById('gu-ai-move').addEventListener('click', function () {
+    var js = loadModelForEnv('go-board');
+    if (!js || !js.flat) {
+      try {
+        js = JSON.parse(localStorage.getItem(STORAGE_MODEL) || 'null');
+      } catch (e0) {
+        js = null;
+      }
+    }
+    if (!js || !js.flat) {
+      log('AI: run Train first with Tensor env “go-board” (Go slice)');
+      return;
+    }
+    if (js.env && js.env !== 'go-board') {
+      log('AI: stored model is for env ' + js.env + ' — use go-board for 19×19 play');
+      return;
+    }
+    if (!js.arch) return;
+    var model = new MLP(js.arch);
+    var params = model.params();
+    if (params.length !== js.flat.length) { log('AI: param count mismatch'); return; }
+    params.forEach(function (p, i) { p.data = js.flat[i]; });
+    var spots = [];
+    var x, y;
+    for (y = 0; y < N; y++) for (x = 0; x < N; x++) if (!board[idx(x, y)]) spots.push({ x: x, y: y });
+    if (!spots.length) return;
+    var b9 = board9from19();
+    var score = model.call(b9.map(function (v) { return new Value(v); }));
+    var pv = score.data != null ? score.data : score;
+    var col = parseInt(document.getElementById('gu-color').value, 10) || 1;
+    var si, cand, r, pick = null;
+    var start = (Math.abs(Math.sin(pv * 12.9898)) * spots.length) | 0;
+    for (si = 0; si < spots.length; si++) {
+      cand = spots[(start + si) % spots.length];
+      r = applyMoveWithCapture(board, cand.x, cand.y, col);
+      if (r.ok) {
+        pick = cand;
+        break;
+      }
+    }
+    if (!pick) { log('AI: no legal move'); return; }
+    armClockOnFirstMove();
+    moves.push({ x: pick.x, y: pick.y, c: col });
+    document.getElementById('gu-color').value = String(-col);
+    lastClockTick = Date.now();
+    drawBoard();
+    broadcastGoState();
+    log('AI · scalar ' + pv.toFixed(3) + ' → (' + pick.x + ',' + pick.y + ')');
+  });
+
+  function syncGuMetaTheme() {
+    try {
+      var m = document.getElementById('gu-meta-theme');
+      if (m) m.setAttribute('content', document.documentElement.getAttribute('data-theme') === 'light' ? '#f6f8fa' : '#0f1419');
+    } catch (e) {}
+  }
+  try {
+    if (window.QuantumPrefixes && QuantumPrefixes.onThemeChange) {
+      QuantumPrefixes.onThemeChange(function () {
+        drawBoard();
+        syncGuMetaTheme();
+      });
+    }
+  } catch (eTh) {}
+  syncGuMetaTheme();
+
+  function initTensorEnvSelect() {
+    var sel = document.getElementById('gu-tensor-env');
+    if (!sel || !window.UgradTensorEnvs) return;
+    sel.innerHTML = '';
+    UgradTensorEnvs.ids().forEach(function (id) {
+      var m = UgradTensorEnvs.meta(id);
+      var o = document.createElement('option');
+      o.value = id;
+      o.textContent = (m.game ? m.game + ': ' : '') + (m.name || id);
+      sel.appendChild(o);
+    });
+    try {
+      var saved = localStorage.getItem(STORAGE_TENSOR_ENV);
+      if (saved && UgradTensorEnvs.get(saved)) sel.value = saved;
+    } catch (e) {}
+    function setDesc() {
+      var m = UgradTensorEnvs.meta(sel.value);
+      var d = document.getElementById('gu-cmd-env-desc');
+      if (d) d.textContent = m && m.desc ? m.desc : '';
+    }
+    sel.addEventListener('change', function () {
+      try {
+        localStorage.setItem(STORAGE_TENSOR_ENV, sel.value);
+      } catch (e2) {}
+      setDesc();
+    });
+    setDesc();
+  }
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      var _bcTrain = new BroadcastChannel('ugrad-tensor-train');
+      _bcTrain.onmessage = function (ev) {
+        var d = ev.data;
+        if (!d || d.type !== 'train') return;
+        var env = d.env || getTensorEnvId();
+        var st = parseInt(d.steps, 10) || 80;
+        if (document.getElementById('gu-steps')) document.getElementById('gu-steps').value = String(st);
+        var s = document.getElementById('gu-tensor-env');
+        if (s && window.UgradTensorEnvs && UgradTensorEnvs.get(env)) s.value = env;
+        runTrain(env, st);
+      };
+    }
+  } catch (eBc) {}
+
+  try {
+    window.addEventListener('message', function (ev) {
+      var d = ev.data;
+      if (!d || d.type !== 'ugrad-tensor-train') return;
+      var env = d.env || getTensorEnvId();
+      var st = parseInt(d.steps, 10) || 80;
+      if (document.getElementById('gu-steps')) document.getElementById('gu-steps').value = String(st);
+      var s = document.getElementById('gu-tensor-env');
+      if (s && window.UgradTensorEnvs && UgradTensorEnvs.get(env)) s.value = env;
+      runTrain(env, st);
+    });
+  } catch (ePm) {}
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      goBoardChannel = new BroadcastChannel(BC_NAME);
+      goBoardChannel.onmessage = function (ev) {
+        applyRemoteState(ev.data);
+      };
+    }
+  } catch (eBcGo) {}
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      tensorLaneChannel = new BroadcastChannel(TENSOR_LANE_CHANNEL);
+      tensorLaneChannel.onmessage = onTensorLaneMessage;
+    }
+  } catch (eLaneCh) {}
+
+  function persistLaneToggles() {
+    try {
+      var s = document.getElementById('gu-lane-send');
+      var r = document.getElementById('gu-lane-recv');
+      if (s) localStorage.setItem(STORAGE_LANE_SEND, s.checked ? '1' : '0');
+      if (r) localStorage.setItem(STORAGE_LANE_RECV, r.checked ? '1' : '0');
+    } catch (e) {}
+  }
+  try {
+    if (localStorage.getItem(STORAGE_LANE_SEND) === '1' && document.getElementById('gu-lane-send')) {
+      document.getElementById('gu-lane-send').checked = true;
+    }
+    if (localStorage.getItem(STORAGE_LANE_RECV) === '0' && document.getElementById('gu-lane-recv')) {
+      document.getElementById('gu-lane-recv').checked = false;
+    }
+  } catch (eLt) {}
+  document.getElementById('gu-lane-send').addEventListener('change', function () {
+    persistLaneToggles();
+    emitTensorLane();
+  });
+  document.getElementById('gu-lane-recv').addEventListener('change', function () {
+    persistLaneToggles();
+  });
+
+  document.getElementById('gu-board-size').addEventListener('change', function () {
+    setBoardSize(this.value, false);
+  });
+  document.getElementById('gu-clock-pause').addEventListener('click', function () {
+    clockPaused = !clockPaused;
+    this.textContent = clockPaused ? 'Resume' : 'Pause';
+    lastClockTick = Date.now();
+    updateClockDisplay();
+    broadcastGoState();
+  });
+  document.getElementById('gu-clock-reset').addEventListener('click', function () {
+    resetClocksFromUI();
+  });
+  document.getElementById('gu-clock-on').addEventListener('change', function () {
+    lastClockTick = Date.now();
+    updateClockDisplay();
+    broadcastGoState();
+  });
+  document.getElementById('gu-clock-min').addEventListener('change', function () {
+    resetClocksFromUI();
+  });
+  document.getElementById('gu-bc-label').addEventListener('change', function () {
+    try {
+      localStorage.setItem(STORAGE_BC_LABEL, this.value);
+    } catch (e) {}
+    broadcastGoState();
+  });
+  try {
+    var _lbl = localStorage.getItem(STORAGE_BC_LABEL);
+    if (_lbl != null && document.getElementById('gu-bc-label')) document.getElementById('gu-bc-label').value = _lbl;
+  } catch (eLb) {}
+
+  setInterval(clockTick, 100);
+
+  initTensorEnvSelect();
+  loadHistorySelect();
+  drawBoard();
+  log('go-ugrad v0.1.5 · board 9/13/19 · chess clock · BC mirror · tensor envs · 9-cell slice');
+
+  window.GoUgrad = {
+    VERSION: '0.1.5',
+    getBoardSize: function () { return N; },
+    setBoardSize: setBoardSize,
+    board9from19: board9from19,
+    heuristicLabel: heuristicLabel,
+    pushSnapshot: pushSnapshot,
+    exportMoves: function () { return moves.slice(); },
+    loadFlatWeights: function (json) {
+      try { localStorage.setItem(STORAGE_MODEL, JSON.stringify(json)); log('weights staged'); } catch (e) {}
+    },
+    tensorEnvs: function () {
+      return window.UgradTensorEnvs ? UgradTensorEnvs.listMeta() : [];
+    },
+    runTrain: runTrain,
+    getTensorEnvId: getTensorEnvId,
+    paintCmdStation: paintCmdStation,
+    loadModelForEnv: loadModelForEnv
+  };
+
+  // ===== QUANTUM PREFIX LIVE SYNC =====
+  function broadcastGoGrad() {
+    try {
+      if (window.QuantumPrefixes && QuantumPrefixes.broadcastState) {
+        QuantumPrefixes.broadcastState('go-ugrad', {
+          app: 'go-ugrad',
+          version: '0.1.5',
+          ts: Date.now(),
+          slice: board9from19(),
+          h: heuristicLabel(board9from19())
+        });
+      }
+    } catch (e1) {}
+  }
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      var _guQp = new BroadcastChannel('quantum-prefixes');
+      _guQp.onmessage = function (ev) {
+        if (ev.data && ev.data.type === 'requestSync') broadcastGoGrad();
+      };
+    }
+  } catch (e2) {}
+  broadcastGoGrad();
+})();
+</script>
+<script src="ugrad-game-presence.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});</script>
+</body>
+</html>

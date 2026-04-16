@@ -1,0 +1,99 @@
+{
+  "_comment": "qbit pipeline routing manifest — maps bench modes to qbit/ nodes, source files, and subagent safety",
+  "_version": "1.0.0",
+  "_generated": "2026-02-22",
+  "pipeline": [
+    {
+      "mode": "prefix",
+      "node": "qbit/prefixes",
+      "source": "web/quantum-prefixes.js",
+      "engine": "T0-JS",
+      "api": "classifyLine(line, lang)",
+      "nsPerLine": 183,
+      "linesPerSec": "5.5M",
+      "subagentSafe": true,
+      "description": "11-symbol structural classification, 59 languages"
+    },
+    {
+      "mode": "dac",
+      "node": "qbit/dac",
+      "source": "web/qbit-dac.js",
+      "engine": "T0-JS+DAC",
+      "api": "dacTracks() + dacComplexity()",
+      "nsPerLine": 660,
+      "linesPerSec": "1.5M",
+      "subagentSafe": true,
+      "description": "Tracks, stripes, complexity, contrails, depth analysis"
+    },
+    {
+      "mode": "steno",
+      "node": "qbit/steno",
+      "source": "web/qbit-steno.js",
+      "engine": "Steno-v2",
+      "api": "stenoEncode() + stenoStrip()",
+      "nsPerLine": 2400,
+      "linesPerSec": "422K",
+      "subagentSafe": false,
+      "description": "Steganographic encode/strip, 5 Unicode spaces per line, round-trip verified"
+    },
+    {
+      "mode": "qbit",
+      "node": "qbit/codec",
+      "source": "web/qbit-dac.js + web/qbit-steno.js",
+      "engine": "T0+Steno",
+      "api": "qbitCodec.encode()",
+      "nsPerLine": 2100,
+      "linesPerSec": "480K",
+      "subagentSafe": false,
+      "description": "Full .qbit encode: classify + steno + header"
+    },
+    {
+      "mode": "gluelam",
+      "node": "qbit/gluelam",
+      "source": "web/quantum-prefixes.js + web/qbit-dac.js + web/qbit-steno.js",
+      "engine": "Node.js require()",
+      "api": "require() all 3 modules",
+      "nsPerLine": null,
+      "linesPerSec": null,
+      "subagentSafe": true,
+      "description": "Verify isomorphic module loading in Node.js"
+    },
+    {
+      "mode": "uterm",
+      "node": "qbit/tools",
+      "source": "web/uterm.html",
+      "engine": "Command dispatch",
+      "api": "C[cmd](args) object dispatch",
+      "nsPerLine": null,
+      "linesPerSec": null,
+      "subagentSafe": true,
+      "description": "Analyze uterm command surface: count commands, verify pipeline hooks"
+    },
+    {
+      "mode": "ugrad",
+      "node": "qbit/ugrad",
+      "source": "web/ugrad-r0.html",
+      "engine": "UGRAD.extend()",
+      "api": "18 extensions, R0-R4 staircase",
+      "nsPerLine": null,
+      "linesPerSec": null,
+      "subagentSafe": true,
+      "description": "Analyze μgrad extension surface: extensions, capabilities, R-levels"
+    }
+  ],
+  "readModes": ["prefix", "dac", "gluelam", "uterm", "ugrad", "scan", "audit"],
+  "writeModes": ["steno", "qbit", "pipeline"],
+  "routingRule": "Subagent → readModes (JSON) → Main Agent → writeModes (verify/write/decide)",
+  "scanTargets": {
+    "web": { "files": 74, "lines": 108366, "coverage": "100%" },
+    "audit": { "htmlApps": 50, "compliant": 50, "threshold": "7/11 checks" }
+  },
+  "speedLadder": [
+    { "tier": "T5", "engine": "Rust zero-alloc byte-dispatch", "nsPerLine": 3.2, "linesPerSec": "312M", "status": "DEPLOYED" },
+    { "tier": "T1", "engine": "Rust regex standard", "nsPerLine": 89.6, "linesPerSec": "11.2M", "status": "DEPLOYED" },
+    { "tier": "T0", "engine": "JS regex (quantum-prefixes.js)", "nsPerLine": 246, "linesPerSec": "4.1M", "status": "DEPLOYED" },
+    { "tier": "T2", "engine": "WASM (Rust→browser)", "nsPerLine": 300, "linesPerSec": "3.3M", "status": "DEPLOYED" },
+    { "tier": "T3", "engine": "GPU WGSL compute", "nsPerLine": 10, "linesPerSec": "100M", "status": "BUILT" },
+    { "tier": "T4", "engine": "FPGA SystemVerilog", "nsPerLine": 3, "linesPerSec": "333M", "status": "DESIGNED" }
+  ]
+}

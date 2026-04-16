@@ -1,0 +1,761 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!--
+  gomoku-ugrad.html — gomoku lab shell parity with go-ugrad.html: toolbar, clock, snapshots,
+  saved games, tensor command station, lane publish, broadcast, export. v0.3.2 — lane rail + shared ugrad-parity-lab.css
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="gomoku-meta-theme">
+<title>Gomoku — μgrad · five in a row</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+<link rel="stylesheet" href="ugrad-game-chrome.css">
+<style>
+#gm-canvas{display:block;width:min(100%,min(92vw,560px));height:auto;margin:0 auto;touch-action:none;border-radius:8px;background:#0a0d12;cursor:crosshair}
+</style>
+</head>
+<body data-ugrad-game="gomoku" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>gomoku · 五目並べ</strong>
+    <span class="gu-bar-out"><a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a></span>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark (syncs with μgrad stack)"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="ugc-open-monitor" title="Open multi-board monitor">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slices from other tensor envs (BroadcastChannel ugrad-tensor-lane)">
+      <label><input type="checkbox" id="gm-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gm-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gm-mode"><option value="play" selected>Play &amp; record</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="ugc-color" title="Synced to clock · updates after each move"><option value="1">Black (●)</option><option value="-1">White (○)</option></select></label>
+    <button type="button" id="gm-undo">Undo</button>
+    <button type="button" id="gm-clear">Clear board</button>
+    <button type="button" id="gm-save-game">Save game</button>
+    <label>Tensor env <select id="gm-tensor-env"></select></label>
+    <label>Train steps <input type="number" id="gm-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gm-train">Train slice MLP</button>
+    <button type="button" id="gm-ai-move">AI move</button>
+    <button type="button" id="gm-snap">Snapshot</button>
+    <button type="button" id="gm-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gm-fs" title="Fullscreen board + side column">Fullscreen board</button>
+    <button type="button" id="ugc-open-hub-monitor">Hub monitor</button>
+    <label title="Board size">Board <select id="gm-board-size"><option value="15" selected>15×15</option><option value="19">19×19</option></select></label>
+    <label title="Mirror another tab"><input type="checkbox" id="gm-bc-follow"> Follow remote</label>
+    <label title="Publish position to other tabs"><input type="checkbox" id="gm-bc-send" checked> Broadcast</label>
+    <label>Name <input type="text" id="gm-bc-label" maxlength="32" placeholder="optional" style="max-width:7rem"></label>
+    <button type="button" class="gu-primary" id="gm-new">New game</button>
+    <button type="button" onclick="location.href='go-ugrad.html'">Go lab</button>
+  </div>
+</header>
+<div class="gu-main" id="ugc-fs-target">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2><span id="gm-h2-title">15×15 lab</span> · click intersection · <span id="gm-st">Black to play</span> · <span id="gm-win"></span></h2>
+    <div class="gu-clock-strip" role="group" aria-label="Game clock">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="ugc-clock-b">B · —:—</span>
+        <span class="gu-clock-face" id="ugc-clock-w">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="ugc-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="ugc-clock-min" value="5" min="1" max="120" step="1"></label>
+      <button type="button" id="ugc-clock-pause">Pause</button>
+      <button type="button" class="gu-primary" id="ugc-clock-reset">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar" aria-label="Board view">
+      <button type="button" class="gu-fs-btn gu-primary" id="ugc-fs-inline" title="Fullscreen board + activity log">⛶</button>
+    </div>
+    <canvas id="gm-canvas" width="450" height="450" aria-label="Gomoku board"></canvas>
+    <p style="font-size:10px;color:var(--qp-fg-muted);margin:10px 0 0;line-height:1.45">Freestyle five in a row (horiz / vert / diag). <strong>Clock</strong> tracks active side (sync with <strong>To move</strong>). <strong>Broadcast / Follow</strong> uses <code>BroadcastChannel('ugrad-gomoku-board')</code>. <strong>3×3 slice</strong> = coarse downsample of the full grid (same ℝ⁹ shape as go tensor). Tournament rules: <a href="https://en.wikipedia.org/wiki/Gomoku" target="_blank" rel="noopener" style="color:inherit;font-weight:600">Gomoku</a> · Swap2 · Renju. Win → <code>iron-line</code>.</p>
+    <div class="gu-mini9" id="gm-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" aria-label="Tensor command station">
+      <div class="gu-cmd-hd">Command station · live 3×3 slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gm-cmd-live"></div>
+        <div class="gu-cmd-readout" id="gm-cmd-readout">idle · Train slice MLP or play moves</div>
+      </div>
+      <p class="gu-cmd-meta" id="gm-cmd-meta">Automation: <code>BroadcastChannel('ugrad-tensor-train')</code> · <code>{ type: 'train', env, steps }</code> · env <code>gomoku-density</code> in <code>ugrad-tensor-envs.js</code>.</p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gm-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gm-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gm-act" aria-live="polite">gomoku-ugrad v0.3.2 · move log</div>
+    </div>
+    <p style="font:500 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin:0;line-height:1.45">gomoku-ugrad v0.3.2 · board 15/19 · chess clock · BC mirror · tensor envs · 3×3 slice</p>
+  </div>
+</div>
+<section class="gu-lane-sync" aria-label="Tensor lane monitor">
+  <h3 class="gu-lane-sync-hd">Tensor lane · remote slices</h3>
+  <p class="gu-lane-sync-meta">Same 3×3 shape as <code>#gm-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code> · <strong>Publish slice</strong> shares this board’s downsampled window; <strong>Lane in</strong> receives foreign slices below.</p>
+  <div class="gu-lane-sync-grid" id="gm-lane-grid"><p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet — enable Publish on another tab or play here.</p></div>
+</section>
+<p class="gu-foot"><code>gomoku-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">μgrad games hub</a> · <a href="ugrad-pad-lab.html">μPad lab</a> · <a href="ugrad-r0.html">ugrad-r0</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script src="ugrad-game-chrome.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var VERSION = '0.3.2';
+  var N = 15;
+  var CELL = 30;
+  var MARGIN = 15;
+  var board = [];
+  var turn = 1;
+  var over = false;
+  var hist = [];
+  var snapSeq = 0;
+  var STORAGE_GAMES = 'gomoku-ugrad-games-v1';
+  var BC_NAME = 'ugrad-gomoku-board';
+  var TENSOR_LANE = 'ugrad-tensor-lane';
+  var cv = document.getElementById('gm-canvas');
+  var ctx = cv.getContext('2d');
+  var logEl = document.getElementById('gm-act');
+  var bc = null;
+  var laneCh = null;
+  var applyingRemote = false;
+  var laneStore = {};
+  var laneSid = (function () {
+    try {
+      var x = sessionStorage.getItem('gomoku-ugrad-lane-sid');
+      if (x) return x;
+      x = 'gm' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+      sessionStorage.setItem('gomoku-ugrad-lane-sid', x);
+      return x;
+    } catch (e0) {
+      return 'gm' + Date.now();
+    }
+  })();
+
+  function idx(i, j) { return i * N + j; }
+  function colLabel(i) { return String.fromCharCode(97 + i); }
+
+  function syncColorSelect() {
+    var sel = document.getElementById('ugc-color');
+    if (sel) sel.value = String(turn);
+  }
+
+  function resizeCanvasForN() {
+    var span = Math.min(420, (typeof window !== 'undefined' && window.innerWidth) ? Math.min(560, window.innerWidth - 40) : 450);
+    CELL = (span - 2 * MARGIN) / Math.max(1, N - 1);
+    cv.width = Math.round(2 * MARGIN + (N - 1) * CELL);
+    cv.height = cv.width;
+  }
+
+  function emptyBoard() {
+    board = new Array(N * N);
+    var i;
+    for (i = 0; i < N * N; i++) board[i] = 0;
+  }
+
+  function inB(i, j) { return i >= 0 && i < N && j >= 0 && j < N; }
+
+  function lineCount(i, j, di, dj, pl) {
+    var c = 0;
+    for (var k = 1; k < 6; k++) {
+      var ni = i + di * k, nj = j + dj * k;
+      if (!inB(ni, nj) || board[idx(ni, nj)] !== pl) break;
+      c++;
+    }
+    return c;
+  }
+
+  function winsAt(i, j, pl) {
+    var dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    var d;
+    for (d = 0; d < 4; d++) {
+      var di = dirs[d][0], dj = dirs[d][1];
+      if (1 + lineCount(i, j, -di, -dj, pl) + lineCount(i, j, di, dj, pl) >= 5) return true;
+    }
+    return false;
+  }
+
+  function boardToSlice9() {
+    var out = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    var ri, rj, i, j, sum, cnt, bi, bj, i0, i1, j0, j1;
+    for (ri = 0; ri < 3; ri++) {
+      for (rj = 0; rj < 3; rj++) {
+        sum = 0;
+        cnt = 0;
+        i0 = Math.floor((ri * N) / 3);
+        i1 = Math.floor(((ri + 1) * N) / 3);
+        j0 = Math.floor((rj * N) / 3);
+        j1 = Math.floor(((rj + 1) * N) / 3);
+        for (i = i0; i < i1; i++) {
+          for (j = j0; j < j1; j++) {
+            sum += board[idx(i, j)] || 0;
+            cnt++;
+          }
+        }
+        bi = ri * 3 + rj;
+        out[bi] = sum > 0 ? 1 : sum < 0 ? -1 : 0;
+      }
+    }
+    return out;
+  }
+
+  function renderMini9(elId, slice) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    var s = '';
+    var t;
+    for (t = 0; t < 9; t++) {
+      var v = slice[t];
+      var ch = v === 1 ? '●' : v === -1 ? '○' : '·';
+      s += '<span>' + ch + '</span>';
+    }
+    el.innerHTML = s;
+  }
+
+  function updateMiniAll() {
+    var sl = boardToSlice9();
+    renderMini9('gm-mini9', sl);
+    renderMini9('gm-cmd-live', sl);
+  }
+
+  function normSliceVal(v) {
+    var n = +v;
+    if (n > 0.25) return 1;
+    if (n < -0.25) return -1;
+    return 0;
+  }
+  function normalizeSlice9(s) {
+    if (!s || s.length < 9) return null;
+    var out = [], i;
+    for (i = 0; i < 9; i++) out.push(normSliceVal(s[i]));
+    return out;
+  }
+  function fillMini9(el, b9, micro) {
+    var norm = normalizeSlice9(b9) || b9;
+    el.innerHTML = '';
+    el.className = 'gu-mini9' + (micro ? ' gu-mini9--micro' : '');
+    var i, sp, s;
+    for (i = 0; i < 9; i++) {
+      s = document.createElement('span');
+      sp = norm[i];
+      s.textContent = sp === 1 ? '●' : sp === -1 ? '○' : '·';
+      el.appendChild(s);
+    }
+  }
+  function laneKeyForMessage(d) {
+    var src = d.source != null ? String(d.source) : '?';
+    if (src.length > 28) src = src.slice(0, 26) + '…';
+    return (d.env || 'unknown') + ' · ' + src;
+  }
+  function paintLaneRail() {
+    var rail = document.getElementById('gu-bar-rail');
+    if (!rail) return;
+    rail.innerHTML = '';
+    var keys = Object.keys(laneStore);
+    if (!keys.length) return;
+    keys.sort(function (a, b) {
+      return (laneStore[b].ts || 0) - (laneStore[a].ts || 0);
+    });
+    var i, k, slot, lbl, mini;
+    for (i = 0; i < Math.min(3, keys.length); i++) {
+      k = keys[i];
+      if (!laneStore[k] || !laneStore[k].slice) continue;
+      slot = document.createElement('div');
+      slot.className = 'gu-bar-rail-slot';
+      lbl = document.createElement('span');
+      lbl.className = 'gu-lane-env';
+      lbl.textContent = k.length > 14 ? k.slice(0, 12) + '…' : k;
+      lbl.title = k;
+      mini = document.createElement('div');
+      fillMini9(mini, laneStore[k].slice, true);
+      slot.appendChild(lbl);
+      slot.appendChild(mini);
+      rail.appendChild(slot);
+    }
+  }
+  function paintLaneSyncGrid() {
+    var grid = document.getElementById('gm-lane-grid');
+    if (!grid) return;
+    var keys = Object.keys(laneStore);
+    if (!keys.length) {
+      grid.innerHTML =
+        '<p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet — enable Publish on another tab or play here.</p>';
+      return;
+    }
+    grid.innerHTML = '';
+    keys.sort(function (a, b) {
+      return (laneStore[b].ts || 0) - (laneStore[a].ts || 0);
+    });
+    var i, k, card, hd, mini;
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      if (!laneStore[k] || !laneStore[k].slice) continue;
+      card = document.createElement('div');
+      card.className = 'gu-lane-card';
+      hd = document.createElement('div');
+      hd.className = 'gu-lane-card-hd';
+      hd.textContent = k + ' · ' + new Date(laneStore[k].ts || Date.now()).toLocaleTimeString();
+      mini = document.createElement('div');
+      fillMini9(mini, laneStore[k].slice, false);
+      card.appendChild(hd);
+      card.appendChild(mini);
+      grid.appendChild(card);
+    }
+  }
+  function onTensorLaneMessage(ev) {
+    var d = ev.data;
+    if (!d || d.type !== 'tensor-slice' || !Array.isArray(d.slice) || d.slice.length !== 9) return;
+    if (d.source && d.source === laneSid) return;
+    var recv = document.getElementById('gm-lane-recv');
+    if (recv && !recv.checked) return;
+    var k = laneKeyForMessage(d);
+    laneStore[k] = { slice: d.slice.slice(), ts: d.ts || Date.now(), source: d.source || '' };
+    paintLaneRail();
+    paintLaneSyncGrid();
+  }
+
+  function draw() {
+    var w = cv.width, h = cv.height, g;
+    ctx.fillStyle = '#0a0d12';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(250,250,252,.14)';
+    ctx.lineWidth = 1;
+    for (g = 0; g < N; g++) {
+      var x = MARGIN + g * CELL, y0 = MARGIN, y1 = MARGIN + (N - 1) * CELL;
+      ctx.beginPath();
+      ctx.moveTo(x, y0);
+      ctx.lineTo(x, y1);
+      ctx.stroke();
+      var y = MARGIN + g * CELL, x0 = MARGIN, x1 = MARGIN + (N - 1) * CELL;
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x1, y);
+      ctx.stroke();
+    }
+    var i, j, v, cx, cy, r;
+    for (i = 0; i < N; i++) {
+      for (j = 0; j < N; j++) {
+        v = board[idx(i, j)];
+        if (!v) continue;
+        cx = MARGIN + i * CELL;
+        cy = MARGIN + j * CELL;
+        r = CELL * 0.38;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = v === 1 ? '#e8edf4' : '#1a1e24';
+        ctx.fill();
+        ctx.strokeStyle = v === 1 ? 'rgba(0,0,0,.35)' : 'rgba(250,250,252,.35)';
+        ctx.stroke();
+      }
+    }
+  }
+
+  function setStatus() {
+    var st = document.getElementById('gm-st');
+    var w = document.getElementById('gm-win');
+    if (over) {
+      st.textContent = 'Game over';
+      return;
+    }
+    st.textContent = (turn === 1 ? 'Black' : 'White') + ' to play';
+    w.textContent = '';
+  }
+
+  function refreshLog() {
+    var lines = ['gomoku-ugrad v' + VERSION + ' · move log'];
+    var k, sq, ii, jj, pl;
+    for (k = 0; k < hist.length; k++) {
+      sq = hist[k];
+      ii = sq % N;
+      jj = (sq / N) | 0;
+      pl = (k % 2 === 0) ? 1 : -1;
+      lines.push((k + 1) + ' ' + (pl === 1 ? 'B' : 'W') + ' ' + colLabel(ii) + (jj + 1));
+    }
+    logEl.textContent = lines.join('\n');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function postBC() {
+    if (!document.getElementById('gm-bc-send') || !document.getElementById('gm-bc-send').checked) return;
+    try {
+      if (!bc) bc = new BroadcastChannel(BC_NAME);
+      bc.postMessage({
+        type: 'gomoku-state',
+        board: board.slice(),
+        hist: hist.slice(),
+        turn: turn,
+        over: over,
+        N: N,
+        label: (document.getElementById('gm-bc-label') && document.getElementById('gm-bc-label').value) || '',
+        ts: Date.now()
+      });
+    } catch (e1) {}
+  }
+
+  function postTensorLane() {
+    if (!document.getElementById('gm-lane-send') || !document.getElementById('gm-lane-send').checked) return;
+    try {
+      if (!laneCh) laneCh = new BroadcastChannel(TENSOR_LANE);
+      laneCh.postMessage({
+        type: 'tensor-slice',
+        v: 1,
+        env: 'gomoku-board',
+        slice: boardToSlice9().map(function (v) { return v; }),
+        source: laneSid,
+        ts: Date.now()
+      });
+    } catch (e2) {}
+  }
+
+  function place(i, j) {
+    if (over || board[idx(i, j)]) return;
+    if (window.UgradGameChrome && UgradGameChrome.armClock) UgradGameChrome.armClock();
+    board[idx(i, j)] = turn;
+    hist.push(idx(i, j));
+    refreshLog();
+    if (winsAt(i, j, turn)) {
+      over = true;
+      document.getElementById('gm-win').textContent = (turn === 1 ? 'Black' : 'White') + ' wins';
+      document.getElementById('gm-st').textContent = 'Game over';
+      try {
+        if (window.BroadcastChannel) {
+          var ch = new BroadcastChannel('iron-line');
+          ch.postMessage({ type: 'ugrad-game', game: 'gomoku', event: 'win', player: turn, ts: Date.now() });
+          ch.close();
+        }
+      } catch (e3) {}
+    } else {
+      turn = -turn;
+    }
+    syncColorSelect();
+    draw();
+    setStatus();
+    updateMiniAll();
+    postBC();
+    postTensorLane();
+    document.getElementById('gm-cmd-readout').textContent =
+      'slice ℝ⁹ · ' + boardToSlice9().join(',') + ' · moves ' + hist.length;
+  }
+
+  function pixelToCell(px, py) {
+    var r = cv.getBoundingClientRect(), sx = cv.width / r.width, sy = cv.height / r.height;
+    var x = (px - r.left) * sx, y = (py - r.top) * sy;
+    var i = Math.round((x - MARGIN) / CELL), j = Math.round((y - MARGIN) / CELL);
+    if (inB(i, j)) return [i, j];
+    return null;
+  }
+
+  function loadGames() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_GAMES) || '[]');
+    } catch (e4) {
+      return [];
+    }
+  }
+
+  function saveGames(arr) {
+    try {
+      localStorage.setItem(STORAGE_GAMES, JSON.stringify(arr));
+    } catch (e5) {}
+  }
+
+  function refreshHistorySelect() {
+    var sel = document.getElementById('gm-history');
+    var games = loadGames();
+    var i, g;
+    sel.innerHTML = '<option value="">-- pick recorded game --</option>';
+    for (i = 0; i < games.length; i++) {
+      g = games[i];
+      var opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = (g.name || 'game') + ' · ' + (g.ts || '') + ' · ' + (g.hist && g.hist.length ? g.hist.length + ' moves' : '');
+      sel.appendChild(opt);
+    }
+  }
+
+  function applyStateFromRemote(msg) {
+    if (!msg || msg.type !== 'gomoku-state') return;
+    applyingRemote = true;
+    try {
+      N = msg.N || 15;
+      if (N !== parseInt(document.getElementById('gm-board-size').value, 10)) {
+        document.getElementById('gm-board-size').value = String(N);
+      }
+      resizeCanvasForN();
+      hist = (msg.hist || []).slice();
+      if (msg.board && msg.board.length === N * N) {
+        board = msg.board.slice();
+      } else {
+        emptyBoard();
+        var k;
+        for (k = 0; k < hist.length; k++) {
+          board[hist[k]] = (k % 2 === 0) ? 1 : -1;
+        }
+      }
+      turn = msg.turn != null ? msg.turn : 1;
+      over = !!msg.over;
+      document.getElementById('gm-h2-title').textContent = N + '×' + N + ' lab';
+      syncColorSelect();
+      draw();
+      setStatus();
+      refreshLog();
+      updateMiniAll();
+    } finally {
+      applyingRemote = false;
+    }
+  }
+
+  function initTensorSelect() {
+    var sel = document.getElementById('gm-tensor-env');
+    if (!window.UgradTensorEnvs || !sel) return;
+    var ids = UgradTensorEnvs.ids();
+    var i, m, opt;
+    sel.innerHTML = '';
+    for (i = 0; i < ids.length; i++) {
+      m = UgradTensorEnvs.meta(ids[i]);
+      if (!m) continue;
+      opt = document.createElement('option');
+      opt.value = ids[i];
+      opt.textContent = m.name;
+      if (ids[i] === 'gomoku-density') opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  function runTrain() {
+    var env = document.getElementById('gm-tensor-env').value;
+    var steps = parseInt(document.getElementById('gm-steps').value, 10) || 80;
+    try {
+      var ch = new BroadcastChannel('ugrad-tensor-train');
+      ch.postMessage({ type: 'train', env: env, steps: steps, source: 'gomoku-ugrad' });
+      ch.close();
+    } catch (e6) {}
+    document.getElementById('gm-cmd-readout').textContent =
+      'train dispatched · env ' + env + ' · steps ' + steps + ' · ' + new Date().toISOString().slice(11, 19);
+  }
+
+  function exportJson() {
+    var payload = {
+      app: 'gomoku-ugrad',
+      version: VERSION,
+      N: N,
+      board: board,
+      hist: hist,
+      turn: turn,
+      over: over,
+      slice9: boardToSlice9(),
+      ts: new Date().toISOString()
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gomoku-ugrad-' + Date.now() + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function snapshot() {
+    snapSeq++;
+    var strip = document.getElementById('gm-snap-strip');
+    var card = document.createElement('div');
+    card.className = 'gu-snap-card';
+    card.setAttribute('role', 'listitem');
+    card.innerHTML = '<div class="gu-s-t">snap #' + snapSeq + ' · ' + hist.length + ' moves</div><div class="gu-mini9" style="margin-top:4px">' +
+      boardToSlice9().map(function (v) {
+        return '<span style="display:inline-flex;width:18px;height:18px;align-items:center;justify-content:center;font-size:9px;border:1px solid var(--qp-border);border-radius:3px">' +
+          (v === 1 ? '●' : v === -1 ? '○' : '·') + '</span>';
+      }).join('') + '</div>';
+    strip.appendChild(card);
+    strip.scrollLeft = strip.scrollWidth;
+  }
+
+  function aiMove() {
+    var empties = [];
+    var i, j;
+    for (i = 0; i < N; i++) {
+      for (j = 0; j < N; j++) {
+        if (!board[idx(i, j)]) empties.push([i, j]);
+      }
+    }
+    if (!empties.length || over) return;
+    var pick = empties[(Math.random() * empties.length) | 0];
+    place(pick[0], pick[1]);
+  }
+
+  function newGame() {
+    emptyBoard();
+    turn = 1;
+    over = false;
+    hist = [];
+    syncColorSelect();
+    draw();
+    setStatus();
+    refreshLog();
+    updateMiniAll();
+    postBC();
+  }
+
+  function undo() {
+    if (hist.length < 2 || over) return;
+    hist.pop();
+    hist.pop();
+    emptyBoard();
+    turn = 1;
+    var k;
+    for (k = 0; k < hist.length; k++) {
+      board[hist[k]] = (k % 2 === 0) ? 1 : -1;
+    }
+    turn = (hist.length % 2 === 0) ? 1 : -1;
+    over = false;
+    document.getElementById('gm-win').textContent = '';
+    syncColorSelect();
+    draw();
+    setStatus();
+    refreshLog();
+    updateMiniAll();
+    postBC();
+  }
+
+  cv.addEventListener('click', function (ev) {
+    if (over || applyingRemote) return;
+    var c = pixelToCell(ev.clientX, ev.clientY);
+    if (c) place(c[0], c[1]);
+  });
+
+  document.getElementById('gm-new').addEventListener('click', newGame);
+  document.getElementById('gm-clear').addEventListener('click', newGame);
+  document.getElementById('gm-undo').addEventListener('click', undo);
+  document.getElementById('gm-export').addEventListener('click', exportJson);
+  document.getElementById('gm-snap').addEventListener('click', snapshot);
+  document.getElementById('gm-ai-move').addEventListener('click', aiMove);
+  document.getElementById('gm-train').addEventListener('click', runTrain);
+  document.getElementById('gm-fs').addEventListener('click', function () {
+    if (window.UgradGameChrome && UgradGameChrome.toggleFullscreen) UgradGameChrome.toggleFullscreen();
+  });
+
+  document.getElementById('gm-save-game').addEventListener('click', function () {
+    var games = loadGames();
+    var name = (document.getElementById('gm-bc-label') && document.getElementById('gm-bc-label').value) || 'recorded';
+    games.push({
+      name: name,
+      ts: new Date().toISOString().slice(0, 19),
+      N: N,
+      hist: hist.slice(),
+      board: board.slice(),
+      turn: turn,
+      over: over
+    });
+    if (games.length > 40) games.shift();
+    saveGames(games);
+    refreshHistorySelect();
+    refreshLog();
+    logEl.textContent += '\n— saved · ' + games.length + ' in list';
+    logEl.scrollTop = logEl.scrollHeight;
+  });
+
+  document.getElementById('gm-history').addEventListener('change', function () {
+    var ix = this.value;
+    if (ix === '') return;
+    var games = loadGames();
+    var g = games[parseInt(ix, 10)];
+    if (!g) return;
+    N = g.N || 15;
+    document.getElementById('gm-board-size').value = String(N);
+    resizeCanvasForN();
+    emptyBoard();
+    hist = (g.hist || []).slice();
+    var k;
+    for (k = 0; k < hist.length; k++) {
+      board[hist[k]] = (k % 2 === 0) ? 1 : -1;
+    }
+    turn = g.turn != null ? g.turn : ((hist.length % 2 === 0) ? 1 : -1);
+    over = !!g.over;
+    document.getElementById('gm-h2-title').textContent = N + '×' + N + ' lab';
+    syncColorSelect();
+    draw();
+    setStatus();
+    refreshLog();
+    updateMiniAll();
+  });
+
+  document.getElementById('gm-board-size').addEventListener('change', function () {
+    N = parseInt(this.value, 10) || 15;
+    newGame();
+    document.getElementById('gm-h2-title').textContent = N + '×' + N + ' lab';
+  });
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel(BC_NAME);
+      bc.addEventListener('message', function (e) {
+        if (!document.getElementById('gm-bc-follow') || !document.getElementById('gm-bc-follow').checked) return;
+        if (e && e.data) applyStateFromRemote(e.data);
+      });
+    }
+  } catch (e7) {}
+
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      laneCh = new BroadcastChannel(TENSOR_LANE);
+      laneCh.addEventListener('message', onTensorLaneMessage);
+    }
+  } catch (e8) {}
+
+  initTensorSelect();
+  resizeCanvasForN();
+  document.getElementById('gm-h2-title').textContent = N + '×' + N + ' lab';
+  emptyBoard();
+  draw();
+  setStatus();
+  refreshLog();
+  updateMiniAll();
+  refreshHistorySelect();
+  syncColorSelect();
+
+  (function lockColorToTurn() {
+    var uc = document.getElementById('ugc-color');
+    if (!uc) return;
+    uc.addEventListener('change', function () {
+      this.value = String(turn);
+    });
+  })();
+
+  window.UgradGomoku = {
+    VERSION: VERSION,
+    boardToSlice9: boardToSlice9,
+    exportState: function () {
+      return { N: N, board: board.slice(), hist: hist.slice(), turn: turn, over: over };
+    }
+  };
+})();
+</script>
+<script>
+(function () {
+  if (window.QuantumPrefixes && QuantumPrefixes.broadcastState) {
+    QuantumPrefixes.broadcastState('gomoku-ugrad', { app: 'gomoku-ugrad', version: '0.3.2', ts: Date.now() });
+  }
+})();
+(function () {
+  if (typeof BroadcastChannel === 'undefined' || !window.QuantumPrefixes || !QuantumPrefixes.broadcastState) return;
+  var ch = new BroadcastChannel('quantum-prefixes');
+  ch.onmessage = function (e) {
+    if (e.data && e.data.type === 'requestSync') {
+      QuantumPrefixes.broadcastState('gomoku-ugrad', { app: 'gomoku-ugrad', version: '0.3.2', ts: Date.now() });
+    }
+  };
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+</script>
+<script src="ugrad-game-presence.js"></script>
+</body>
+</html>

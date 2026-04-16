@@ -1,0 +1,16 @@
+{
+  "afterWarm": {
+    "log": "R0: micrograd + steno v2 — self-optimizing autograd\nMLP(2→4→4→1) · 37 params · XOR · 200 ep · lr 0.05\n▸ cold training (random init)...\nep 0 1.235035\nep 50 0.209546\nep 100 0.152533\nep 150 0.087233\n✓ cold done 21.2ms 200 epochs\nXOR: 4/4 correct final loss: 0.030996\n▸ steno encode → decode → verify...\n665b hidden in 68 lines (100 bytes changed, 47.7% util)\nround-trip: PASS weights saved to localStorage\n→ click ▸ train warm to see early-stopping speedup\n▸ warm training (steno-primed + early stopping)...\n37 weights injected · converged < 0.01 × 3 ep\nep 0 0.030154\nep 37 0.009093\n✓ warm done 3.3ms 38 epochs (early stop)\nspeedup: 6.4x (21.2ms → 3.3ms)\nepochs saved: 162 of 200\nXOR: 4/4 correct\ninsight: weights carried in whitespace skipped 162 epochs of gradient search\nthe source code optimized itself. → click ▸ benchmark",
+    "viz": "R0 metrics\nstop\nwarm (38 ep)\ncold (200 ep)\nloss\nepoch\ncold:\n21.2ms (200 ep)\nwarm:\n3.3ms (38 ep)\nspeedup:\n6.4x\nepochs saved:\n162\npredictions\n 0,0 → 0.0541\n 0,1 → 0.9149\n 1,0 → 0.9010\n 1,1 → 0.1228\nsteno channel\nbits:\n665\nlines:\n68/68\nutil:\n47.7%\ndecoded: 35 records\ninsight: weights in whitespace eliminated 162 epochs of gradient search. code that carries its own optimization.",
+    "footer": "warm done\nepoch: 37\nloss: 0.009093\nsteno: 665b\nspeed: 6.4x",
+    "fStatus": "warm done",
+    "fSpeed": "speed: 6.4x"
+  },
+  "afterBench": {
+    "log": "R0: micrograd + steno v2 — self-optimizing autograd\nMLP(2→4→4→1) · 37 params · XOR · 200 ep · lr 0.05\n▸ cold training (random init)...\nep 0 1.235035\nep 50 0.209546\nep 100 0.152533\nep 150 0.087233\n✓ cold done 21.2ms 200 epochs\nXOR: 4/4 correct final loss: 0.030996\n▸ steno encode → decode → verify...\n665b hidden in 68 lines (100 bytes changed, 47.7% util)\nround-trip: PASS weights saved to localStorage\n→ click ▸ train warm to see early-stopping speedup\n▸ warm training (steno-primed + early stopping)...\n37 weights injected · converged < 0.01 × 3 ep\nep 0 0.030154\nep 37 0.009093\n✓ warm done 3.3ms 38 epochs (early stop)\nspeedup: 6.4x (21.2ms → 3.3ms)\nepochs saved: 162 of 200\nXOR: 4/4 correct\ninsight: weights carried in whitespace skipped 162 epochs of gradient search\nthe source code optimized itself. → click ▸ benchmark\n▸ benchmark: 20 cold + 20 warm (early stop) runs...\ncold avg: 6.79ms med: 6.10ms ep avg: 200\nwarm avg: 2.45ms med: 2.90ms ep avg: 76\navg speedup: 2.8x med: 2.1x best: Infinityx\nepochs saved avg: 124 (200 → 76)\nsteno capacity (engine source)\n169B hidden capacity 35/68 lines 26.1% whitespace",
+    "viz": "R0 metrics\nstop\nwarm (38 ep)\ncold (200 ep)\nloss\nepoch\ncold:\n21.2ms (200 ep)\nwarm:\n3.3ms (38 ep)\nspeedup:\n6.4x\nepochs saved:\n162\npredictions\n 0,0 → 0.0541\n 0,1 → 0.9149\n 1,0 → 0.9010\n 1,1 → 0.1228\nsteno channel\nbits:\n665\nlines:\n68/68\nutil:\n47.7%\ndecoded: 35 records\ninsight: weights in whitespace eliminated 162 epochs of gradient search. code that carries its own optimization.",
+    "footer": "benchmark done\nepoch: 37\nloss: 0.009093\nsteno: 665b\nspeed: 2.8x avg",
+    "fStatus": "benchmark done",
+    "fSpeed": "speed: 2.8x avg"
+  }
+}

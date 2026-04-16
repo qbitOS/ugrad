@@ -1,0 +1,48 @@
+/** ugrad-memory-lab.css — neural album: particles + ripple grid + burn (original; Framer-inspired feel refs only). */
+.mem-lab{position:relative;flex:1;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;overflow:hidden;border-radius:14px}
+.mem-lab-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0}
+/* Liquid-wave radial wash (cursor follows — LiquidWaveFX-adjacent feel) */
+.mem-lab-liquid{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.85;mix-blend-mode:screen;transition:opacity .3s ease;background:radial-gradient(ellipse 55% 45% at 50% 50%,rgba(56,139,253,0.08) 0%,transparent 62%)}
+[data-theme='light'] .mem-lab-liquid{mix-blend-mode:multiply;opacity:0.55}
+.mem-lab-vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 78% 68% at 50% 42%,transparent 0%,rgba(0,0,0,.5) 100%)}
+[data-theme='light'] .mem-lab-vignette{background:radial-gradient(ellipse 78% 68% at 50% 42%,transparent 0%,rgba(20,24,32,.12) 100%)}
+.mem-lab-card{position:relative;z-index:2;width:min(100%,440px);margin:20px 16px;padding:18px 20px 16px;border-radius:16px;border:1px solid rgba(250,250,252,.12);background:rgba(8,10,14,.72);backdrop-filter:blur(14px);box-shadow:0 12px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(250,250,252,.06)}
+[data-theme='light'] .mem-lab-card{background:rgba(255,255,255,.82);border-color:rgba(31,35,40,.12)}
+.mem-lab-kicker{font:600 9px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--qp-fg-muted,#8d97a6);margin:0 0 10px}
+.mem-lab-title{font:700 1.05rem ui-sans-serif,system-ui,sans-serif;margin:0 0 8px;color:var(--qp-fg-primary,#e8edf4);line-height:1.25}
+.mem-lab-snippet{font:500 12px ui-monospace,monospace;color:var(--qp-fg-body,#c9d1d9);line-height:1.55;margin:0 0 12px;min-height:3.1em}
+.mem-lab-meta{font:500 10px ui-monospace,monospace;color:var(--qp-fg-muted,#8d97a6);margin:0 0 14px}
+.mem-lab-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mem-lab-nav button{font:600 10px ui-monospace,monospace;padding:8px 14px;border-radius:999px;border:1px solid var(--qp-border,#30363d);background:rgba(88,166,255,.12);color:var(--qp-fg-primary,#e8edf4);cursor:pointer}
+.mem-lab-nav button:hover{background:rgba(88,166,255,.22)}
+.mem-lab-nav button:disabled{opacity:.35;cursor:not-allowed}
+.mem-lab-index{font:600 10px ui-monospace,monospace;color:var(--qp-fg-muted,#8d97a6)}
+/* Burn + ember field (Burn-adjacent reveal) */
+.mem-lab-embers{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;background:
+  radial-gradient(circle at 50% 50%,rgba(255,140,60,.22) 0%,transparent 50%),
+  linear-gradient(105deg,transparent 40%,rgba(255,90,40,.12) 50%,transparent 60%);
+  mix-blend-mode:screen;filter:blur(0.5px)}
+.mem-lab-embers.mem-lab-embers--on{opacity:1;animation:uml-ember-churn 1.1s ease-in-out}
+@keyframes uml-ember-churn{0%{opacity:.15;transform:scale(1)}32%{opacity:1;transform:scale(1.03)}70%{opacity:.75;transform:scale(1.01)}100%{opacity:0;transform:scale(1)}}
+.mem-lab-inner{position:relative;will-change:opacity,filter,transform,clip-path;overflow:hidden;border-radius:12px}
+/* Iris burn-out + warm edge (living photo fades through aperture) */
+.mem-lab-inner.mem-burn-out{animation:uml-burn-out .72s cubic-bezier(.45,0,.55,1) forwards}
+/* “Develop” into clarity — blur lifts, saturation breathes, slight scale settle */
+.mem-lab-inner.mem-burn-in{animation:uml-burn-in .95s cubic-bezier(.2,.85,.25,1) forwards}
+@keyframes uml-burn-out{
+  0%{opacity:1;filter:brightness(1.02) blur(0) saturate(1);transform:scale(1);clip-path:circle(85% at 50% 50%)}
+  35%{filter:brightness(1.55) saturate(1.18) blur(1px)}
+  100%{opacity:0;filter:brightness(.08) blur(18px) saturate(0);transform:scale(.96);clip-path:circle(0% at 50% 50%)}
+}
+@keyframes uml-burn-in{
+  0%{opacity:0;filter:blur(18px) brightness(.38) saturate(.65) contrast(.92);transform:scale(1.045);clip-path:circle(0% at 50% 50%)}
+  45%{opacity:.92;filter:blur(6px) brightness(1.12) saturate(1.12) contrast(1.02);transform:scale(1.012);clip-path:circle(55% at 50% 50%)}
+  78%{opacity:1;filter:blur(1.2px) brightness(1.04) saturate(1.06);transform:scale(1.002);clip-path:circle(118% at 50% 50%)}
+  100%{opacity:1;filter:blur(0) brightness(1) saturate(1) contrast(1);transform:scale(1);clip-path:circle(150% at 50% 50%)}
+}
+@media (prefers-reduced-motion:reduce){
+  .mem-lab-inner.mem-burn-out,.mem-lab-inner.mem-burn-in{animation:none}
+  .mem-lab-inner.mem-burn-out{opacity:0;clip-path:none;filter:none}
+  .mem-lab-inner.mem-burn-in{opacity:1;clip-path:none;filter:none;transform:none}
+  .mem-lab-embers.mem-lab-embers--on{animation:none}
+}

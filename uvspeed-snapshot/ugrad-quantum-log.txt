@@ -1,0 +1,32 @@
+μgrad — iterative AI training terminal
+self-optimizing autograd · steno whitespace codec · generational learning
+type help for commands or train to begin
+μgrad> train
+G1 cold  2→4→4→1 · xor
+  time: 51.9ms  epochs: 500/500  loss: 1.81e-18  acc: 100.0%
+  steno: 722b in 38 lines
+μgrad> quantum
+quantum circuit from G1 weights
+arch: 2→4→4→1 · 37 params · 5 qubits
+✓ VQC generated: 73 gates on 5 qubits
+  37 weights encoded as Rz rotations
+  ISA: Heron r2 (rz, sx, cz native)
+  q0 ──[Rz×2]─●──[Rz×4]─●──[Rz×4]─●── M
+  q1 ──[Rz×2]─●──[Rz×4]─●──────────── M
+  q2 ──[Rz×2]─●──[Rz×4]─●──────────── M
+  q3 ──[Rz×2]─●──[Rz×4]─●──────────── M
+  q4 ──────────────────────────────── M
+QASM 3.0 (2037 chars):
+  OPENQASM 3.0;
+  include "stdgates.inc";
+  qubit[5] q;
+  bit[5] c;
+  
+  // μgrad G1 — xor — 2→4→4→1
+  // Trained weights as Rz rotation angles on Heron ISA
+  
+  ... 84 more lines
+  steno: 133b hidden in QASM
+submit to IBM: uv run scripts/ibm_quantum_test.py
+or paste QASM into quantum.ibm.com
+use "quantum export" to download .qasm file

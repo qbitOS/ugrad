@@ -1,0 +1,298 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!-- checkers-ugrad.html v0.3.4 — English draughts + μgrad parity shell -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="ck-meta-theme">
+<title>Checkers — μgrad arena · checkers.ugrad.ai</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+<link rel="stylesheet" href="ugrad-game-chrome.css">
+<style>
+#ck-svg{display:block;width:min(100%,400px);height:auto;margin:0 auto;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none}
+</style>
+</head>
+<body data-ugrad-game="checkers" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>checkers.ugrad.ai</strong>
+    <span class="gu-bar-out"><a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a></span>
+    <span class="gu-header-spacer"></span>
+    <div data-qp-theme-host class="gu-theme-host"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="ugc-open-monitor">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slice · ugrad-tensor-lane">
+      <label><input type="checkbox" id="gm-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gm-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gm-mode"><option value="play" selected>Play &amp; record</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="ugc-color"><option value="1">Black (clock)</option><option value="-1">White (clock)</option></select></label>
+    <label style="font-size:11px;color:var(--qp-fg-muted)"><input type="checkbox" id="ck-force" checked> forced capture</label>
+    <button type="button" id="gm-undo">Undo</button>
+    <button type="button" id="gm-clear">Clear</button>
+    <button type="button" id="gm-save-game">Save game</button>
+    <label>Tensor env <select id="gm-tensor-env"></select></label>
+    <label>Train steps <input type="number" id="gm-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gm-train">Train slice MLP</button>
+    <button type="button" id="gm-ai-move">AI move</button>
+    <button type="button" id="gm-snap">Snapshot</button>
+    <button type="button" id="gm-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gm-fs" title="Fullscreen">Fullscreen board</button>
+    <button type="button" id="ugc-open-hub-monitor">Hub monitor</button>
+    <span id="gm-board-size-wrap" style="display:none"><select id="gm-board-size"><option value="8">8×8</option></select></span>
+    <label><input type="checkbox" id="gm-bc-follow"> Follow remote</label>
+    <label><input type="checkbox" id="gm-bc-send" checked> Broadcast</label>
+    <label>Name <input type="text" id="gm-bc-label" maxlength="32" placeholder="optional" style="max-width:7rem"></label>
+    <button type="button" class="gu-primary" id="ck-new">New game</button>
+    <button type="button" onclick="location.href='go-ugrad.html'">Go lab</button>
+  </div>
+</header>
+<div class="gu-main" id="ugc-fs-target">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2 style="font-size:12px;margin:0 0 8px">⛀ 8×8 · <span id="ck-st">Black to move</span></h2>
+    <div class="gu-clock-strip" role="group" aria-label="Game clock">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="ugc-clock-b">B · —:—</span>
+        <span class="gu-clock-face" id="ugc-clock-w">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="ugc-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="ugc-clock-min" value="5" min="1" max="120" step="1"></label>
+      <button type="button" id="ugc-clock-pause">Pause</button>
+      <button type="button" class="gu-primary" id="ugc-clock-reset">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar" aria-label="Board view">
+      <button type="button" class="gu-fs-btn gu-primary" id="ugc-fs-inline" title="Fullscreen">⛶</button>
+    </div>
+    <svg id="ck-svg" viewBox="0 0 8 8"></svg>
+    <p style="font-size:10px;color:var(--qp-fg-muted);margin-top:8px">Dark squares only · kings on far rank · multi-jump when forced.</p>
+    <div class="gu-mini9" id="gm-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" aria-label="Command station">
+      <div class="gu-cmd-hd">Command station · live 3×3 slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gm-cmd-live"></div>
+        <div class="gu-cmd-readout" id="gm-cmd-readout">idle · Train or snapshot</div>
+      </div>
+      <p class="gu-cmd-meta">Piece density by ninths · black +1 / white −1.</p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gm-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gm-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gm-act" aria-live="polite">checkers-ugrad v0.3.4 · activity</div>
+    </div>
+    <p id="gm-side-meta" style="font:500 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin:0;line-height:1.45"></p>
+  </div>
+</div>
+<section class="gu-lane-sync" aria-label="Tensor lane">
+  <h3 class="gu-lane-sync-hd">Tensor lane · remote slices</h3>
+  <p class="gu-lane-sync-meta">Same ℝ⁹ shape as <code>#gm-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code>.</p>
+  <div class="gu-lane-sync-grid" id="gm-lane-grid"><p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet.</p></div>
+</section>
+<p class="gu-foot"><code>checkers-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">hub</a> · <a href="go-ugrad.html">go-ugrad</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script src="ugrad-parity-lab.js"></script>
+<script>
+(function(){
+'use strict';
+var board=new Int8Array(64), turn=1, sel=-1, KING=2, hoverSq=-1;
+var STORAGE_KEY='checkers-ugrad-games-v1';
+var VERSION='0.3.4';
+function idx(r,c){return r*8+c;}
+function dark(r,c){return (r+c)%2===1;}
+function reset(){
+  board.fill(0); var r,c;
+  for(r=0;r<3;r++)for(c=0;c<8;c++)if(dark(r,c))board[idx(r,c)]=1;
+  for(r=5;r<8;r++)for(c=0;c<8;c++)if(dark(r,c))board[idx(r,c)]=-1;
+  turn=1; sel=-1; log('new game'); draw();
+}
+function log(s){var e=document.getElementById('gm-act');e.textContent=(e.textContent+'\n'+s).slice(-4000);e.scrollTop=e.scrollHeight;}
+function goCellPair(){
+  try{var st=getComputedStyle(document.documentElement),a=st.getPropertyValue('--ugb-cell-light').trim(),b=st.getPropertyValue('--ugb-cell-dark').trim();
+    if(a&&b)return{L:a,D:b};}catch(e){}
+  var isL=document.documentElement.getAttribute('data-theme')==='light';
+  return isL?{L:'#f4f6f9',D:'#dce1e8'}:{L:'#2a3038',D:'#12161c'};
+}
+function stoneColors(){
+  try{var st=getComputedStyle(document.documentElement);
+    return{w:st.getPropertyValue('--ugb-piece-w').trim()||'#f0f2f5',b:st.getPropertyValue('--ugb-piece-b').trim()||'#0d0d0d',ring:st.getPropertyValue('--ugb-hover-ring').trim()||'#58a6ff',hi:st.getPropertyValue('--ugb-hover').trim()||'rgba(56,139,253,0.22)'};}catch(e){}
+  return{w:'#f0f2f5',b:'#0d0d0d',ring:'#58a6ff',hi:'rgba(56,139,253,0.22)'};
+}
+function slice9FromBoard(){
+  var acc=[0,0,0,0,0,0,0,0,0], sq, ri, ci, gr, gc, ix, v;
+  for(sq=0;sq<64;sq++){
+    v=board[sq]; if(!v) continue;
+    ri=sq>>3; ci=sq&7;
+    gr=Math.min(2,(ri*3/8)|0); gc=Math.min(2,(ci*3/8)|0);
+    ix=gr*3+gc;
+    acc[ix]+=Math.sign(v)*(Math.abs(v)===KING?0.09:0.06);
+  }
+  var out=UgradParityLab.zeros9();
+  for(var i=0;i<9;i++){
+    if(acc[i]>0.02) out[i]=1;
+    else if(acc[i]<-0.02) out[i]=-1;
+  }
+  return out;
+}
+function refreshMini(){
+  var s=slice9FromBoard();
+  UgradParityLab.renderMini9('gm-mini9',s);
+  UgradParityLab.renderMini9('gm-cmd-live',s);
+}
+function draw(){
+  var ns='http://www.w3.org/2000/svg', svg=document.getElementById('ck-svg'), isL=document.documentElement.getAttribute('data-theme')==='light';
+  var C=goCellPair(), L=C.L, D=C.D, col=stoneColors();
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  var r,c,sq,rect,v,cir;
+  for(r=0;r<8;r++)for(c=0;c<8;c++){
+    sq=idx(r,c);
+    rect=document.createElementNS(ns,'rect');rect.setAttribute('x',c);rect.setAttribute('y',r);rect.setAttribute('width',1);rect.setAttribute('height',1);
+    rect.setAttribute('fill',dark(r,c)?D:L);svg.appendChild(rect);
+  }
+  if(hoverSq>=0&&hoverSq!==sel){
+    var hr=hoverSq>>3,hc=hoverSq&7;
+    rect=document.createElementNS(ns,'rect');rect.setAttribute('x',hc);rect.setAttribute('y',hr);rect.setAttribute('width',1);rect.setAttribute('height',1);
+    rect.setAttribute('fill',col.hi);rect.setAttribute('stroke',col.ring);rect.setAttribute('stroke-width',0.055);rect.setAttribute('pointer-events','none');svg.appendChild(rect);
+  }
+  for(r=0;r<8;r++)for(c=0;c<8;c++){
+    sq=idx(r,c);v=board[sq];
+    if(v){
+      cir=document.createElementNS(ns,'circle');
+      cir.setAttribute('cx',c+0.5);cir.setAttribute('cy',r+0.5);cir.setAttribute('r',0.32);
+      if(v>0){
+        cir.setAttribute('fill',col.b);
+        cir.setAttribute('stroke',isL?'rgba(36,41,47,.35)':'rgba(250,250,252,.2)');
+        cir.setAttribute('stroke-width',0.04);
+      }else{
+        cir.setAttribute('fill',col.w);
+        cir.setAttribute('stroke',isL?'rgba(36,41,47,.4)':'rgba(13,13,13,.35)');
+        cir.setAttribute('stroke-width',0.045);
+      }
+      if(Math.abs(v)===KING){cir.setAttribute('stroke',col.ring);cir.setAttribute('stroke-width',0.09);}
+      svg.appendChild(cir);
+    }
+  }
+  if(sel>=0){var h=sel>>3,cc=sel&7;rect=document.createElementNS(ns,'rect');rect.setAttribute('x',cc+0.05);rect.setAttribute('y',h+0.05);
+    rect.setAttribute('width',0.9);rect.setAttribute('height',0.9);rect.setAttribute('fill','none');rect.setAttribute('stroke',col.ring);rect.setAttribute('stroke-width',0.07);svg.appendChild(rect);}
+  document.getElementById('ck-st').textContent=(turn===1?'Black':'White')+' to move';
+  var uc=document.getElementById('ugc-color');
+  if(uc) uc.value=String(turn);
+  refreshMini();
+}
+function jumpsFrom(sq){
+  var out=[], r=sq>>3, c=sq&7, v=board[sq], dr, dc, tr,tc,mr,mc;
+  if(!v||Math.sign(v)!==turn)return out;
+  var dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
+  for(var i=0;i<4;i++){
+    dr=dirs[i][0];dc=dirs[i][1];
+    if(Math.abs(v)!==KING&&Math.sign(dr)!==turn)continue;
+    tr=r+2*dr;tc=c+2*dc;mr=r+dr;mc=c+dc;
+    if(tr<0||tr>7||tc<0||tc>7)continue;
+    if(board[idx(mr,mc)]&&Math.sign(board[idx(mr,mc)])!==turn&&board[idx(tr,tc)]===0)out.push({to:idx(tr,tc),cap:idx(mr,mc)});
+  }
+  return out;
+}
+function simpleMoves(sq){
+  var out=[], r=sq>>3,c=sq&7,v=board[sq], dr,dc,tr,tc;
+  if(!v||Math.sign(v)!==turn)return out;
+  var dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
+  for(var i=0;i<4;i++){
+    dr=dirs[i][0];dc=dirs[i][1];
+    if(Math.abs(v)!==KING&&Math.sign(dr)!==turn)continue;
+    tr=r+dr;tc=c+dc;
+    if(tr<0||tr>7||tc<0||tc>7)continue;
+    if(board[idx(tr,tc)]===0)out.push(idx(tr,tc));
+  }
+  return out;
+}
+function allJumps(){
+  var s,j=[],i,k,a=[];for(s=0;s<64;s++){if(Math.sign(board[s])!==turn)continue;var jf=jumpsFrom(s);for(i=0;i<jf.length;i++)a.push({from:s,j:jf[i]});}
+  return a;
+}
+function svgPt(ev){var pt=document.getElementById('ck-svg').createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;var m=document.getElementById('ck-svg').getScreenCTM();if(!m)return null;var l=pt.matrixTransform(m.inverse());var c=Math.floor(l.x),r=Math.floor(l.y);if(c<0||c>7||r<0||r>7)return null;return idx(r,c);}
+document.getElementById('ck-svg').addEventListener('mousemove',function(ev){
+  var q=svgPt(ev),nq=q!=null?q:-1;if(nq===hoverSq)return;hoverSq=nq;draw();
+});
+document.getElementById('ck-svg').addEventListener('mouseleave',function(){hoverSq=-1;draw();});
+document.getElementById('ck-svg').addEventListener('click',function(ev){
+  var sq=svgPt(ev);if(sq==null)return;
+  var force=document.getElementById('ck-force').checked, aj=allJumps();
+  if(sel<0){
+    if(Math.sign(board[sq])!==turn)return;
+    if(force&&aj.length){var ok=false,i;for(i=0;i<aj.length;i++)if(aj[i].from===sq){ok=true;break;}if(!ok)return;}
+    sel=sq;draw();return;
+  }
+  var j=jumpsFrom(sel), i, mv=null;
+  for(i=0;i<j.length;i++)if(j[i].to===sq){mv=j[i];break;}
+  if(mv){
+    board[mv.cap]=0;board[sq]=board[sel];board[sel]=0;
+    if((turn===1&&sq>=56)||(turn===-1&&sq<=7))board[sq]=turn*KING;
+    var more=jumpsFrom(sq);
+    if(more.length){sel=sq;log('jump continue');if(window.UgradGameChrome&&UgradGameChrome.armClock)UgradGameChrome.armClock();draw();return;}
+    turn=-turn;sel=-1;log('jump');if(window.UgradGameChrome&&UgradGameChrome.armClock)UgradGameChrome.armClock();draw();return;
+  }
+  if(force&&aj.length){sel=-1;draw();return;}
+  var sm=simpleMoves(sel);
+  for(i=0;i<sm.length;i++)if(sm[i]===sq){
+    board[sq]=board[sel];board[sel]=0;
+    if((turn===1&&sq>=56)||(turn===-1&&sq<=7))board[sq]=turn*KING;
+    turn=-turn;sel=-1;log('move');if(window.UgradGameChrome&&UgradGameChrome.armClock)UgradGameChrome.armClock();draw();return;
+  }
+  if(Math.sign(board[sq])===turn){sel=sq;draw();return;}
+  sel=-1;draw();
+});
+document.getElementById('ck-new').addEventListener('click',reset);
+var APP='checkers-ugrad';
+function syncMeta(){try{var m=document.getElementById('ck-meta-theme');if(m)m.setAttribute('content',document.documentElement.getAttribute('data-theme')==='light'?'#f6f8fa':'#0f1419');}catch(e){}}
+if(window.QuantumPrefixes&&QuantumPrefixes.onThemeChange)QuantumPrefixes.onThemeChange(function(){draw();syncMeta();});
+syncMeta();
+document.getElementById('gm-undo').addEventListener('click',function(){log('undo · not implemented');});
+document.getElementById('gm-clear').addEventListener('click',reset);
+document.getElementById('gm-ai-move').addEventListener('click',function(){log('AI move · roadmap');});
+document.getElementById('gm-train').addEventListener('click',function(){refreshMini();});
+if(window.UgradParityLab){
+  UgradParityLab.init({
+    gameId:'checkers',
+    version:VERSION,
+    storageKey:STORAGE_KEY,
+    tensorDefault:'gomoku-density',
+    getSlice9:slice9FromBoard,
+    getExportPayload:function(){
+      return{app:'checkers-ugrad',version:VERSION,turn:turn,board64:Array.from(board),slice9:slice9FromBoard(),ts:new Date().toISOString()};
+    },
+    getSavePayload:function(){return{turn:turn,board64:Array.from(board)};},
+    onLoad:function(entry){
+      if(!entry||!entry.board64)return;
+      var i; for(i=0;i<64&&i<entry.board64.length;i++)board[i]=entry.board64[i]|0;
+      if(typeof entry.turn==='number')turn=entry.turn;
+      sel=-1; draw(); log('— loaded —');
+    },
+    hideBoardSize:true
+  });
+}
+function broadcast(){try{if(window.QuantumPrefixes&&QuantumPrefixes.broadcastState)QuantumPrefixes.broadcastState(APP,{app:APP,version:VERSION,ts:Date.now(),turn:turn});}catch(e1){}}
+try{if(typeof BroadcastChannel!=='undefined'){var _ck=new BroadcastChannel('quantum-prefixes');_ck.onmessage=function(ev){if(ev.data&&ev.data.type==='requestSync')broadcast();};}}catch(e2){}
+broadcast();
+window.CheckersUgrad={VERSION:VERSION};
+reset();
+})();
+</script>
+<script src="ugrad-game-chrome.js"></script>
+<script src="ugrad-game-presence.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});</script>
+</body>
+</html>

@@ -44,6 +44,13 @@ Runnable μgrad code lives in the **uvspeed** monorepo. This repo keeps org docs
 2. Edit PWAs and tooling under **`workspace/uvspeed/web/`**, **`npm/ugrad-cli/`**, **`qbit/ugrad/`**, etc.
 3. Path index: **[workspace/ugrad-paths.md](workspace/ugrad-paths.md)** · manifest: **[workspace/ugrad-component-manifest.json](workspace/ugrad-component-manifest.json)**
 
+## Static site bundle (`site/`)
+
+A **forward-facing, deployable copy** of μgrad R0 plus required shared modules (`quantum-prefixes.js`, `qbit-dac.js`, etc.), IBM calibration CSVs, icons, PWA manifest, and a minimal `sw.js`. Use it for GitHub Pages or any static host without checking out the full uvspeed tree.
+
+- **Browse:** [site/README.md](site/README.md) · refresh instructions: [site/SYNC.md](site/SYNC.md)
+- **Sync from local uvspeed:** `./scripts/sync-site-from-uvspeed.sh` (set `UVSPEED` if the monorepo is not a sibling of this repo)
+
 ## Community
 
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** — Contributor Covenant; report issues via [GitHub Issues](https://github.com/qbitOS/ugrad/issues).

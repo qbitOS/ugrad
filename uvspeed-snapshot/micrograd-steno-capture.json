@@ -1,0 +1,42 @@
+{
+  "initial": {
+    "log": "R0: micrograd + steno loaded\narchitecture: MLP(2→4→4→1) with backprop autograd\nclick train cold to begin",
+    "viz": "metrics appear here after training",
+    "footer": "ready\nepoch: —\nloss: —\nsteno: —\nspeed: —",
+    "fStatus": "ready",
+    "fEpoch": "epoch: —",
+    "fLoss": "loss: —",
+    "fSteno": "steno: —",
+    "fSpeed": "speed: —"
+  },
+  "afterCold": {
+    "log": "R0: micrograd + steno\narchitecture: MLP(2, [4, 4, 1]) — 37 params\ndataset: XOR (4 samples)\nepochs: 200 | lr: 0.05\n▸ cold training (random init)...\nepoch 0 loss: 0.957610\nepoch 50 loss: 0.102409\nepoch 100 loss: 0.034754\nepoch 150 loss: 0.008143\n✓ cold training done: 16.1ms\n0,0 → 0.0243 (expect 0)\n0,1 → 0.9700 (expect 1)\n1,0 → 0.9605 (expect 1)\n1,1 → 0.0516 (expect 0)\n▸ steno encoding perf data into whitespace...\nlines encoded: 68/68\nbits hidden: 665\nutilization: 47.7%\n▸ steno round-trip verification...\ndecode records: 35\nstrip round-trip: PASS\nbytes changed: 100 (7.11%)\nready for warm run → decoded weights skip convergence",
+    "viz": "R0 metrics\nloss curve (200 epochs)\nfinal: 0.001480\ncold train: 16.1ms\nwarm train: 0.0ms\nspeedup: —x\nfinal loss: 0.001480\npredictions:\n  0,0 → 0.0243 (expect 0)\n  0,1 → 0.9700 (expect 1)\n  1,0 → 0.9605 (expect 1)\n  1,1 → 0.0516 (expect 0)\nsteno encoding\nlines: 68\nencoded: 68\nbits hidden: 665\nspaces used: 175/367\nutilization: 47.7%\nsteno decoded\nrecords recovered: 35\n  shebang: 13\n  variable: 10\n  return: 5\n  loop: 5\n  function: 1\n  condition: 1",
+    "footer": "cold done\nepoch: 199\nloss: 0.001480\nsteno: 665b\nspeed: 16.1ms",
+    "fStatus": "cold done",
+    "fEpoch": "epoch: 199",
+    "fLoss": "loss: 0.001480",
+    "fSteno": "steno: 665b",
+    "fSpeed": "speed: 16.1ms"
+  },
+  "afterWarm": {
+    "log": "R0: micrograd + steno\narchitecture: MLP(2, [4, 4, 1]) — 37 params\ndataset: XOR (4 samples)\nepochs: 200 | lr: 0.05\n▸ cold training (random init)...\nepoch 0 loss: 0.957610\nepoch 50 loss: 0.102409\nepoch 100 loss: 0.034754\nepoch 150 loss: 0.008143\n✓ cold training done: 16.1ms\n0,0 → 0.0243 (expect 0)\n0,1 → 0.9700 (expect 1)\n1,0 → 0.9605 (expect 1)\n1,1 → 0.0516 (expect 0)\n▸ steno encoding perf data into whitespace...\nlines encoded: 68/68\nbits hidden: 665\nutilization: 47.7%\n▸ steno round-trip verification...\ndecode records: 35\nstrip round-trip: PASS\nbytes changed: 100 (7.11%)\nready for warm run → decoded weights skip convergence\n▸ warm training (steno-primed weights)...\ninjecting 37 weights from steno channel\nepoch 0 loss: 0.001427\nepoch 50 loss: 0.000215\nepoch 100 loss: 0.000030\nepoch 150 loss: 0.000004\n✓ warm training done: 11.7ms\nspeedup: 1.38x (cold 16.1ms → warm 11.7ms)\n0,0 → 0.0005 (expect 0)\n0,1 → 0.9994 (expect 1)\n1,0 → 0.9992 (expect 1)\n1,1 → 0.0010 (expect 0)\nkey insight: warm start already converged — loss is near-zero from epoch 0\nthe weights carried in whitespace eliminated the need for gradient search\nR0 complete. self-optimizing autograd demonstrated.\nnext: R1 (steno weights → persistent localStorage → cross-session learning)",
+    "viz": "R0 metrics\nloss curve (200 epochs)\nfinal: 0.001480\ncold train: 16.1ms\nwarm train: 11.7ms\nspeedup: 1.38x\nfinal loss: 0.001480\npredictions:\n  0,0 → 0.0005 (expect 0)\n  0,1 → 0.9994 (expect 1)\n  1,0 → 0.9992 (expect 1)\n  1,1 → 0.0010 (expect 0)\nsteno encoding\nlines: 68\nencoded: 68\nbits hidden: 665\nspaces used: 175/367\nutilization: 47.7%\nsteno decoded\nrecords recovered: 35\n  shebang: 13\n  variable: 10\n  return: 5\n  loop: 5\n  function: 1\n  condition: 1",
+    "footer": "warm done\nepoch: 199\nloss: 0.000001\nsteno: 665b\nspeed: 1.38x",
+    "fStatus": "warm done",
+    "fEpoch": "epoch: 199",
+    "fLoss": "loss: 0.000001",
+    "fSteno": "steno: 665b",
+    "fSpeed": "speed: 1.38x"
+  },
+  "afterBench": {
+    "log": "R0: micrograd + steno\narchitecture: MLP(2, [4, 4, 1]) — 37 params\ndataset: XOR (4 samples)\nepochs: 200 | lr: 0.05\n▸ cold training (random init)...\nepoch 0 loss: 0.957610\nepoch 50 loss: 0.102409\nepoch 100 loss: 0.034754\nepoch 150 loss: 0.008143\n✓ cold training done: 16.1ms\n0,0 → 0.0243 (expect 0)\n0,1 → 0.9700 (expect 1)\n1,0 → 0.9605 (expect 1)\n1,1 → 0.0516 (expect 0)\n▸ steno encoding perf data into whitespace...\nlines encoded: 68/68\nbits hidden: 665\nutilization: 47.7%\n▸ steno round-trip verification...\ndecode records: 35\nstrip round-trip: PASS\nbytes changed: 100 (7.11%)\nready for warm run → decoded weights skip convergence\n▸ warm training (steno-primed weights)...\ninjecting 37 weights from steno channel\nepoch 0 loss: 0.001427\nepoch 50 loss: 0.000215\nepoch 100 loss: 0.000030\nepoch 150 loss: 0.000004\n✓ warm training done: 11.7ms\nspeedup: 1.38x (cold 16.1ms → warm 11.7ms)\n0,0 → 0.0005 (expect 0)\n0,1 → 0.9994 (expect 1)\n1,0 → 0.9992 (expect 1)\n1,1 → 0.0010 (expect 0)\nkey insight: warm start already converged — loss is near-zero from epoch 0\nthe weights carried in whitespace eliminated the need for gradient search\nR0 complete. self-optimizing autograd demonstrated.\nnext: R1 (steno weights → persistent localStorage → cross-session learning)\n▸ benchmark: 10 cold + 10 warm runs...\ncold avg: 6.47ms med: 5.90ms\nwarm avg: 6.20ms med: 6.00ms\navg speedup: 1.04x med speedup: 0.98x\nsteno capacity of this page's source engine:\ntotal spaces: 367\nencodable lines: 35 (51.5%)\nhidden capacity: 169 bytes (1357 bits)\nwaste ratio: 26.1%",
+    "viz": "R0 metrics\nloss curve (200 epochs)\nfinal: 0.001480\ncold train: 16.1ms\nwarm train: 11.7ms\nspeedup: 1.38x\nfinal loss: 0.001480\npredictions:\n  0,0 → 0.0005 (expect 0)\n  0,1 → 0.9994 (expect 1)\n  1,0 → 0.9992 (expect 1)\n  1,1 → 0.0010 (expect 0)\nsteno encoding\nlines: 68\nencoded: 68\nbits hidden: 665\nspaces used: 175/367\nutilization: 47.7%\nsteno decoded\nrecords recovered: 35\n  shebang: 13\n  variable: 10\n  return: 5\n  loop: 5\n  function: 1\n  condition: 1",
+    "footer": "benchmark done\nepoch: 199\nloss: 0.000001\nsteno: 665b\nspeed: 1.04x avg",
+    "fStatus": "benchmark done",
+    "fEpoch": "epoch: 199",
+    "fLoss": "loss: 0.000001",
+    "fSteno": "steno: 665b",
+    "fSpeed": "speed: 1.04x avg"
+  }
+}

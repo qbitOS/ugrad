@@ -1,0 +1,401 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!--
+  chess-ugrad.html — 8×8 lab + UgradChess (no castling/en passant; promotion → Q/q).
+  v0.3.4 — parity lab shell (tensor lane, snapshots, saved games) + Brother Numsy footer.
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="chess-meta-theme">
+<title>Chess — μgrad arena · chess.ugrad.ai</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+<link rel="stylesheet" href="ugrad-game-chrome.css">
+<style>
+#ch-svg{display:block;width:min(100%,min(90vw,400px));height:auto;margin:0 auto;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none}
+.ch-note{font-size:10px;color:var(--qp-fg-muted);margin:8px 0 0;line-height:1.45}
+</style>
+</head>
+<body data-ugrad-game="chess" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>chess.ugrad.ai</strong>
+    <span class="gu-bar-out">
+      <a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a>
+    </span>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="ugc-open-monitor" title="Multi-board monitor">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slice · ugrad-tensor-lane">
+      <label><input type="checkbox" id="gm-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gm-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gm-mode"><option value="play" selected>Play &amp; record</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="ugc-color"><option value="-1" selected>White (clock)</option><option value="1">Black (clock)</option></select></label>
+    <button type="button" id="gm-undo">Undo</button>
+    <button type="button" id="gm-clear">Clear</button>
+    <button type="button" id="gm-save-game">Save game</button>
+    <label>Tensor env <select id="gm-tensor-env"></select></label>
+    <label>Train steps <input type="number" id="gm-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gm-train">Train slice MLP</button>
+    <button type="button" id="gm-ai-move">AI move</button>
+    <button type="button" id="gm-snap">Snapshot</button>
+    <button type="button" id="gm-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gm-fs" title="Fullscreen">Fullscreen board</button>
+    <button type="button" id="ugc-open-hub-monitor">Hub monitor</button>
+    <span id="gm-board-size-wrap" style="display:none"><select id="gm-board-size"><option value="8">8×8</option></select></span>
+    <label><input type="checkbox" id="gm-bc-follow"> Follow remote</label>
+    <label><input type="checkbox" id="gm-bc-send" checked> Broadcast</label>
+    <label>Name <input type="text" id="gm-bc-label" maxlength="32" placeholder="optional" style="max-width:7rem"></label>
+    <button type="button" class="gu-primary" id="gm-new">New game</button>
+    <button type="button" onclick="location.href='go-ugrad.html'">Go lab</button>
+  </div>
+</header>
+<div class="gu-main" id="ugc-fs-target">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2>♔ 8×8 lab · <span id="ch-status">White to move</span></h2>
+    <div class="gu-clock-strip" role="group" aria-label="Chess clock">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="ugc-clock-b">B · —:—</span>
+        <span class="gu-clock-face" id="ugc-clock-w">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="ugc-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="ugc-clock-min" value="5" min="1" max="120" step="1"></label>
+      <button type="button" id="ugc-clock-pause">Pause</button>
+      <button type="button" class="gu-primary" id="ugc-clock-reset">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar" aria-label="Board view">
+      <button type="button" class="gu-fs-btn gu-primary" id="ugc-fs-inline" title="Fullscreen board + activity log">⛶</button>
+    </div>
+    <svg id="ch-svg" viewBox="0 0 8 8" aria-label="Chess board"></svg>
+    <p class="ch-note">Lab rules: <strong>no castling / en passant</strong>; pawn → queen. Export JSON includes FEN + material slice. <code>UgradChess</code> in console.</p>
+    <div class="gu-mini9" id="gm-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" aria-label="Command station">
+      <div class="gu-cmd-hd">Command station · live 3×3 slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gm-cmd-live"></div>
+        <div class="gu-cmd-readout" id="gm-cmd-readout">idle · move or Train</div>
+      </div>
+      <p class="gu-cmd-meta">Material imbalance by board ninths (ℝ⁹) · tensor train dispatches <code>ugrad-tensor-train</code>.</p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gm-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gm-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gm-act" aria-live="polite">chess-ugrad v0.3.4 · click piece then square</div>
+    </div>
+    <p id="gm-side-meta" style="font:500 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin:0;line-height:1.45"></p>
+  </div>
+</div>
+<section class="gu-lane-sync" aria-label="Tensor lane">
+  <h3 class="gu-lane-sync-hd">Tensor lane · remote slices</h3>
+  <p class="gu-lane-sync-meta">Same ℝ⁹ shape as <code>#gm-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code>.</p>
+  <div class="gu-lane-sync-grid" id="gm-lane-grid"><p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet.</p></div>
+</section>
+<p class="gu-foot"><code>chess-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">μgrad games hub</a> · <a href="ugrad-pad-lab.html">μPad lab</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-chess-lab.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script src="ugrad-parity-lab.js"></script>
+<script>
+(function () {
+  'use strict';
+  var APP = 'chess-ugrad';
+  var VERSION = '0.3.4';
+  var STORAGE_KEY = 'chess-ugrad-games-v1';
+  var hoverSq = -1;
+  var SYM = { K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙', k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟' };
+  var game = new UgradChess();
+  var sel = -1;
+  var svg = document.getElementById('ch-svg');
+  var logEl = document.getElementById('gm-act');
+  var ns = 'http://www.w3.org/2000/svg';
+
+  function log(s) { logEl.textContent = (logEl.textContent + '\n' + s).slice(-6000); logEl.scrollTop = logEl.scrollHeight; }
+
+  function pieceVal(p) {
+    if (p === '.' || p === ' ') return 0;
+    var u = p.toUpperCase();
+    var sign = p === u ? 1 : -1;
+    var t = 0.04;
+    if (u === 'P') t = 0.07;
+    else if (u === 'N' || u === 'B') t = 0.09;
+    else if (u === 'R') t = 0.11;
+    else if (u === 'Q') t = 0.2;
+    else if (u === 'K') t = 0.06;
+    return sign * t;
+  }
+
+  function slice9FromBoard() {
+    var b = game.state.board;
+    var acc = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    var sq, ri, ci, gr, gc, idx, p;
+    for (sq = 0; sq < 64; sq++) {
+      p = b[sq];
+      if (p === '.' || p === ' ') continue;
+      ri = sq >> 3;
+      ci = sq & 7;
+      gr = Math.min(2, (ri * 3 / 8) | 0);
+      gc = Math.min(2, (ci * 3 / 8) | 0);
+      idx = gr * 3 + gc;
+      acc[idx] += pieceVal(p);
+    }
+    var out = UgradParityLab.zeros9();
+    for (var i = 0; i < 9; i++) {
+      if (acc[i] > 0.02) out[i] = 1;
+      else if (acc[i] < -0.02) out[i] = -1;
+    }
+    return out;
+  }
+
+  function refreshMini() {
+    var s = slice9FromBoard();
+    if (window.UgradParityLab) {
+      UgradParityLab.renderMini9('gm-mini9', s);
+      UgradParityLab.renderMini9('gm-cmd-live', s);
+    }
+  }
+
+  function rc(sq) { return { r: (sq / 8) | 0, c: sq % 8 }; }
+
+  /** Same alternating pair as Go lab: --ugb-cell-light / --ugb-cell-dark (neutral, no hue). */
+  function goCellPair() {
+    try {
+      var st = getComputedStyle(document.documentElement);
+      var a = st.getPropertyValue('--ugb-cell-light').trim();
+      var b = st.getPropertyValue('--ugb-cell-dark').trim();
+      if (a && b) return { light: a, dark: b };
+    } catch (e) {}
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    return isLight ? { light: '#f4f6f9', dark: '#dce1e8' } : { light: '#2a3038', dark: '#12161c' };
+  }
+
+  function pieceColors() {
+    try {
+      var st = getComputedStyle(document.documentElement);
+      return {
+        w: st.getPropertyValue('--ugb-piece-w').trim() || '#f0f2f5',
+        b: st.getPropertyValue('--ugb-piece-b').trim() || '#0d0d0d'
+      };
+    } catch (e) {
+      return { w: '#f0f2f5', b: '#0d0d0d' };
+    }
+  }
+
+  function draw() {
+    var b = game.state.board;
+    var cells = goCellPair();
+    var light = cells.light;
+    var dark = cells.dark;
+    var pc = pieceColors();
+    var ringH = '#58a6ff';
+    var fillH = 'rgba(56,139,253,0.22)';
+    try {
+      ringH = getComputedStyle(document.documentElement).getPropertyValue('--ugb-hover-ring').trim() || ringH;
+      fillH = getComputedStyle(document.documentElement).getPropertyValue('--ugb-hover').trim() || fillH;
+    } catch (e0) {}
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var r, c, sq, rect, t, p;
+    for (r = 0; r < 8; r++) {
+      for (c = 0; c < 8; c++) {
+        sq = r * 8 + c;
+        rect = document.createElementNS(ns, 'rect');
+        rect.setAttribute('x', c); rect.setAttribute('y', r);
+        rect.setAttribute('width', 1); rect.setAttribute('height', 1);
+        rect.setAttribute('fill', (r + c) % 2 === 0 ? light : dark);
+        rect.setAttribute('data-sq', sq);
+        svg.appendChild(rect);
+      }
+    }
+    if (hoverSq >= 0 && hoverSq !== sel) {
+      var hh = rc(hoverSq);
+      rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', hh.c); rect.setAttribute('y', hh.r);
+      rect.setAttribute('width', 1); rect.setAttribute('height', 1);
+      rect.setAttribute('fill', fillH);
+      rect.setAttribute('stroke', ringH);
+      rect.setAttribute('stroke-width', 0.055);
+      rect.setAttribute('pointer-events', 'none');
+      svg.appendChild(rect);
+    }
+    for (r = 0; r < 8; r++) {
+      for (c = 0; c < 8; c++) {
+        sq = r * 8 + c;
+        p = b[sq];
+        if (p !== '.') {
+          t = document.createElementNS(ns, 'text');
+          t.setAttribute('x', c + 0.5); t.setAttribute('y', r + 0.72);
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', '0.62');
+          var upper = p === p.toUpperCase();
+          t.setAttribute('fill', upper ? pc.w : pc.b);
+          if (upper) {
+            t.setAttribute('stroke', pc.b);
+            t.setAttribute('stroke-width', 0.035);
+            t.setAttribute('stroke-opacity', '0.3');
+          } else {
+            t.setAttribute('stroke', 'none');
+          }
+          t.textContent = SYM[p] || p;
+          svg.appendChild(t);
+        }
+      }
+    }
+    if (sel >= 0) {
+      var h = rc(sel);
+      rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', h.c + 0.05); rect.setAttribute('y', h.r + 0.05);
+      rect.setAttribute('width', 0.9); rect.setAttribute('height', 0.9);
+      rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', ringH); rect.setAttribute('stroke-width', 0.08);
+      svg.appendChild(rect);
+    }
+    var side = game.state.side === 1 ? 'White' : 'Black';
+    var st = document.getElementById('ch-status');
+    if (game.inCheckmate()) st.textContent = side + ' is in checkmate · game over';
+    else if (game.inStalemate()) st.textContent = 'Stalemate · draw';
+    else if (game.inCheck()) st.textContent = side + ' to move · check';
+    else st.textContent = side + ' to move';
+    var uc = document.getElementById('ugc-color');
+    if (uc) uc.value = game.state.side === 1 ? '-1' : '1';
+    refreshMini();
+  }
+
+  function boardFromEvent(ev) {
+    var pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    var ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    var loc = pt.matrixTransform(ctm.inverse());
+    var c = Math.floor(loc.x);
+    var r = Math.floor(loc.y);
+    if (c < 0 || c > 7 || r < 0 || r > 7) return null;
+    return r * 8 + c;
+  }
+
+  svg.addEventListener('mousemove', function (ev) {
+    var q = boardFromEvent(ev);
+    var nq = q != null ? q : -1;
+    if (nq === hoverSq) return;
+    hoverSq = nq;
+    draw();
+  });
+  svg.addEventListener('mouseleave', function () {
+    hoverSq = -1;
+    draw();
+  });
+  svg.addEventListener('click', function (ev) {
+    var sq = boardFromEvent(ev);
+    if (sq == null) return;
+    var b = game.state.board;
+    var side = game.state.side;
+    if (game.inCheckmate() || game.inStalemate()) return;
+    if (sel < 0) {
+      var pc = b[sq];
+      if (pc === '.') return;
+      var col = pc === pc.toUpperCase() ? 1 : -1;
+      if (col !== side) return;
+      sel = sq;
+      draw();
+      return;
+    }
+    var r = game.applyMove(sel, sq);
+    if (r.ok) {
+      log((rc(sel).c + 1) + '' + (8 - rc(sel).r) + '→' + (rc(sq).c + 1) + '' + (8 - rc(sq).r));
+      sel = -1;
+      if (game.inCheckmate()) log('Checkmate');
+      else if (game.inStalemate()) log('Stalemate');
+      if (window.UgradGameChrome && UgradGameChrome.armClock) UgradGameChrome.armClock();
+    } else {
+      var pc2 = b[sq];
+      if (pc2 !== '.' && (pc2 === pc2.toUpperCase() ? 1 : -1) === side) { sel = sq; draw(); return; }
+      sel = -1;
+    }
+    draw();
+  });
+
+  function newGame() {
+    game.reset(); sel = -1; log('— new game —'); draw();
+  }
+  document.getElementById('gm-new').addEventListener('click', newGame);
+  var gmClear = document.getElementById('gm-clear');
+  if (gmClear) gmClear.addEventListener('click', newGame);
+  var gmUndo = document.getElementById('gm-undo');
+  if (gmUndo) gmUndo.addEventListener('click', function () { log('undo · not implemented (no move stack)'); });
+  var gmAi = document.getElementById('gm-ai-move');
+  if (gmAi) gmAi.addEventListener('click', function () { log('AI move · roadmap'); });
+  document.getElementById('gm-train').addEventListener('click', function () { refreshMini(); });
+
+  function syncMeta() {
+    try {
+      var m = document.getElementById('chess-meta-theme');
+      if (m) m.setAttribute('content', document.documentElement.getAttribute('data-theme') === 'light' ? '#f6f8fa' : '#0f1419');
+    } catch (e) {}
+  }
+  if (window.QuantumPrefixes && QuantumPrefixes.onThemeChange) QuantumPrefixes.onThemeChange(function () { draw(); syncMeta(); });
+  syncMeta();
+  draw();
+  log('chess-ugrad v0.3.4 · UgradChess');
+
+  if (window.UgradParityLab) {
+    UgradParityLab.init({
+      gameId: 'chess',
+      version: VERSION,
+      storageKey: STORAGE_KEY,
+      tensorDefault: 'go-board',
+      getSlice9: slice9FromBoard,
+      getExportPayload: function () {
+        return { app: 'chess-ugrad', version: VERSION, fen: game.toFEN(), slice9: slice9FromBoard(), ts: new Date().toISOString() };
+      },
+      getSavePayload: function () {
+        return { fen: game.toFEN(), slice9: slice9FromBoard() };
+      },
+      onLoad: function (entry) {
+        if (!entry || !entry.fen) return;
+        game.setFEN(entry.fen);
+        sel = -1;
+        draw();
+        log('— loaded saved position —');
+      },
+      hideBoardSize: true,
+      hideAiMove: false
+    });
+  }
+
+  window.ChessUgrad = { VERSION: VERSION, game: game };
+
+  function broadcast() {
+    try {
+      if (window.QuantumPrefixes && QuantumPrefixes.broadcastState) {
+        QuantumPrefixes.broadcastState(APP, { app: APP, version: VERSION, ts: Date.now(), fen: game.toFEN() });
+      }
+    } catch (e1) {}
+  }
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      var ch = new BroadcastChannel('quantum-prefixes');
+      ch.onmessage = function (ev) { if (ev.data && ev.data.type === 'requestSync') broadcast(); };
+    }
+  } catch (e2) {}
+  broadcast();
+})();
+</script>
+<script src="ugrad-game-chrome.js"></script>
+<script src="ugrad-game-presence.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});</script>
+</body>
+</html>

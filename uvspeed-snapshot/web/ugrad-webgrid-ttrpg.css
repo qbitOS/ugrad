@@ -1,0 +1,288 @@
+/* ugrad-webgrid-ttrpg.css — WebGrid arena (72×48) + TTRPG + feel pass (PROGRESS v0.1.0 / v0.2.0) */
+#webgrid-main.wg-ttrpg-root {
+  --wg-energy: 0.35;
+  --wg-glow: rgba(163, 113, 247, 0.22);
+  --wg-cell: 8px;
+  position: relative;
+  min-height: 280px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wg-ttrpg-lede {
+  margin: 0;
+  font: 500 12px ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.45;
+  color: var(--qp-fg-body, #c9d1d9);
+}
+
+.wg-ttrpg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font: 500 10px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+}
+
+.wg-ttrpg-bar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.wg-ttrpg-bar select,
+.wg-ttrpg-bar input[type="number"] {
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: var(--qp-bg-base, #161b22);
+  color: inherit;
+  font: inherit;
+}
+
+.wg-party {
+  border: 1px solid var(--qp-border, #30363d);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.wg-party-hd {
+  font: 600 9px ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin-bottom: 6px;
+}
+
+.wg-party-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+@media (min-width: 720px) {
+  .wg-party-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.wg-party-seat {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: rgba(250, 250, 252, 0.04);
+  border: 1px solid rgba(250, 250, 252, 0.08);
+  min-height: 56px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.wg-party-seat.is-active-seat {
+  border-color: color-mix(in srgb, var(--wg-seat-color, #58a6ff) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--wg-seat-color, #58a6ff) 35%, transparent);
+}
+
+.wg-party-seat input[type='radio'] {
+  margin: 4px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--wg-seat-color, #58a6ff);
+}
+
+.wg-seat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--wg-seat-color, #58a6ff);
+  flex-shrink: 0;
+  margin-top: 5px;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--wg-seat-color, #58a6ff) 50%, transparent);
+}
+
+.wg-seat-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.wg-party-seat .wg-seat-n {
+  font: 700 8px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+
+.wg-party-seat .wg-seat-name {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: var(--qp-bg-base, #161b22);
+  color: inherit;
+  font: 500 10px ui-sans-serif, system-ui, sans-serif;
+}
+
+.wg-dice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font: 500 10px ui-monospace, monospace;
+}
+
+.wg-dice-last {
+  min-width: 8rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--qp-fg-primary, #e8edf4);
+}
+
+.wg-dice button {
+  font: 600 9px ui-monospace, monospace;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: transparent;
+  color: var(--qp-fg-primary, #e8edf4);
+  cursor: pointer;
+}
+
+.wg-dice button:hover {
+  background: rgba(163, 113, 247, 0.15);
+}
+
+/* Stage: foliage dots + wave + gravity canvas + scroll grid */
+#wg-stage {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid var(--qp-border, #30363d);
+  overflow: hidden;
+  min-height: 240px;
+  max-height: min(58vh, 520px);
+  background: linear-gradient(165deg, rgba(14, 18, 24, 0.95), rgba(6, 8, 12, 0.98));
+  box-shadow: inset 0 0 0 1px rgba(250, 250, 252, 0.04), 0 8px 32px rgba(0, 0, 0, 0.35);
+  animation: wg-stage-wave 14s ease-in-out infinite;
+}
+
+@keyframes wg-stage-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+#wg-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image: radial-gradient(rgba(250, 250, 252, 0.14) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+#wg-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.88;
+}
+
+#wg-swarm {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#wg-map-scroll {
+  position: relative;
+  z-index: 4;
+  cursor: crosshair;
+  overflow: auto;
+  max-height: min(52vh, 480px);
+  padding: 10px;
+  -webkit-overflow-scrolling: touch;
+  background: transparent;
+}
+
+#wg-map-grid {
+  display: grid;
+  gap: 0;
+  width: max-content;
+  min-width: 100%;
+  margin: 0 auto;
+  background-image: linear-gradient(rgba(250, 250, 252, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(250, 250, 252, 0.05) 1px, transparent 1px);
+  background-size: var(--wg-cell) var(--wg-cell);
+  user-select: none;
+}
+
+[data-theme="light"] #wg-map-grid {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+}
+
+.wg-map-cell {
+  box-sizing: border-box;
+  width: var(--wg-cell);
+  height: var(--wg-cell);
+  border-right: 1px solid rgba(250, 250, 252, 0.06);
+  border-bottom: 1px solid rgba(250, 250, 252, 0.06);
+  cursor: crosshair;
+  padding: 0;
+  margin: 0;
+}
+
+/* wg-tensor-* classes: ring colors merged in applyCellVisual() (ugrad-webgrid-ttrpg.js) */
+
+#wg-ripple-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.wg-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(163, 113, 247, 0.45);
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: wg-ripple-expand 0.75s ease-out forwards;
+}
+
+@keyframes wg-ripple-expand {
+  to {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #wg-stage {
+    animation: none;
+  }
+  .wg-ripple {
+    animation: none;
+    opacity: 0;
+  }
+  #wg-fx {
+    opacity: 0.2;
+  }
+}

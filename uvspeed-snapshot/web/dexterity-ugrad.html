@@ -1,0 +1,172 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="dexterity-meta-theme">
+<title>Dexterity — μgrad lab</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-game-chrome.css">
+</head>
+<body data-ugrad-game="dexterity" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>dexterity.ugrad.ai</strong>
+    <span class="gu-bar-out"><a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a></span>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark (syncs with μgrad stack)"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="ugc-open-monitor" title="Open multi-board monitor">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slices from other tensor envs (BroadcastChannel ugrad-tensor-lane)">
+      <label><input type="checkbox" id="gm-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gm-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gm-mode"><option value="play" selected>Play &amp; record</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="ugc-color"><option value="1">Black (●)</option><option value="-1">White (○)</option></select></label>
+    <button type="button" id="gm-undo">Undo</button>
+    <button type="button" id="gm-clear">Clear</button>
+    <button type="button" id="gm-save-game">Save game</button>
+    <label>Tensor env <select id="gm-tensor-env"></select></label>
+    <label>Train steps <input type="number" id="gm-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gm-train">Train slice MLP</button>
+    <button type="button" id="gm-ai-move">AI move</button>
+    <button type="button" id="gm-snap">Snapshot</button>
+    <button type="button" id="gm-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gm-fs" title="Fullscreen">Fullscreen board</button>
+    <button type="button" id="ugc-open-hub-monitor">Hub monitor</button>
+    <span id="gm-board-size-wrap" style="display:none"><select id="gm-board-size"><option value="15">15×15</option></select></span>
+    <label><input type="checkbox" id="gm-bc-follow"> Follow remote</label>
+    <label><input type="checkbox" id="gm-bc-send" checked> Broadcast</label>
+    <label>Name <input type="text" id="gm-bc-label" maxlength="32" placeholder="optional" style="max-width:7rem"></label>
+    <button type="button" class="gu-primary" id="gm-new">New session</button>
+    <button type="button" onclick="location.href='go-ugrad.html'">Go lab</button>
+  </div>
+</header>
+<div class="gu-main" id="ugc-fs-target">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2>◎ Pointer trails</h2>
+    <div class="gu-clock-strip" role="group" aria-label="Game clock">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="ugc-clock-b">B · —:—</span>
+        <span class="gu-clock-face" id="ugc-clock-w">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="ugc-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="ugc-clock-min" value="5" min="1" max="120" step="1"></label>
+      <button type="button" id="ugc-clock-pause">Pause</button>
+      <button type="button" class="gu-primary" id="ugc-clock-reset">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar">
+      <button type="button" class="gu-fs-btn gu-primary" id="ugc-fs-inline" title="Fullscreen">⛶</button>
+    </div>
+    <div class="upl-main-slot" id="dexterity-main">
+      <p style="margin:0;font:500 12px ui-sans-serif">Hand + pointer trails · Fitts lab.</p>
+    </div>
+    <p style="font-size:10px;color:var(--qp-fg-muted);margin:10px 0 0;line-height:1.45">Gamepad / touch patterns.</p>
+    <div class="gu-mini9" id="gm-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" aria-label="Command station">
+      <div class="gu-cmd-hd">Command station · live 3×3 slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gm-cmd-live"></div>
+        <div class="gu-cmd-readout" id="gm-cmd-readout">idle · Train or snapshot</div>
+      </div>
+      <p class="gu-cmd-meta">Fitts targeting tensor.</p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gm-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gm-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gm-act" aria-live="polite">dexterity-ugrad v0.3.0 · activity log</div>
+    </div>
+    <p id="gm-side-meta" style="font:500 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin:0;line-height:1.45"></p>
+  </div>
+</div>
+<section class="gu-lane-sync" aria-label="Tensor lane">
+  <h3 class="gu-lane-sync-hd">Tensor lane · remote slices</h3>
+  <p class="gu-lane-sync-meta">Same ℝ⁹ shape as <code>#gm-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code> · Publish slice / Lane in.</p>
+  <div class="gu-lane-sync-grid" id="gm-lane-grid"><p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet.</p></div>
+</section>
+<p class="gu-foot"><code>dexterity-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">μgrad games hub</a> · <a href="arena-ugrad.html">arena</a> · <a href="raw-games-ugrad.html">raw index</a> · <a href="ugrad-pad-lab.html">μPad lab</a> · <a href="https://dexterity.ugrad.ai" target="_blank" rel="noopener">dexterity.ugrad.ai</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script src="ugrad-parity-lab.js"></script>
+<script src="ugrad-game-chrome.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>
+(function(){
+'use strict';
+var VERSION='0.3.0';
+var GAME='dexterity';
+var STORAGE='dexterity-ugrad-games-v1';
+var BC_NAME='ugrad-dexterity-board';
+function slice9(){
+  if(window.UgradTensorEnvs){
+    var sel=document.getElementById('gm-tensor-env');
+    var id=sel?sel.value:'go-board';
+    var b=UgradTensorEnvs.synthBatch(id,1);
+    if(b&&b.X&&b.X[0])return b.X[0].map(Number);
+  }
+  return [0,0,0,0,0,0,0,0,0];
+}
+function exportPayload(){
+  return {app:GAME+'-ugrad',version:VERSION,slice9:slice9(),ts:new Date().toISOString(),note:"dexterity stub"};
+}
+var snapTick=0;
+function refreshMini(){
+  var s=slice9();
+  if(window.UgradParityLab){UgradParityLab.renderMini9('gm-mini9',s);UgradParityLab.renderMini9('gm-cmd-live',s);}
+  var ro=document.getElementById('gm-cmd-readout');
+  if(ro)ro.textContent='slice ℝ⁹ · '+s.join(',')+' · '+new Date().toISOString().slice(11,19);
+}
+document.getElementById('gm-train').addEventListener('click',function(){refreshMini();});
+document.getElementById('gm-clear').addEventListener('click',function(){refreshMini();document.getElementById('gm-act').textContent=GAME+'-ugrad v'+VERSION+' · cleared';});
+document.getElementById('gm-new').addEventListener('click',function(){refreshMini();});
+document.getElementById('gm-ai-move').addEventListener('click',function(){
+  document.getElementById('gm-act').textContent+='\nAI move · roadmap — use tensor train + policy hook';
+});
+document.getElementById('gm-undo').addEventListener('click',function(){
+  document.getElementById('gm-act').textContent+='\nundo · roadmap';
+});
+if(window.UgradParityLab){
+  UgradParityLab.init({
+    gameId:GAME,
+    version:VERSION,
+    storageKey:STORAGE,
+    tensorDefault:'go-board',
+    getSlice9:slice9,
+    getExportPayload:exportPayload,
+    getSavePayload:function(){return {slice9:slice9()};},
+    hideBoardSize:true,
+    hideAiMove:false
+  });
+}
+refreshMini();
+
+if(window.QuantumPrefixes&&QuantumPrefixes.broadcastState)
+  QuantumPrefixes.broadcastState(GAME+'-ugrad',{app:GAME+'-ugrad',version:VERSION,ts:Date.now()});
+})();
+</script>
+<script>
+(function(){
+if(typeof BroadcastChannel==='undefined'||!window.QuantumPrefixes)return;
+var ch=new BroadcastChannel('quantum-prefixes');
+ch.onmessage=function(e){if(e.data&&e.data.type==='requestSync'&&QuantumPrefixes.broadcastState)
+  QuantumPrefixes.broadcastState('dexterity-ugrad',{app:'dexterity-ugrad',version:'0.3.0',ts:Date.now()});};
+})();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+<script src="ugrad-game-presence.js"></script>
+</body>
+</html>

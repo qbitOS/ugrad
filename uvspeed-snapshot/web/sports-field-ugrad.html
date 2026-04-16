@@ -1,0 +1,309 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="sportsfield-meta-theme">
+<title>Sports field — μgrad lab</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+<link rel="stylesheet" href="ugrad-sportsfield-pitch.css?v=4.241">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-game-chrome.css">
+</head>
+<body data-ugrad-game="sportsfield" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>sports.ugrad.ai</strong>
+    <span class="gu-bar-out"><a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a></span>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark (syncs with μgrad stack)"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="ugc-open-monitor" title="Open multi-board monitor">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slices from other tensor envs (BroadcastChannel ugrad-tensor-lane)">
+      <label><input type="checkbox" id="gm-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gm-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gm-mode"><option value="play" selected>Play &amp; record</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="ugc-color"><option value="1">Black (●)</option><option value="-1">White (○)</option></select></label>
+    <button type="button" id="gm-undo">Undo</button>
+    <button type="button" id="gm-clear">Clear</button>
+    <button type="button" id="gm-save-game">Save game</button>
+    <label>Tensor env <select id="gm-tensor-env"></select></label>
+    <label>Train steps <input type="number" id="gm-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gm-train">Train slice MLP</button>
+    <button type="button" id="gm-ai-move">AI move</button>
+    <button type="button" id="gm-snap">Snapshot</button>
+    <button type="button" id="gm-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gm-fs" title="Fullscreen">Fullscreen board</button>
+    <button type="button" id="ugc-open-hub-monitor">Hub monitor</button>
+    <span id="gm-board-size-wrap" style="display:none"><select id="gm-board-size"><option value="15">15×15</option></select></span>
+    <label><input type="checkbox" id="gm-bc-follow"> Follow remote</label>
+    <label><input type="checkbox" id="gm-bc-send" checked> Broadcast</label>
+    <label>Name <input type="text" id="gm-bc-label" maxlength="32" placeholder="optional" style="max-width:7rem"></label>
+    <button type="button" class="gu-primary" id="gm-new">New session</button>
+    <button type="button" onclick="location.href='go-ugrad.html'">Go lab</button>
+  </div>
+</header>
+<div class="gu-main" id="ugc-fs-target">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2>⚽ Pitch telemetry</h2>
+    <div class="gu-clock-strip" role="group" aria-label="Game clock">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="ugc-clock-b">B · —:—</span>
+        <span class="gu-clock-face" id="ugc-clock-w">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="ugc-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="ugc-clock-min" value="5" min="1" max="120" step="1"></label>
+      <button type="button" id="ugc-clock-pause">Pause</button>
+      <button type="button" class="gu-primary" id="ugc-clock-reset">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar">
+      <button type="button" class="gu-fs-btn gu-primary" id="ugc-fs-inline" title="Fullscreen">⛶</button>
+    </div>
+    <div class="upl-main-slot sf-pitch-root" id="sportsfield-main">
+      <p class="sf-lede" id="sf-lede">
+        <strong>105×68 m</strong> pitch · IFAB layout · <strong>51×33</strong> cells · layers + ball sim ·
+        <code>hexcast-stream</code> · telemetry <code>sportsfield-telemetry</code>. Choose a sport preset below (grass / ice / courts / sand / …).
+      </p>
+      <div class="sf-spec-bar" id="sf-spec-bar">
+        Pro broadcast AR: often 6K capture, ~±2 cm tracking, &lt;50 ms latency; surface projection ~4K blended; this DOM grid is a
+        <em>coarse</em> overlay — pair with real H3/geo off-thread.
+      </div>
+      <div class="sf-bar">
+        <label
+          >Sport / surface
+          <select id="sf-sport-preset" title="Field size, markings, surface tint, and shot model (soccer xG only on FIFA grass)"></select>
+        </label>
+        <label>Layer <select id="sf-layer" title="Stack bottom→top; player layers affect ball sim">
+          <option value="0" selected>tactics</option>
+          <option value="1">zones</option>
+          <option value="2">regions</option>
+          <option value="3">players · fast</option>
+          <option value="4">players · slow</option>
+          <option value="5">players · bounce</option>
+          <option value="6">players · avoid</option>
+        </select></label>
+        <label>Swatch <select id="sf-paint">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select></label>
+        <label><input type="checkbox" id="sf-erase" /> Erase</label>
+        <label>Brush <select id="sf-brush">
+          <option value="0" selected>1 cell</option>
+          <option value="1">3×3</option>
+          <option value="2">5×5</option>
+        </select></label>
+        <label title="Integrate velocity + player layers; telemetry → hexcast-stream"
+          ><input type="checkbox" id="sf-ball-run" /> Ball sim</label
+        >
+        <label title="Apply positions from BroadcastChannel sportsfield-telemetry (disables local physics while on)"
+          ><input type="checkbox" id="sf-live-tel" /> Live telemetry</label
+        >
+        <button type="button" id="sf-clear">Clear pitch</button>
+        <button type="button" id="sf-export">Copy pitch JSON</button>
+        <span class="sf-bundle" id="sf-bundle" title="Asset revision — bump with web/sw.js CACHE_NAME">bundle 4.241</span>
+      </div>
+      <details class="sf-vision-details">
+        <summary>Browser CV (COCO-SSD) · or official / bridge tracking</summary>
+        <p class="sf-vision-hint">
+          <strong>In-browser:</strong> YOLO-class single-shot detector (COCO-SSD MobileNet) tracks the
+          <code>sports ball</code> class → maps bbox center to pitch meters. <strong>Production:</strong> ingest vendor tracking or run CV offline and post
+          <code>sportsfield-telemetry</code> on <code>hexcast-stream</code> (no webcam).
+        </p>
+        <div class="sf-vision-row">
+          <video id="sf-vision-video" class="sf-vision-video" playsinline muted></video>
+          <canvas id="sf-vision-canvas" class="sf-vision-canvas" width="320" height="240" aria-label="Detection overlay"></canvas>
+        </div>
+        <div class="sf-vision-actions">
+          <button type="button" id="sf-vision-cam">Camera</button>
+          <button type="button" id="sf-vision-load">Load COCO-SSD</button>
+          <label title="Map detections to ball position on the active preset"
+            ><input type="checkbox" id="sf-vision-drive" /> Drive ball</label
+          >
+        </div>
+        <p id="sf-vision-status" class="sf-vision-status" aria-live="polite"></p>
+      </details>
+      <div class="sf-readout" id="sf-readout" aria-live="polite">—</div>
+      <div id="sf-stage" class="sf-stage">
+        <div id="sf-scroll" class="sf-scroll">
+          <div class="sf-field-wrap" id="sf-field-wrap">
+            <svg
+              id="sf-field-svg"
+              class="sf-field-svg"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              focusable="false"
+            ></svg>
+            <div id="sf-grid" class="sf-grid" role="grid" aria-label="FIFA pitch cells 51 by 33"></div>
+            <div class="sf-ball-layer" id="sf-ball-layer" aria-hidden="true">
+              <div class="sf-ball" id="sf-ball"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:10px;color:var(--qp-fg-muted);margin:10px 0 0;line-height:1.45"><a href="hexcast.html" style="color:inherit;font-weight:600">hexcast</a> · <a href="pong-ugrad.html" style="color:inherit;font-weight:600">pong</a>.</p>
+    <div class="gu-mini9" id="gm-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" aria-label="Command station">
+      <div class="gu-cmd-hd">Command station · live 3×3 slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gm-cmd-live"></div>
+        <div class="gu-cmd-readout" id="gm-cmd-readout">idle · Train or snapshot</div>
+      </div>
+      <p class="gu-cmd-meta">
+        Tensor slice + pitch layers export together · hexcast-stream · live ball:
+        <code>postMessage</code> / <code>SportsfieldPitch.applyExternalBallState</code> / channel
+        <code>sportsfield-telemetry</code> with <code>meters</code> + optional <code>shot</code>.
+      </p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="sf-side-stack">
+      <div class="gu-snap-hd">Official broadcast · YouTube</div>
+      <p class="sf-broadcast-meta">
+        Paste a match or highlights URL · pairs with <a href="kbatch.html">kbatch</a> transcript + <code>hexcast-stream</code> ball trace.
+        <span class="sf-yt-embed-note">Many sports channels block in-page embeds — use <strong>Open in YouTube</strong> if the player says unavailable.</span>
+      </p>
+      <div class="sf-yt-controls">
+        <input type="text" id="sf-yt-id" class="sf-yt-input" placeholder="Video ID or youtu.be / watch?v=" autocomplete="off" />
+        <button type="button" class="sf-yt-load" id="sf-yt-load">Load</button>
+        <a id="sf-yt-open" class="sf-yt-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open in YouTube</a>
+      </div>
+      <div class="sf-yt-wrap">
+        <iframe
+          id="sf-yt-frame"
+          class="sf-yt-frame"
+          title="YouTube — official-style broadcast"
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </div>
+      <div class="gu-snap-hd">Sky view · flow &amp; flock</div>
+      <p class="sf-broadcast-meta">Top-down trail + velocity arrow; cyan dots = light boids (separation + flow + pitch bounds) for migration-style tests.</p>
+      <canvas id="sf-sky-canvas" width="280" height="181" aria-label="Sky view flow"></canvas>
+      <div class="sf-flow-stats" id="sf-flow-stats"></div>
+      <label class="sf-flock-label"><input type="checkbox" id="sf-flock-on" checked /> Flock overlay</label>
+      <div class="gu-snap-hd">kbatch · transcript tail</div>
+      <div id="sf-tx-log" class="sf-tx-log" aria-live="polite"></div>
+      <details class="sf-live-details">
+        <summary>Live field data &amp; JSON</summary>
+        <p class="sf-live-hint">
+          <strong>Sources:</strong> club/vendor tracking APIs, optical/broadcast ML, or your own bridge posting
+          <code>sportsfield-telemetry</code> on <code>hexcast-stream</code>. <strong>Sky cameras:</strong> use CV tracking offline → emit JSON.
+        </p>
+        <textarea id="sf-json-tel" class="sf-json-ta" rows="4" placeholder='{"meters":{"x":52,"y":34},"velocityMs":{"vx":12,"vy":-3}}'></textarea>
+        <button type="button" class="sf-json-btn" id="sf-json-apply">Apply telemetry + enable Live</button>
+      </details>
+    </div>
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gm-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gm-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gm-act" aria-live="polite">sportsfield-ugrad v0.5.2 · activity log</div>
+    </div>
+    <p id="gm-side-meta" style="font:500 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin:0;line-height:1.45"></p>
+  </div>
+</div>
+<section class="gu-lane-sync" aria-label="Tensor lane">
+  <h3 class="gu-lane-sync-hd">Tensor lane · remote slices</h3>
+  <p class="gu-lane-sync-meta">Same ℝ⁹ shape as <code>#gm-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code> · Publish slice / Lane in.</p>
+  <div class="gu-lane-sync-grid" id="gm-lane-grid"><p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet.</p></div>
+</section>
+<p class="gu-foot"><code>sports-field-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">μgrad games hub</a> · <a href="arena-ugrad.html">arena</a> · <a href="raw-games-ugrad.html">raw index</a> · <a href="ugrad-pad-lab.html">μPad lab</a> · <a href="https://pong.ugrad.ai" target="_blank" rel="noopener">pong.ugrad.ai</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script src="ugrad-parity-lab.js"></script>
+<script src="ugrad-sportsfield-presets.js?v=4.241"></script>
+<script src="ugrad-sportsfield-shot.js?v=4.241"></script>
+<script src="ugrad-sportsfield-pitch.js?v=4.241"></script>
+<script src="ugrad-sportsfield-broadcast.js?v=4.241"></script>
+<script src="ugrad-sportsfield-vision.js?v=4.241"></script>
+<script src="ugrad-game-chrome.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>
+(function(){
+'use strict';
+var VERSION='0.5.2';
+var GAME='sportsfield';
+var STORAGE='sportsfield-ugrad-games-v1';
+var BC_NAME='ugrad-sportsfield-board';
+function slice9(){
+  if(window.UgradTensorEnvs){
+    var sel=document.getElementById('gm-tensor-env');
+    var id=sel?sel.value:'go-board';
+    var b=UgradTensorEnvs.synthBatch(id,1);
+    if(b&&b.X&&b.X[0])return b.X[0].map(Number);
+  }
+  return [0,0,0,0,0,0,0,0,0];
+}
+function exportPayload(){
+  var o={app:GAME+'-ugrad',version:VERSION,slice9:slice9(),ts:new Date().toISOString(),note:'sportsfield pitch + tensor'};
+  if(window.SportsfieldPitch&&SportsfieldPitch.serialize)o.pitch=SportsfieldPitch.serialize();
+  return o;
+}
+var snapTick=0;
+function refreshMini(){
+  var s=slice9();
+  if(window.UgradParityLab){UgradParityLab.renderMini9('gm-mini9',s);UgradParityLab.renderMini9('gm-cmd-live',s);}
+  var ro=document.getElementById('gm-cmd-readout');
+  if(ro)ro.textContent='slice ℝ⁹ · '+s.join(',')+' · '+new Date().toISOString().slice(11,19);
+}
+document.getElementById('gm-train').addEventListener('click',function(){refreshMini();});
+document.getElementById('gm-clear').addEventListener('click',function(){if(window.SportsfieldPitch&&SportsfieldPitch.clearPitch)SportsfieldPitch.clearPitch();refreshMini();document.getElementById('gm-act').textContent=GAME+'-ugrad v'+VERSION+' · cleared';});
+document.getElementById('gm-new').addEventListener('click',function(){refreshMini();});
+document.getElementById('gm-ai-move').addEventListener('click',function(){
+  document.getElementById('gm-act').textContent+='\nAI move · roadmap — use tensor train + policy hook';
+});
+document.getElementById('gm-undo').addEventListener('click',function(){
+  document.getElementById('gm-act').textContent+='\nundo · roadmap';
+});
+if(window.UgradParityLab){
+  UgradParityLab.init({
+    gameId:GAME,
+    version:VERSION,
+    storageKey:STORAGE,
+    tensorDefault:'pong-buckets',
+    getSlice9:slice9,
+    getExportPayload:exportPayload,
+    getSavePayload:function(){var o={slice9:slice9()};if(window.SportsfieldPitch&&SportsfieldPitch.serialize)o.pitch=SportsfieldPitch.serialize();return o;},
+    hideBoardSize:true,
+    hideAiMove:false
+  });
+}
+refreshMini();
+if(window.SportsfieldPitch&&SportsfieldPitch.init)SportsfieldPitch.init();
+
+if(window.QuantumPrefixes&&QuantumPrefixes.broadcastState)
+  QuantumPrefixes.broadcastState(GAME+'-ugrad',{app:GAME+'-ugrad',version:VERSION,ts:Date.now()});
+})();
+</script>
+<script>
+(function(){
+if(typeof BroadcastChannel==='undefined'||!window.QuantumPrefixes)return;
+var ch=new BroadcastChannel('quantum-prefixes');
+ch.onmessage=function(e){if(e.data&&e.data.type==='requestSync'&&QuantumPrefixes.broadcastState)
+  QuantumPrefixes.broadcastState('sportsfield-ugrad',{app:'sportsfield-ugrad',version:'0.5.2',ts:Date.now()});};
+})();
+if('serviceWorker'in navigator)
+  navigator.serviceWorker.register('sw.js?v=4.241').then(function (reg) {
+    try {
+      reg.update();
+    } catch (e) {}
+  }).catch(function () {});
+</script>
+<script src="ugrad-game-presence.js"></script>
+</body>
+</html>

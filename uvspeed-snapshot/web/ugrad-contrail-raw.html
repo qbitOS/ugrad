@@ -1,0 +1,239 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>μgrad⚡contrail L0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#000;color:#c9d1d9;font:12px/1.4 'SF Mono',monospace;overflow:hidden}
+#a{display:flex;flex-direction:column;height:100vh}
+#o{flex:1;overflow-y:auto;padding:6px 10px;white-space:pre-wrap;contain:content}
+#o::-webkit-scrollbar{width:2px}#o::-webkit-scrollbar-thumb{background:#161b22}
+#b{display:flex;gap:8px;padding:2px 10px;font-size:9px;color:#484f58;border-top:1px solid #0d1117;user-select:none}
+#p{display:flex;align-items:center;gap:4px;padding:3px 10px;border-top:1px solid #0d1117}
+#p b{color:#a78bfa;font-weight:400;user-select:none}
+#p input{flex:1;background:0 0;border:0;color:#c9d1d9;font:inherit;outline:0;caret-color:#a78bfa}
+.g{color:#3fb950}.y{color:#c9a84c}.r{color:#f85149}.c{color:#58a6ff}.d{color:#484f58}.m{color:#d2a8ff}.o{color:#f0883e}
+.gt{display:inline-block;min-width:2ch;text-align:right;margin-right:1ch;user-select:none;font-size:11px}
+.ln{min-height:1.3em}
+</style></head><body data-ugrad-game="contrail-raw">
+<div id="a"><div id="o"></div>
+<div id="b"><span id="s0">boot:—</span><span id="s1">·params:—</span><span id="s2">·loss:—</span><span id="s3">·acc:—</span><span id="s4">·contrails:—</span><span id="s5">·iron:L0</span></div>
+<div id="p"><b>μ⊞❯</b><input id="i" spellcheck="false" autocomplete="off"></div></div>
+<script>
+(function(){
+var T0=performance.now(),O=document.getElementById('o'),I=document.getElementById('i');
+var S0=document.getElementById('s0'),S1=document.getElementById('s1'),S2=document.getElementById('s2');
+var S3=document.getElementById('s3'),S4=document.getElementById('s4');
+var PC={'n:':'o','+1:':'d','-n:':'m','+0:':'c','0:':'c','-1:':'r','+n:':'y','+2:':'g','-0:':'m','+3:':'o','1:':'c'};
+var CT={'n:':'▶','+1:':'⊤','-n:':'←','+0:':'⊞','0:':'○','-1:':'⊥','+n:':'◇','+2:':'∀','-0:':'→','+3:':'⊙','1:':'□',' ':'∘','':'∘'};
+var GG={'▶':'H','⊤':'I','←':'M','⊞':'H','○':'H','⊥':'X','◇':'Ry','∀':'T','→':'SWAP','⊙':'H','□':'Rz','∘':'Rz'};
+var NM={'H':'C4','I':'—','M':'G3','X':'G4','Ry':'A3','T':'B4','SWAP':'D5','Rz':'D4'};
+var _r=0;
+function w(h){var d=document.createElement('div');d.className='ln';d.innerHTML=h;O.appendChild(d);if(!_r){_r=1;requestAnimationFrame(function(){O.scrollTop=O.scrollHeight;_r=0})}}
+function e(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function wc(s,c){w(c?'<span class="'+c+'">'+e(s)+'</span>':e(s))}
+function wt(sym,txt){var c=PC[sym]||'d',ct=CT[sym]||'∘';w('<span class="gt '+c+'">'+ct+'</span>'+e(txt))}
+
+// ⊞ Value — scalar autograd node. 18ns/record target.
+function V(d,ch,op){this.d=+d;this.g=0;this._b=null;this._p=ch||[];this._o=op||''}
+V.prototype.a=function(o){o=o instanceof V?o:new V(o);var r=new V(this.d+o.d,[this,o],'+');var s=this,u=o;r._b=function(){s.g+=r.g;u.g+=r.g};return r};
+V.prototype.m=function(o){o=o instanceof V?o:new V(o);var r=new V(this.d*o.d,[this,o],'*');var s=this,u=o;r._b=function(){s.g+=u.d*r.g;u.g+=s.d*r.g};return r};
+V.prototype.p=function(n){var r=new V(Math.pow(this.d,n),[this],'**');var s=this;r._b=function(){s.g+=n*Math.pow(s.d,n-1)*r.g};return r};
+V.prototype.t=function(){var x=Math.tanh(this.d);var r=new V(x,[this],'th');var s=this;r._b=function(){s.g+=(1-x*x)*r.g};return r};
+V.prototype.r=function(){var r=new V(this.d>0?this.d:0,[this],'rl');var s=this;r._b=function(){s.g+=(r.d>0?1:0)*r.g};return r};
+V.prototype.n=function(){return this.m(-1)};
+V.prototype.s=function(o){return this.a((o instanceof V?o:new V(o)).n())};
+V.prototype.bw=function(){var tp=[],vi=new Set();function b(v){if(!vi.has(v)){vi.add(v);for(var i=0;i<v._p.length;i++)b(v._p[i]);tp.push(v)}}b(this);this.g=1;for(var i=tp.length-1;i>=0;i--)if(tp[i]._b)tp[i]._b()};
+
+// ⊞ Neuron — nin weights + bias + tanh
+function N(ni,nl){var s=Math.sqrt(2/ni);this.w=[];for(var i=0;i<ni;i++)this.w.push(new V((Math.random()*2-1)*s));this.b=new V(0);this.nl=nl!==false}
+N.prototype.f=function(x){var a=this.b;for(var i=0;i<this.w.length;i++)a=a.a(this.w[i].m(x[i]));return this.nl?a.t():a};
+N.prototype.ps=function(){return this.w.concat([this.b])};
+
+// ⊞ Layer — nout neurons
+function L(ni,no,nl){this.ns=[];for(var i=0;i<no;i++)this.ns.push(new N(ni,nl))}
+L.prototype.f=function(x){var o=[];for(var i=0;i<this.ns.length;i++)o.push(this.ns[i].f(x));return o};
+L.prototype.ps=function(){var p=[];for(var i=0;i<this.ns.length;i++)p=p.concat(this.ns[i].ps());return p};
+
+// ⊞ MLP — stacked layers
+function M(sz){this.ls=[];for(var i=0;i<sz.length-1;i++)this.ls.push(new L(sz[i],sz[i+1],i<sz.length-2));this.sz=sz}
+M.prototype.f=function(x){for(var i=0;i<this.ls.length;i++){var o=this.ls[i].f(x);x=o.length===1?o:o}return x.length===1?x[0]:x};
+M.prototype.ps=function(){var p=[];for(var i=0;i<this.ls.length;i++)p=p.concat(this.ls[i].ps());return p};
+M.prototype.zg=function(){var p=this.ps();for(var i=0;i<p.length;i++)p[i].g=0};
+
+// ○ datasets — inline generators, zero alloc overhead
+function gXOR(n){n=n||100;var X=[],y=[];for(var i=0;i<n;i++){var a=Math.random()>.5?1:0,b=Math.random()>.5?1:0;X.push([a*2-1,b*2-1]);y.push((a^b)?1:-1)}return[X,y]}
+function gMoon(n){n=n||200;var X=[],y=[];for(var i=0;i<n;i++){var t=Math.random()*Math.PI;if(i<n/2){X.push([Math.cos(t)+Math.random()*.3,Math.sin(t)+Math.random()*.3]);y.push(1)}else{X.push([1-Math.cos(t)+Math.random()*.3,1-Math.sin(t)-.5+Math.random()*.3]);y.push(-1)}}return[X,y]}
+function gSpiral(n){n=n||200;var X=[],y=[];for(var i=0;i<n;i++){var r=i/n*5,t=1.75*i/n*2*Math.PI;if(i<n/2){X.push([r*Math.cos(t)+Math.random()*.2,r*Math.sin(t)+Math.random()*.2]);y.push(1)}else{X.push([r*Math.cos(t+Math.PI)+Math.random()*.2,r*Math.sin(t+Math.PI)+Math.random()*.2]);y.push(-1)}}return[X,y]}
+function gCircle(n){n=n||200;var X=[],y=[];for(var i=0;i<n;i++){var a=Math.random()*6.2832,r=Math.random()*2;X.push([r*Math.cos(a),r*Math.sin(a)]);y.push(r<1?1:-1)}return[X,y]}
+
+// ○ train — SVM hinge loss + L2 reg, cosine LR decay
+function train(m,X,y,ep,lr){
+  var np=m.ps().length,t0=performance.now();
+  for(var e=0;e<ep;e++){
+    var tl=new V(0),cor=0;
+    for(var i=0;i<X.length;i++){
+      var pr=m.f(X[i].map(function(v){return new V(v)}));
+      tl=tl.a(pr.m(-y[i]).a(1).r());
+      if((pr.d>0)===(y[i]>0))cor++;
+    }
+    tl=tl.m(1/X.length);
+    var ps=m.ps(),reg=new V(0);
+    for(var j=0;j<ps.length;j++)reg=reg.a(ps[j].m(ps[j]));
+    tl=tl.a(reg.m(1e-4));
+    m.zg();tl.bw();
+    var clr=lr*(1-e/ep*.9);
+    for(var j=0;j<ps.length;j++)ps[j].d-=clr*ps[j].g;
+    if(e%5===0||e===ep-1){
+      var acc=(cor/X.length*100).toFixed(1);
+      wt('+3:','epoch '+pad(e,3)+' │ loss '+tl.d.toFixed(4)+' │ acc '+acc+'% │ lr '+clr.toFixed(5));
+      S2.textContent='·loss:'+tl.d.toFixed(4);S3.textContent='·acc:'+acc+'%';
+    }
+  }
+  var ms=(performance.now()-t0).toFixed(1);
+  wc('trained '+np+' params in '+ms+'ms ('+((ep*X.length)/parseFloat(ms)*1000).toFixed(0)+' fwd/s)','g');
+  return m;
+}
+function pad(n,l){var s=''+n;while(s.length<l)s=' '+s;return s}
+
+// ○ contrail analysis — classify self, emit DAC stats
+function selfContrail(){
+  var QP=window.QuantumPrefixes;if(!QP){wc('awaiting quantum-prefixes.js','d');return}
+  var src=document.querySelector('script').textContent;
+  var lines=src.split('\n'),counts={},total=0,syms=[];
+  for(var i=0;i<lines.length;i++){
+    var c=QP.classifyLine(lines[i],'javascript');
+    var ct=CT[c.sym]||'∘';
+    counts[ct]=(counts[ct]||0)+1;total++;syms.push(ct);
+  }
+  wc('','');wt('n:','═══ SELF-CONTRAIL ANALYSIS ═══');
+  var sorted=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]});
+  var ent=0;
+  for(var i=0;i<sorted.length;i++){
+    var s=sorted[i],cnt=counts[s],pct=(cnt/total*100).toFixed(1);
+    var p=cnt/total;if(p>0)ent-=p*Math.log2(p);
+    var g=GG[s]||'?',n=NM[g]||'?';
+    wt('1:',s+' '+pct.toString().padStart(5)+'% ('+cnt+') → gate:'+g+' → note:'+n);
+  }
+  wt('+1:','entropy: '+ent.toFixed(3)+' / '+Math.log2(12).toFixed(3)+' ('+((ent/Math.log2(12))*100).toFixed(0)+'%)');
+  wt('+1:','lines: '+total+' · unique: '+sorted.length+'/12');
+  var seq=syms.slice(0,60).join('');
+  wt('+1:','trail: '+seq+'…');
+  S4.textContent='·contrails:'+sorted.length+'/12·ent:'+ent.toFixed(2);
+
+  if(window.qbitCodec){
+    var bench=qbitCodec.contrailBenchmark(src,'javascript','ugrad-contrail-raw');
+    wt('+1:','dac speed: '+bench.linesPerMs.toFixed(0)+' lines/ms');
+    if(bench.gates){
+      var gt=Object.keys(bench.gates).sort(function(a,b){return bench.gates[b]-bench.gates[a]}).slice(0,4).map(function(g){return g+':'+bench.gates[g]}).join(' ');
+      wt('+1:','gates: '+gt);
+    }
+  }
+}
+
+// ○ steno encode — wrap source in steganographic metadata
+function selfSteno(){
+  var QS=window.QbitSteno;if(!QS){wc('awaiting qbit-steno.js','d');return}
+  var src=document.querySelector('script').textContent;
+  var enc=QS.stenoEncode(src,'javascript',{source:'ugrad-contrail-raw'});
+  wt('n:','═══ STENO ENCODE ═══');
+  wt('+1:','encoded lines: '+enc.stats.encoded+'/'+enc.stats.total);
+  wt('+1:','bits embedded: '+(enc.stats.encoded*19));
+  wt('+1:','overhead: '+((enc.stats.encoded*19)/(src.length*8)*100).toFixed(2)+'%');
+  var dec=QS.stenoDecode(enc.code);
+  wt('+1:','round-trip: '+(dec.encoded===enc.stats.encoded?'PASS':'FAIL'));
+}
+
+// ○ ironline — broadcast training state to Iron Line bus
+function ironPush(type,data){
+  try{var bc=new BroadcastChannel('iron-line');bc.postMessage({type:type,source:'ugrad-contrail-raw',layer:'L0',data:data,t:performance.now()});bc.close()}catch(e){}
+}
+
+// ▶ REPL — command dispatch
+var CMDS={
+  help:function(){wt('n:','═══ μgrad⊞ contrail L0 ═══');wt('+1:','the original 100-line autograd, minified for L0 speed');wt('+1:','written as if a machine that knows DAC/Iron Line/Steno authored it');wc('','');
+    var cmds=[['train [ds] [ep]','train MLP (xor|moon|spiral|circle) [epochs]'],['arch [sizes]','set architecture (e.g. 2,8,8,1)'],['contrail','self-contrail analysis of this source'],['steno','steganographic encode of this source'],['bench','benchmark: build+train+contrail speed'],['iron','push state to Iron Line L0 bus'],['params','show model parameter count'],['clear','clear terminal']];
+    for(var i=0;i<cmds.length;i++)wt('0:',cmds[i][0].toString().padEnd(18)+cmds[i][1]);},
+  clear:function(){O.innerHTML='';boot()},
+  contrail:function(){selfContrail()},
+  steno:function(){selfSteno()},
+  iron:function(){ironPush('contrail-raw-heartbeat',{boot:T0,uptime:performance.now()-T0});wc('pushed to iron-line L0','g')},
+  params:function(){wt('1:','params: '+(curModel?curModel.ps().length:'no model — run train first'))},
+};
+
+var curModel=null,curArch=[2,8,8,1];
+
+function exec(cmd){
+  cmd=cmd.trim();if(!cmd)return;
+  wc('μ⊞❯ '+cmd,'m');
+  var parts=cmd.split(/\s+/),c=parts[0].toLowerCase();
+  if(c==='train'){
+    var ds=parts[1]||'xor',ep=parseInt(parts[2])||40;
+    var gen={'xor':gXOR,'moon':gMoon,'spiral':gSpiral,'circle':gCircle};
+    var gf=gen[ds]||gen.xor;
+    var data=gf(200);
+    curModel=new M(curArch);
+    S1.textContent='·params:'+curModel.ps().length;
+    wt('n:','═══ TRAIN '+ds.toUpperCase()+' ═══');
+    wt('+1:','arch: '+curArch.join('→')+' · params: '+curModel.ps().length+' · epochs: '+ep);
+    ironPush('train-start',{dataset:ds,arch:curArch,epochs:ep,params:curModel.ps().length});
+    train(curModel,data[0],data[1],ep,0.05);
+    ironPush('train-end',{dataset:ds,loss:parseFloat(S2.textContent.split(':')[1]),acc:parseFloat(S3.textContent.split(':')[1])});
+  } else if(c==='arch'){
+    var sz=parts.slice(1).join(',').split(',').map(Number).filter(function(n){return n>0});
+    if(sz.length>=2){curArch=sz;wc('arch set: '+sz.join('→'),'c')}else wc('usage: arch 2,16,16,1','y');
+  } else if(c==='bench'){
+    var t0=performance.now();
+    var mdl=new M([2,8,8,1]);
+    var t1=performance.now();
+    var data=gXOR(100);
+    var t2=performance.now();
+    train(mdl,data[0],data[1],20,0.05);
+    var t3=performance.now();
+    selfContrail();
+    var t4=performance.now();
+    wt('n:','═══ BENCHMARK ═══');
+    wt('1:','build:  '+(t1-t0).toFixed(2)+'ms');
+    wt('1:','datagen:'+(t2-t1).toFixed(2)+'ms');
+    wt('1:','train:  '+(t3-t2).toFixed(2)+'ms (20ep×100pts)');
+    wt('1:','contrail:'+(t4-t3).toFixed(2)+'ms');
+    wt('1:','total:  '+(t4-t0).toFixed(2)+'ms');
+    ironPush('bench',{build:t1-t0,train:t3-t2,contrail:t4-t3,total:t4-t0});
+  } else if(CMDS[c]){CMDS[c]()}
+  else wc('unknown: '+c+' (try help)','r');
+}
+
+function boot(){
+  var ms=(performance.now()-T0).toFixed(1);
+  S0.textContent='boot:'+ms+'ms';
+  wc('μgrad⚡contrail L0 — boot '+ms+'ms','m');
+  wc('autograd engine: V(d).a().m().t().bw() — 18ns/record target','d');
+  wc('4 classes: V(alue) N(euron) L(ayer) M(LP) — zero deps','d');
+  wc('contrail: ⊞□○∀→◇⊥⊤←▶⊙∘ · gate: H·Rz·Ry·T·X·SWAP·M · note: C4·D4·A3·B4·G4·D5·G3','d');
+  wc('type help for commands\n','d');
+}
+boot();
+
+I.addEventListener('keydown',function(ev){
+  if(ev.key==='Enter'){var v=I.value;I.value='';exec(v)}
+});
+
+// ○ DAC live sync — broadcast coverage on interval
+setInterval(function(){
+  var QP=window.QuantumPrefixes;if(!QP)return;
+  var src=document.querySelector('script').textContent;
+  var meta=QP.prefixMetadata(src,'javascript');
+  S0.textContent='boot:'+(performance.now()-T0).toFixed(0)+'ms';
+  if(meta)SC4=document.getElementById('s4').textContent='·cov:'+meta.coverage+'%';
+  QP.broadcastState('ugrad-contrail-raw',{coverage:meta?meta.coverage:0,totalLines:meta?meta.totalLines:0});
+},5000);
+})();
+</script>
+<script defer src="quantum-prefixes.js"></script>
+<script defer src="qbit-dac.js"></script>
+<script defer src="qbit-steno.js"></script>
+<script>
+// ===== QUANTUM PREFIX LIVE SYNC =====
+if(window.QuantumPrefixes){var QP=window.QuantumPrefixes;QP.broadcastState('ugrad-contrail-raw',{coverage:0,totalLines:0,classifiedLines:0,prefixCounts:{},role:'ugrad-contrail-raw',layer:'L0'});QP.requestStateSync()}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body></html>

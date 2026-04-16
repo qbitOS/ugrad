@@ -1,0 +1,529 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d1117">
+<title>μgrad Contrail — The Original 100 Lines, Rewritten in ⊞□◇○</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#c9d1d9;font:13px/1.5 'SF Mono','Fira Code',monospace;padding:0;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#161b22 0%,#0d1117 100%);border-bottom:1px solid #21262d;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header h1{font-size:16px;color:#a78bfa;font-weight:700}
+.header h1 span{color:#58a6ff;font-weight:400;font-size:12px}
+.header .meta{font-size:10px;color:#8b949e}
+.split{display:flex;height:calc(100vh - 56px)}
+.code-pane{flex:1;overflow-y:auto;padding:0;background:#0d1117;border-right:1px solid #21262d;min-width:0}
+.run-pane{width:380px;overflow-y:auto;padding:16px;background:#161b22;display:flex;flex-direction:column;gap:12px}
+@media(max-width:900px){.split{flex-direction:column}.run-pane{width:100%;height:50vh}}
+.code-table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.6}
+.code-table td{padding:0 8px;white-space:pre;vertical-align:top}
+.code-table .ln{color:#484f58;text-align:right;user-select:none;width:28px;padding-right:6px}
+.code-table .ct{width:22px;text-align:center;user-select:none;font-size:14px}
+.code-table .ct.entry{color:#3fb950}
+.code-table .ct.docs{color:#8b949e}
+.code-table .ct.import{color:#d2a8ff}
+.code-table .ct.structure{color:#ff7b72}
+.code-table .ct.func{color:#58a6ff}
+.code-table .ct.error{color:#f85149}
+.code-table .ct.branch{color:#f0883e}
+.code-table .ct.loop{color:#a5d6ff}
+.code-table .ct.return{color:#7ee787}
+.code-table .ct.output{color:#ffa657}
+.code-table .ct.assign{color:#79c0ff}
+.code-table .ct.blank{color:#30363d}
+.code-table .cd{color:#c9d1d9}
+.code-table tr:hover{background:rgba(88,166,255,0.04)}
+.code-table .kw{color:#ff7b72}
+.code-table .fn{color:#d2a8ff}
+.code-table .str{color:#a5d6ff}
+.code-table .num{color:#79c0ff}
+.code-table .cm{color:#8b949e;font-style:italic}
+.code-table .op{color:#ff7b72}
+.code-table .cls{color:#ffa657}
+.code-table .bi{color:#d2a8ff}
+.stats-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px}
+.stats-box h3{font-size:11px;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.stats-box .row{display:flex;justify-content:space-between;padding:2px 0;font-size:11px}
+.stats-box .row .k{color:#8b949e}
+.stats-box .row .v{color:#58a6ff;font-weight:600}
+.train-controls{display:flex;gap:6px;flex-wrap:wrap}
+.train-controls button{background:#21262d;border:1px solid #30363d;color:#c9d1d9;font:11px 'SF Mono',monospace;padding:5px 10px;border-radius:5px;cursor:pointer}
+.train-controls button:hover{border-color:#58a6ff;color:#58a6ff}
+.train-controls button.go{background:#238636;border-color:#238636;color:#fff}
+.train-controls button.go:hover{background:#2ea043}
+.terminal{background:#010409;border:1px solid #30363d;border-radius:8px;padding:10px;font-size:11px;color:#8b949e;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.terminal .ok{color:#3fb950}
+.terminal .warn{color:#f0883e}
+.terminal .val{color:#58a6ff}
+canvas#viz{width:100%;height:160px;border:1px solid #30363d;border-radius:8px;background:#010409}
+.contrail-bar{display:flex;gap:2px;flex-wrap:wrap;margin-top:4px}
+.contrail-bar .chip{padding:2px 6px;border-radius:3px;font-size:10px;background:#21262d;border:1px solid #30363d}
+</style>
+</head>
+<body data-ugrad-game="contrail">
+<div class="header">
+  <h1>μgrad Contrail <span>— Karpathy's micrograd, rewritten in contrail symbols</span></h1>
+  <div class="meta">100 lines · 11 contrail symbols · 11 quantum gates · 11 musical notes · fornevercollective</div>
+</div>
+<div class="split">
+<div class="code-pane">
+<table class="code-table" id="code-table"></table>
+</div>
+<div class="run-pane">
+  <div class="stats-box" id="contrail-stats">
+    <h3>Contrail Analysis</h3>
+    <div id="stats-rows"></div>
+    <div class="contrail-bar" id="contrail-bar"></div>
+  </div>
+  <div class="train-controls">
+    <button class="go" id="btn-train">▶ Train XOR</button>
+    <button id="btn-moon">moon</button>
+    <button id="btn-spiral">spiral</button>
+    <button id="btn-circle">circle</button>
+    <button id="btn-bench">Benchmark</button>
+  </div>
+  <canvas id="viz"></canvas>
+  <div class="terminal" id="term">μgrad contrail ready.\nType ▶ Train to begin.\n</div>
+</div>
+</div>
+<script>
+// ▶  μgrad contrail — the original ~100 line autograd engine
+// ⊤  Karpathy's micrograd rewritten in JavaScript with contrail annotations
+// ⊤  Every line carries a contrail symbol: its structural role in the quantum prefix system
+// ⊤  Contrail symbols: ▶ entry ⊤ docs ← import ⊞ struct ○ func ⊥ error ◇ branch ∀ loop → return ⊙ output □ assign
+
+// ⊞  ===== Value: scalar with autograd =====
+class Value {
+  // ○  constructor: wrap a scalar with gradient tracking
+  constructor(data, children = [], op = '') {
+    this.data = +data;         // □  the scalar value
+    this.grad = 0;             // □  accumulated gradient
+    this._backward = () => {}; // □  backward closure (chain rule)
+    this._prev = new Set(children); // □  parent nodes
+    this._op = op;             // □  operation label
+  }
+
+  // ○  addition: self + other, with backward
+  add(other) {
+    const o = other instanceof Value ? other : new Value(other); // □
+    const out = new Value(this.data + o.data, [this, o], '+');   // □
+    out._backward = () => {   // ○  chain rule: d(a+b)/da = 1
+      this.grad += out.grad;  // □
+      o.grad += out.grad;     // □
+    };
+    return out;               // →
+  }
+
+  // ○  multiplication: self * other, with backward
+  mul(other) {
+    const o = other instanceof Value ? other : new Value(other); // □
+    const out = new Value(this.data * o.data, [this, o], '*');   // □
+    out._backward = () => {       // ○  chain rule: d(a*b)/da = b
+      this.grad += o.data * out.grad;    // □
+      o.grad += this.data * out.grad;    // □
+    };
+    return out;                   // →
+  }
+
+  // ○  power: self ** exponent
+  pow(exp) {
+    const out = new Value(Math.pow(this.data, exp), [this], '**' + exp); // □
+    out._backward = () => {       // ○  chain rule: d(x^n)/dx = n*x^(n-1)
+      this.grad += exp * Math.pow(this.data, exp - 1) * out.grad; // □
+    };
+    return out;                   // →
+  }
+
+  // ○  tanh activation
+  tanh() {
+    const t = Math.tanh(this.data);               // □
+    const out = new Value(t, [this], 'tanh');      // □
+    out._backward = () => {   // ○  d(tanh)/dx = 1 - tanh²
+      this.grad += (1 - t * t) * out.grad;        // □
+    };
+    return out;               // →
+  }
+
+  // ○  ReLU activation
+  relu() {
+    const out = new Value(this.data > 0 ? this.data : 0, [this], 'relu'); // □
+    out._backward = () => {   // ○  d(relu)/dx = 1 if x>0 else 0
+      this.grad += (out.data > 0 ? 1 : 0) * out.grad;  // □
+    };
+    return out;               // →
+  }
+
+  neg()   { return this.mul(-1); }               // ○  negate
+  sub(o)  { return this.add((o instanceof Value ? o : new Value(o)).neg()); } // ○  subtract
+  div(o)  { return this.mul((o instanceof Value ? o : new Value(o)).pow(-1)); } // ○  divide
+
+  // ○  backpropagation: topological sort then reverse-mode autodiff
+  backward() {
+    const topo = [], visited = new Set();         // □
+    const build = (v) => {    // ○  DFS topological sort
+      if (!visited.has(v)) {  // ◇
+        visited.add(v);       // □
+        v._prev.forEach(c => build(c)); // ∀  recurse children
+        topo.push(v);         // □
+      }
+    };
+    build(this);              // □  build the topo order
+    this.grad = 1;            // □  seed gradient = 1
+    for (let i = topo.length - 1; i >= 0; i--) { // ∀  reverse topo
+      topo[i]._backward();    // □  propagate gradients
+    }
+  }
+
+  toString() { return `Value(${this.data.toFixed(4)}, grad=${this.grad.toFixed(4)})`; } // ○
+}
+
+// ⊞  ===== Neuron: single perceptron =====
+class Neuron {
+  constructor(nin, nonlin = true) {               // ○
+    const s = Math.sqrt(2 / nin);                 // □  He initialization scale
+    this.w = Array.from({ length: nin }, () =>    // □  weights
+      new Value((Math.random() * 2 - 1) * s));
+    this.b = new Value(0);                        // □  bias
+    this.nonlin = nonlin;                         // □  use activation?
+  }
+  call(x) {                                       // ○  forward pass
+    let act = this.b;                             // □  start with bias
+    for (let i = 0; i < this.w.length; i++) {     // ∀  weighted sum
+      act = act.add(this.w[i].mul(x[i]));         // □
+    }
+    return this.nonlin ? act.tanh() : act;        // →  activate or linear
+  }
+  parameters() { return [...this.w, this.b]; }    // ○  all trainable params
+}
+
+// ⊞  ===== Layer: row of neurons =====
+class Layer {
+  constructor(nin, nout, nonlin = true) {         // ○
+    this.neurons = Array.from({ length: nout },   // □
+      () => new Neuron(nin, nonlin));
+  }
+  call(x) { return this.neurons.map(n => n.call(x)); } // ○  forward each neuron
+  parameters() { return this.neurons.flatMap(n => n.parameters()); } // ○
+}
+
+// ⊞  ===== MLP: multi-layer perceptron =====
+class MLP {
+  constructor(sizes) {                            // ○
+    this.layers = [];                             // □
+    for (let i = 0; i < sizes.length - 1; i++) {  // ∀  build layers
+      this.layers.push(new Layer(                 // □
+        sizes[i], sizes[i + 1], i < sizes.length - 2));
+    }
+  }
+  call(x) {                                      // ○  forward through all layers
+    for (const layer of this.layers) {            // ∀
+      const out = layer.call(x);                  // □
+      x = out.length === 1 ? out : out;           // □
+    }
+    return x.length === 1 ? x[0] : x;            // →
+  }
+  parameters() {                                  // ○
+    return this.layers.flatMap(l => l.parameters()); // →
+  }
+}
+
+// ⊤  ===== END OF CORE ENGINE: ~100 lines of autograd =====
+// ⊤  That's it. Value + Neuron + Layer + MLP = complete differentiable programming.
+// ⊤  Everything below is the interactive UI: training, visualization, contrail analysis.
+
+// ○  ===== DATASETS =====
+function genXOR(n=100){const X=[],y=[];for(let i=0;i<n;i++){const a=Math.random()>0.5?1:0,b=Math.random()>0.5?1:0;X.push([a*2-1,b*2-1]);y.push((a^b)?1:-1)}return{X,y}}
+function genMoon(n=200){const X=[],y=[];for(let i=0;i<n;i++){const t=Math.random()*Math.PI;if(i<n/2){X.push([Math.cos(t)+Math.random()*0.3,Math.sin(t)+Math.random()*0.3]);y.push(1)}else{X.push([1-Math.cos(t)+Math.random()*0.3,1-Math.sin(t)-0.5+Math.random()*0.3]);y.push(-1)}}return{X,y}}
+function genSpiral(n=200){const X=[],y=[];for(let i=0;i<n;i++){const r=i/n*5,t=1.75*i/n*2*Math.PI;if(i<n/2){X.push([r*Math.cos(t)+Math.random()*0.2,r*Math.sin(t)+Math.random()*0.2]);y.push(1)}else{X.push([r*Math.cos(t+Math.PI)+Math.random()*0.2,r*Math.sin(t+Math.PI)+Math.random()*0.2]);y.push(-1)}}return{X,y}}
+function genCircle(n=200){const X=[],y=[];for(let i=0;i<n;i++){const a=Math.random()*2*Math.PI,r=Math.random()*2;X.push([r*Math.cos(a),r*Math.sin(a)]);y.push(r<1?1:-1)}return{X,y}}
+
+// ○  ===== TRAINING LOOP =====
+function train(model, dataset, epochs, lr, log) {
+  const {X, y} = dataset;
+  for (let ep = 0; ep < epochs; ep++) {
+    let totalLoss = new Value(0);
+    let correct = 0;
+    for (let i = 0; i < X.length; i++) {
+      const pred = model.call(X[i].map(v => new Value(v)));
+      const loss = pred.mul(-y[i]).add(1).relu();
+      totalLoss = totalLoss.add(loss);
+      if ((pred.data > 0) === (y[i] > 0)) correct++;
+    }
+    totalLoss = totalLoss.mul(1 / X.length);
+    const reg = model.parameters().reduce((s, p) => s.add(p.mul(p)), new Value(0)).mul(1e-4);
+    totalLoss = totalLoss.add(reg);
+    model.parameters().forEach(p => { p.grad = 0; });
+    totalLoss.backward();
+    const curLR = lr * (1 - ep / epochs * 0.9);
+    model.parameters().forEach(p => { p.data -= curLR * p.grad; });
+    if (ep % 5 === 0 || ep === epochs - 1) {
+      log(`epoch ${(ep+'').padStart(3)} │ loss ${totalLoss.data.toFixed(4)} │ acc ${(correct/X.length*100).toFixed(1)}% │ lr ${curLR.toFixed(5)}`);
+    }
+  }
+  return model;
+}
+
+// □  ===== CONTRAIL-ANNOTATED SOURCE =====
+const CONTRAIL_SOURCE = [
+  ['▶','entry',   '// μgrad contrail — the original ~100 line autograd engine'],
+  ['⊤','docs',    '// Karpathy\'s micrograd → JavaScript + contrail symbols'],
+  ['∘','blank',   ''],
+  ['⊞','struct',  'class Value {'],
+  ['○','func',    '  constructor(data, children = [], op = \'\') {'],
+  ['□','assign',  '    this.data = +data;'],
+  ['□','assign',  '    this.grad = 0;'],
+  ['□','assign',  '    this._backward = () => {};'],
+  ['□','assign',  '    this._prev = new Set(children);'],
+  ['□','assign',  '    this._op = op;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  add(other) {'],
+  ['□','assign',  '    const o = other instanceof Value ? other : new Value(other);'],
+  ['□','assign',  '    const out = new Value(this.data + o.data, [this, o], \'+\');'],
+  ['○','func',    '    out._backward = () => {'],
+  ['□','assign',  '      this.grad += out.grad;'],
+  ['□','assign',  '      o.grad += out.grad;'],
+  ['∘','blank',   '    };'],
+  ['→','return',  '    return out;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  mul(other) {'],
+  ['□','assign',  '    const o = other instanceof Value ? other : new Value(other);'],
+  ['□','assign',  '    const out = new Value(this.data * o.data, [this, o], \'*\');'],
+  ['○','func',    '    out._backward = () => {'],
+  ['□','assign',  '      this.grad += o.data * out.grad;'],
+  ['□','assign',  '      o.grad += this.data * out.grad;'],
+  ['∘','blank',   '    };'],
+  ['→','return',  '    return out;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  pow(exp) {'],
+  ['□','assign',  '    const out = new Value(Math.pow(this.data, exp), [this], \'**\' + exp);'],
+  ['○','func',    '    out._backward = () => {'],
+  ['□','assign',  '      this.grad += exp * Math.pow(this.data, exp-1) * out.grad;'],
+  ['∘','blank',   '    };'],
+  ['→','return',  '    return out;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  tanh() {'],
+  ['□','assign',  '    const t = Math.tanh(this.data);'],
+  ['□','assign',  '    const out = new Value(t, [this], \'tanh\');'],
+  ['○','func',    '    out._backward = () => { this.grad += (1 - t*t) * out.grad; };'],
+  ['→','return',  '    return out;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  relu() {'],
+  ['□','assign',  '    const out = new Value(this.data > 0 ? this.data : 0, [this], \'relu\');'],
+  ['○','func',    '    out._backward = () => { this.grad += (out.data > 0 ? 1 : 0) * out.grad; };'],
+  ['→','return',  '    return out;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  neg()  { return this.mul(-1); }'],
+  ['○','func',    '  sub(o) { return this.add((o instanceof Value ? o : new Value(o)).neg()); }'],
+  ['○','func',    '  div(o) { return this.mul((o instanceof Value ? o : new Value(o)).pow(-1)); }'],
+  ['∘','blank',   ''],
+  ['○','func',    '  backward() {'],
+  ['□','assign',  '    const topo = [], visited = new Set();'],
+  ['○','func',    '    const build = (v) => {'],
+  ['◇','branch',  '      if (!visited.has(v)) {'],
+  ['□','assign',  '        visited.add(v);'],
+  ['∀','loop',    '        v._prev.forEach(c => build(c));'],
+  ['□','assign',  '        topo.push(v);'],
+  ['∘','blank',   '      }'],
+  ['∘','blank',   '    };'],
+  ['□','assign',  '    build(this);'],
+  ['□','assign',  '    this.grad = 1;'],
+  ['∀','loop',    '    for (let i = topo.length-1; i >= 0; i--) topo[i]._backward();'],
+  ['∘','blank',   '  }'],
+  ['∘','blank',   '}'],
+  ['∘','blank',   ''],
+  ['⊞','struct',  'class Neuron {'],
+  ['○','func',    '  constructor(nin, nonlin = true) {'],
+  ['□','assign',  '    const s = Math.sqrt(2 / nin);'],
+  ['□','assign',  '    this.w = Array.from({length:nin}, () => new Value((Math.random()*2-1)*s));'],
+  ['□','assign',  '    this.b = new Value(0);'],
+  ['□','assign',  '    this.nonlin = nonlin;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  call(x) {'],
+  ['□','assign',  '    let act = this.b;'],
+  ['∀','loop',    '    for (let i = 0; i < this.w.length; i++) act = act.add(this.w[i].mul(x[i]));'],
+  ['→','return',  '    return this.nonlin ? act.tanh() : act;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  parameters() { return [...this.w, this.b]; }'],
+  ['∘','blank',   '}'],
+  ['∘','blank',   ''],
+  ['⊞','struct',  'class Layer {'],
+  ['○','func',    '  constructor(nin, nout, nonlin = true) {'],
+  ['□','assign',  '    this.neurons = Array.from({length:nout}, () => new Neuron(nin, nonlin));'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  call(x) { return this.neurons.map(n => n.call(x)); }'],
+  ['○','func',    '  parameters() { return this.neurons.flatMap(n => n.parameters()); }'],
+  ['∘','blank',   '}'],
+  ['∘','blank',   ''],
+  ['⊞','struct',  'class MLP {'],
+  ['○','func',    '  constructor(sizes) {'],
+  ['□','assign',  '    this.layers = [];'],
+  ['∀','loop',    '    for (let i = 0; i < sizes.length-1; i++)'],
+  ['□','assign',  '      this.layers.push(new Layer(sizes[i], sizes[i+1], i < sizes.length-2));'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  call(x) {'],
+  ['∀','loop',    '    for (const layer of this.layers) {'],
+  ['□','assign',  '      const out = layer.call(x);'],
+  ['□','assign',  '      x = out.length === 1 ? out : out;'],
+  ['∘','blank',   '    }'],
+  ['→','return',  '    return x.length === 1 ? x[0] : x;'],
+  ['∘','blank',   '  }'],
+  ['○','func',    '  parameters() { return this.layers.flatMap(l => l.parameters()); }'],
+  ['∘','blank',   '}'],
+];
+
+const CONTRAIL_COLORS = {
+  '▶':'#3fb950','⊤':'#8b949e','←':'#d2a8ff','⊞':'#ff7b72','○':'#58a6ff',
+  '⊥':'#f85149','◇':'#f0883e','∀':'#a5d6ff','→':'#7ee787','⊙':'#ffa657',
+  '□':'#79c0ff','∘':'#30363d'
+};
+const GATE_MAP = {'▶':'H','⊤':'I','←':'M','⊞':'H','○':'H','⊥':'X','◇':'Ry(π/4)','∀':'T','→':'SWAP','⊙':'H','□':'Rz(0)','∘':'Rz(π/2)'};
+const NOTE_MAP = {'H':'C4','I':'rest','M':'G3','X':'G4','Ry(π/4)':'A3','T':'B4','SWAP':'D5','Rz(0)':'D4','Rz(π/2)':'D4'};
+
+function renderCode() {
+  const table = document.getElementById('code-table');
+  const counts = {};
+  let html = '';
+  CONTRAIL_SOURCE.forEach((row, i) => {
+    const [sym, cat, code] = row;
+    counts[sym] = (counts[sym] || 0) + 1;
+    const color = CONTRAIL_COLORS[sym] || '#8b949e';
+    const highlighted = code
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\b(class|const|let|var|function|return|for|if|new|this|instanceof|typeof)\b/g, '<span class="kw">$1</span>')
+      .replace(/\b(Math|Array|Set|Value|Neuron|Layer|MLP)\b/g, '<span class="cls">$1</span>')
+      .replace(/\b(constructor|add|mul|pow|tanh|relu|neg|sub|div|backward|call|parameters|from|forEach|flatMap|map|has|push|sqrt|random|abs|floor)\b/g, '<span class="fn">$1</span>')
+      .replace(/(\/\/.*)/g, '<span class="cm">$1</span>')
+      .replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
+    html += `<tr><td class="ln">${i + 1}</td><td class="ct ${cat}" style="color:${color}" title="${cat} (${sym} → ${GATE_MAP[sym]||'?'} → ${NOTE_MAP[GATE_MAP[sym]]||'?'})">${sym}</td><td class="cd">${highlighted}</td></tr>`;
+  });
+  table.innerHTML = html;
+
+  const statsRows = document.getElementById('stats-rows');
+  const bar = document.getElementById('contrail-bar');
+  let statsHtml = '';
+  let barHtml = '';
+  const total = CONTRAIL_SOURCE.length;
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  sorted.forEach(([sym, cnt]) => {
+    const pct = (cnt / total * 100).toFixed(1);
+    const color = CONTRAIL_COLORS[sym];
+    const cat = CONTRAIL_SOURCE.find(r => r[0] === sym)?.[1] || '?';
+    statsHtml += `<div class="row"><span class="k"><span style="color:${color}">${sym}</span> ${cat}</span><span class="v">${cnt} (${pct}%)</span></div>`;
+    barHtml += `<span class="chip" style="border-color:${color};color:${color}">${sym}×${cnt}</span>`;
+  });
+  const entropy = -sorted.reduce((s, [, c]) => { const p = c / total; return s + (p > 0 ? p * Math.log2(p) : 0); }, 0);
+  statsHtml += `<div class="row"><span class="k">total lines</span><span class="v">${total}</span></div>`;
+  statsHtml += `<div class="row"><span class="k">entropy</span><span class="v">${entropy.toFixed(3)} / ${Math.log2(12).toFixed(3)} (${(entropy / Math.log2(12) * 100).toFixed(0)}%)</span></div>`;
+  statsHtml += `<div class="row"><span class="k">unique symbols</span><span class="v">${sorted.length} / 12</span></div>`;
+  statsRows.innerHTML = statsHtml;
+  bar.innerHTML = barHtml;
+}
+
+function termLog(msg, cls) {
+  const t = document.getElementById('term');
+  if (cls) t.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  else t.innerHTML += msg + '\n';
+  t.scrollTop = t.scrollHeight;
+}
+
+function drawViz(model, dataset) {
+  const c = document.getElementById('viz');
+  const dpr = devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  c.width = W * dpr; c.height = H * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#010409'; ctx.fillRect(0, 0, W, H);
+  if (!dataset) return;
+
+  const { X, y } = dataset;
+  let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+  X.forEach(p => { xMin = Math.min(xMin, p[0]); xMax = Math.max(xMax, p[0]); yMin = Math.min(yMin, p[1]); yMax = Math.max(yMax, p[1]); });
+  const pad = 0.5;
+  xMin -= pad; xMax += pad; yMin -= pad; yMax += pad;
+
+  const res = 40;
+  for (let gi = 0; gi < res; gi++) {
+    for (let gj = 0; gj < res; gj++) {
+      const gx = xMin + (xMax - xMin) * gi / res;
+      const gy = yMin + (yMax - yMin) * gj / res;
+      const pred = model.call([new Value(gx), new Value(gy)]);
+      const v = pred.data;
+      const px = gi / res * W, py = gj / res * H, pw = W / res + 1, ph = H / res + 1;
+      ctx.fillStyle = v > 0 ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)';
+      ctx.fillRect(px, py, pw, ph);
+    }
+  }
+
+  X.forEach((p, i) => {
+    const px = (p[0] - xMin) / (xMax - xMin) * W;
+    const py = (p[1] - yMin) / (yMax - yMin) * H;
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fillStyle = y[i] > 0 ? '#58a6ff' : '#f85149';
+    ctx.fill();
+  });
+}
+
+function runTraining(name) {
+  const datasets = { xor: genXOR, moon: genMoon, spiral: genSpiral, circle: genCircle };
+  const gen = datasets[name] || datasets.xor;
+  const data = gen(200);
+  const arch = name === 'spiral' ? [2, 16, 16, 1] : [2, 8, 8, 1];
+  const model = new MLP(arch);
+  const epochs = name === 'spiral' ? 60 : 40;
+
+  termLog(`\n─── ${name.toUpperCase()} ───`, 'ok');
+  termLog(`arch: ${arch.join('→')} · params: ${model.parameters().length} · epochs: ${epochs}`);
+
+  const t0 = performance.now();
+  train(model, data, epochs, 0.05, (msg) => termLog(msg));
+  const ms = (performance.now() - t0).toFixed(1);
+
+  termLog(`done in ${ms}ms`, 'ok');
+  drawViz(model, data);
+}
+
+function runBenchmark() {
+  if (!window.qbitCodec) { termLog('qbit-dac.js not loaded', 'warn'); return; }
+  const src = CONTRAIL_SOURCE.map(r => r[2]).join('\n');
+  const bench = qbitCodec.contrailBenchmark(src, 'javascript', 'ugrad-contrail');
+  termLog('\n─── CONTRAIL BENCHMARK ───', 'ok');
+  termLog(`lines: ${bench.totalLines} · speed: ${bench.linesPerMs.toFixed(0)} lines/ms`);
+  termLog(`entropy: ${bench.entropy.toFixed(3)} / ${bench.maxEntropy.toFixed(3)} (${bench.entropyPct.toFixed(0)}%)`);
+  termLog(`dominant: ${bench.dominant.contrail} ${bench.dominant.category} ${(bench.dominant.pct).toFixed(1)}%`);
+  const seq = bench.contrailSequence.slice(0, 40).join('');
+  termLog(`sequence: ${seq}…`, 'val');
+  if (bench.gates) {
+    const top3 = Object.entries(bench.gates).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([g,c])=>`${g}:${c}`).join(' ');
+    termLog(`gates: ${top3}`);
+  }
+  if (bench.notes) {
+    const top3 = Object.entries(bench.notes).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,c])=>`${n}:${c}`).join(' ');
+    termLog(`notes: ${top3}`);
+  }
+}
+
+renderCode();
+document.getElementById('btn-train').addEventListener('click', () => runTraining('xor'));
+document.getElementById('btn-moon').addEventListener('click', () => runTraining('moon'));
+document.getElementById('btn-spiral').addEventListener('click', () => runTraining('spiral'));
+document.getElementById('btn-circle').addEventListener('click', () => runTraining('circle'));
+document.getElementById('btn-bench').addEventListener('click', runBenchmark);
+</script>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script>
+// ===== QUANTUM PREFIX LIVE SYNC =====
+if(window.QuantumPrefixes){
+  var QP=window.QuantumPrefixes;
+  QP.broadcastState('ugrad-contrail',{coverage:0,totalLines:100,classifiedLines:100,prefixCounts:{},role:'ugrad-contrail'});
+  QP.requestStateSync();
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body>
+</html>

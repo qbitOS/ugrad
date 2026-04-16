@@ -1,0 +1,1395 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!--
+  ugrad-pad-lab.html — μPad lab: pad-grid (WebGrid-adjacent viz) + Go slice (ugrad goboard 9 + 19×19 board)
+  + pad-datatable iframe: outer stress calls PadDataTable.applyDocument(random JSON) → unified stress-log.jsonl.
+  + go.ugrad.ai · pong.ugrad.ai (fixed top-right) · alphabet a–z “braille” clock in Pong box · snapshots beside 19×19 · log scrollbar on demand.
+  Open from ugrad-r0: `padlab`
+-->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b" id="upl-meta-theme">
+<title>μPad lab — ugrad inner/outer loop</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<style>
+:root{
+  --upl-m-fg:rgba(250,250,252,.94);--upl-m-muted:rgba(250,250,252,.46);--upl-m-faint:rgba(250,250,252,.09);
+  --upl-m-edge:rgba(250,250,252,.16);--upl-m-surface:rgba(14,14,16,.82);--upl-m-input:rgba(8,8,10,.92);
+  --upl-sp:32;
+}
+[data-theme="light"]{
+  --upl-m-fg:rgba(12,12,14,.94);--upl-m-muted:rgba(12,12,14,.48);--upl-m-faint:rgba(0,0,0,.06);
+  --upl-m-edge:rgba(0,0,0,.14);--upl-m-surface:rgba(255,255,255,.9);--upl-m-input:rgba(255,255,255,.96);
+  --upl-pad-grid-line:rgba(31,35,40,.07);--upl-pad-cell:rgba(0,0,0,.03);--upl-pad-hot:rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#0a0a0b;color:var(--upl-m-fg);font-family:ui-sans-serif,system-ui,sans-serif}
+[data-theme="light"] html,[data-theme="light"] body{background:#fafafa}
+#qp-theme-toggle{z-index:100003!important}
+.upl-prog{position:fixed;top:0;left:0;right:0;height:2px;background:var(--upl-m-faint);z-index:100004;pointer-events:none}
+.upl-prog i{display:block;height:100%;width:35%;background:linear-gradient(90deg,transparent,var(--upl-m-fg),transparent);opacity:.5;animation:uplp 8s ease-in-out infinite}
+@keyframes uplp{0%,100%{margin-left:0}50%{margin-left:65%}}
+.upl-bar{
+  position:fixed;top:2px;left:0;right:0;z-index:100002;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:8px 12px;background:rgba(10,10,11,.92);border-bottom:1px solid var(--upl-m-faint);backdrop-filter:blur(12px);
+  font:500 11px ui-monospace,monospace;
+}
+[data-theme="light"] .upl-bar{background:rgba(250,250,252,.94);box-shadow:0 1px 0 rgba(31,35,40,.06)}
+.upl-bar label{color:var(--upl-m-muted);display:flex;align-items:center;gap:6px}
+.upl-bar select,.upl-bar input[type="number"]{border-radius:8px;border:1px solid var(--upl-m-edge);background:var(--upl-m-input);color:var(--upl-m-fg);padding:4px 8px;font:inherit}
+.upl-bar button{font:600 10px ui-monospace,monospace;padding:6px 12px;border-radius:999px;border:1px solid var(--upl-m-edge);background:transparent;color:var(--upl-m-fg);cursor:pointer}
+.upl-bar button.upl-primary{background:var(--upl-m-fg);color:#0a0a0b;border-color:transparent}
+[data-theme="light"] .upl-bar button.upl-primary{background:#0a0a0b;color:#fafafa}
+.upl-main{position:fixed;top:48px;left:0;right:0;bottom:36px;display:flex;gap:12px;padding:12px;overflow:hidden}
+.upl-viz{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.upl-pad-wrap{position:relative;flex:1;min-height:180px;overflow:auto;border:1px solid var(--upl-m-edge);border-radius:12px;background:rgba(8,8,10,.5)}
+.upl-pad-work{position:relative;min-width:100%;min-height:100%}
+.upl-pad-grid{display:grid;gap:0;background-image:linear-gradient(var(--upl-m-faint) 1px,transparent 1px),linear-gradient(90deg,var(--upl-m-faint) 1px,transparent 1px)}
+.upl-pad-grid .upl-cell{border-right:1px solid var(--upl-m-faint);border-bottom:1px solid var(--upl-m-faint);background:rgba(128,128,128,.04);font:600 7px/1 ui-monospace,monospace;color:var(--upl-m-muted);cursor:default;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.upl-pad-grid .upl-cell.is-hot{background:rgba(250,250,252,.12);color:var(--upl-m-fg)}
+[data-theme="light"] .upl-pad-wrap{
+  background:rgba(250,250,252,.92);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 1px 3px rgba(31,35,40,.05);
+  border-color:rgba(31,35,40,.1);
+}
+[data-theme="light"] .upl-pad-grid{
+  background-image:
+    linear-gradient(rgba(0,0,0,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,0,0,.06) 1px,transparent 1px);
+}
+[data-theme="light"] .upl-pad-grid .upl-cell{
+  border-right-color:rgba(31,35,40,.07);
+  border-bottom-color:rgba(31,35,40,.07);
+  background:var(--upl-pad-cell);
+  color:rgba(31,35,40,.5);
+}
+[data-theme="light"] .upl-pad-grid .upl-cell.is-hot{background:var(--upl-pad-hot);color:var(--upl-m-fg)}
+.upl-pad-grid .upl-cell{flex-direction:column;justify-content:center;gap:1px;padding:1px}
+.upl-cell-dots{font:600 5px/1 ui-monospace,monospace;color:var(--upl-m-muted);opacity:.72;letter-spacing:-0.02em}
+.upl-cell-abbr{font:600 7px/1 ui-monospace,monospace}
+[data-theme="light"] .upl-cell-dots{color:rgba(31,35,40,.42)}
+.upl-gutter-loader{
+  position:fixed;top:50px;right:88px;z-index:100010;display:flex;flex-direction:column;align-items:flex-end;gap:4px;
+  pointer-events:auto;opacity:.96;transition:opacity .35s ease;
+}
+@media (max-width:720px){
+  .upl-gutter-loader{right:12px;top:54px}
+}
+.upl-gutter-loader.upl-gl-idle{opacity:.95}
+.upl-gutter-loader.upl-gl-train{opacity:.38}
+.upl-gl-label{font:600 8px ui-monospace,monospace;letter-spacing:.02em}
+.upl-gl-label a{color:var(--upl-m-fg);text-decoration:none;border-bottom:1px solid var(--upl-m-faint)}
+.upl-gl-label a:hover{border-bottom-color:var(--upl-m-muted)}
+.upl-pong{
+  position:relative;width:92px;height:62px;border:1px solid var(--upl-m-edge);border-radius:8px;
+  background:rgba(8,8,12,.55);overflow:hidden;
+}
+[data-theme="light"] .upl-pong{background:rgba(255,255,255,.65)}
+.upl-pong-clock{
+  position:absolute;left:0;right:0;bottom:1px;z-index:2;display:flex;align-items:center;justify-content:center;gap:5px;
+  font:700 9px ui-monospace,monospace;line-height:1;
+  text-shadow:0 1px 3px rgba(0,0,0,.55);pointer-events:none;
+}
+[data-theme="light"] .upl-pong-clock{text-shadow:none}
+.upl-pong-ch{opacity:.95;min-width:10px;text-align:center}
+.upl-pong-pat{font-size:6.5px;font-weight:800;opacity:.8;letter-spacing:-0.04em}
+.upl-pong-pad{
+  position:absolute;width:3px;border-radius:1px;background:var(--upl-m-fg);opacity:.75;
+  left:6px;top:42%;height:16px;margin-top:-8px;
+  animation:upl-pong-l 2.2s ease-in-out infinite;
+}
+.upl-pong-pad.upl-pong-right{left:auto;right:6px;animation-name:upl-pong-r}
+.upl-pong-ball{
+  position:absolute;width:5px;height:5px;border-radius:50%;background:var(--upl-m-fg);opacity:.9;
+  left:50%;top:38%;margin:-2px 0 0 -2px;
+  animation:upl-pong-b 2.8s linear infinite;
+}
+@keyframes upl-pong-l{
+  0%,100%{transform:translateY(-14px)}
+  50%{transform:translateY(14px)}
+}
+@keyframes upl-pong-r{
+  0%,100%{transform:translateY(12px)}
+  50%{transform:translateY(-12px)}
+}
+@keyframes upl-pong-b{
+  0%{left:12%;top:28%}
+  25%{left:78%;top:72%}
+  50%{left:78%;top:22%}
+  75%{left:14%;top:68%}
+  100%{left:12%;top:28%}
+}
+@media (prefers-reduced-motion:reduce){
+  .upl-pong-pad,.upl-pong-ball{animation:none!important}
+  .upl-pong-ball{left:44%;top:48%}
+}
+.upl-mini9 .upl-m9-slot.upl-st-b .upl-m9-st{color:rgba(250,250,252,.88)}
+.upl-mini9 .upl-m9-slot.upl-st-w .upl-m9-st{color:rgba(250,250,252,.42)}
+.upl-mini9 .upl-m9-slot.upl-st-e .upl-m9-st{color:transparent}
+[data-theme="light"] .upl-mini9 .upl-m9-slot.upl-st-b .upl-m9-st{color:rgba(20,24,32,.92)}
+[data-theme="light"] .upl-mini9 .upl-m9-slot.upl-st-w .upl-m9-st{color:rgba(74,85,100,.78)}
+.upl-go-panel{display:flex;flex-direction:column;gap:10px;align-items:stretch;flex-shrink:0;width:100%}
+.upl-go-snap-row{display:flex;flex-direction:row;align-items:stretch;gap:10px;width:100%;min-height:0}
+.upl-go-snap-row .upl-go-19{flex-shrink:0}
+.upl-go-19{flex-shrink:0;border:1px solid var(--upl-m-edge);border-radius:10px;padding:8px;background:var(--upl-m-surface)}
+.upl-go-19-hd{font:600 8px ui-monospace,monospace;color:var(--upl-m-muted);margin:0 0 6px;text-align:center}
+.upl-go-19-hd a{color:var(--upl-m-fg);text-decoration:none}
+.upl-go-19-hd a:hover{text-decoration:underline}
+.upl-go-19 svg{display:block}
+.upl-mini9{display:grid;grid-template-columns:repeat(3,36px);gap:4px}
+.upl-mini9 div{width:36px;height:36px;border-radius:6px;border:1px solid var(--upl-m-edge);display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--upl-m-input)}
+.upl-mini9 div.upl-flow-cell{font-size:7px;font-weight:700;line-height:1.05;text-align:center;padding:2px;word-break:break-word;color:var(--upl-m-muted)}
+[data-theme="light"] .upl-mini9 div.upl-flow-cell{color:rgba(31,35,40,.62)}
+.upl-mini9 div.upl-flow-cell.upl-flow-pivot{border-color:rgba(88,166,255,.45);color:var(--upl-m-fg);background:rgba(88,166,255,.1)}
+.upl-mini9 div.upl-m9-slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;font-size:18px}
+.upl-mini9 .upl-m9-st{line-height:1;font-size:16px}
+.upl-mini9 .upl-m9-flow{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  font:800 6px ui-monospace,monospace;color:var(--upl-m-fg);opacity:.92;white-space:nowrap;pointer-events:none;
+}
+.upl-mini9 div.upl-m9-slot.upl-m9-tick{box-shadow:0 0 0 2px rgba(250,250,252,.22);border-radius:6px}
+[data-theme="light"] .upl-mini9 div.upl-m9-slot.upl-m9-tick{box-shadow:0 0 0 2px rgba(31,35,40,.2)}
+[data-theme="light"] .upl-mini9 .upl-m9-flow{color:#24292f;text-shadow:none}
+.upl-m9-dots{font:600 4px/1 ui-monospace,monospace;color:var(--upl-m-muted);opacity:.65;margin-top:1px}
+.upl-snap-wrap{
+  flex:1;min-width:0;margin:0;
+  border:1px solid var(--upl-m-edge);border-radius:10px;background:rgba(8,8,10,.35);
+  padding:8px 0 8px 8px;display:flex;flex-direction:column;max-height:232px;
+}
+[data-theme="light"] .upl-snap-wrap{background:rgba(255,255,255,.55)}
+.upl-snap-hd{font:600 9px ui-monospace,monospace;color:var(--upl-m-muted);margin-bottom:6px;padding-right:8px}
+.upl-snap-strip{
+  flex:1;min-height:0;display:flex;flex-direction:row;gap:10px;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:thin;
+  -webkit-overflow-scrolling:touch;
+}
+.upl-snap-card{
+  flex:0 0 auto;scroll-snap-align:start;width:132px;min-height:92px;
+  border:1px solid var(--upl-m-edge);border-radius:10px;background:var(--upl-m-input);
+  padding:8px;font:600 9px ui-monospace,monospace;color:var(--upl-m-fg);
+}
+.upl-snap-card .upl-snap-t{font-size:8px;color:var(--upl-m-muted);margin-bottom:4px}
+.upl-snap-card .upl-snap-m{margin-top:6px;font-size:9px;line-height:1.35;color:var(--upl-m-muted)}
+.upl-snap-mini9{display:grid;grid-template-columns:repeat(3,12px);gap:2px;margin-top:6px}
+.upl-snap-mini9 span{width:12px;height:12px;border-radius:2px;border:1px solid var(--upl-m-faint);font-size:8px;display:flex;align-items:center;justify-content:center;line-height:1}
+.upl-snap-xor2{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;margin-top:6px;max-width:140px}
+.upl-snap-xc{font:600 8px ui-monospace,monospace;text-align:center;padding:3px 2px;border-radius:4px;border:1px solid var(--upl-m-faint);background:rgba(128,128,128,.06);color:var(--upl-m-fg)}
+/* XOR readout trainer — glyph cards (replaces [:.:] bracket drum in mini + pad corners) */
+.upl-mini9.upl-xor-trainer{grid-template-columns:repeat(2,minmax(54px,1fr));grid-template-rows:repeat(2,58px);gap:6px;max-width:128px}
+.upl-mini9.upl-xor-trainer .upl-xor-card{
+  width:auto;height:auto;min-height:52px;padding:6px 4px;border-radius:10px;border:1px solid var(--upl-m-edge);
+  background:var(--upl-m-input);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font:800 11px ui-monospace,monospace;animation:upl-xor-card-in .42s cubic-bezier(.2,.85,.2,1) both;
+}
+.upl-mini9.upl-xor-trainer .upl-xor-card.upl-xor-card-active{
+  border-color:rgba(88,166,255,.55);box-shadow:0 0 0 2px rgba(88,166,255,.18);background:rgba(88,166,255,.08);
+}
+.upl-xor-bits{display:flex;align-items:center;gap:3px;font-size:13px;line-height:1}
+.upl-xor-cross,.upl-xor-eq2{opacity:.72;font-weight:800;font-size:10px}
+.upl-xbit{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;border:1px solid var(--upl-m-edge);background:var(--upl-m-surface)}
+.upl-xbit-out{width:18px;height:18px;font-size:14px;border-width:2px}
+.upl-xor-eqrow{display:flex;align-items:center;gap:4px;margin-top:1px}
+@keyframes upl-xor-card-in{
+  from{opacity:0;transform:scale(.88) translateY(2px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+@keyframes upl-xbit-pop{
+  0%{transform:scale(.65);opacity:.35}
+  55%{transform:scale(1.08);opacity:1}
+  100%{transform:scale(1);opacity:1}
+}
+.upl-xor-card-active .upl-xbit{animation:upl-xbit-pop .52s ease both}
+.upl-xor-card-active .upl-xor-bits .upl-xbit:first-child{animation-delay:0ms}
+.upl-xor-card-active .upl-xor-bits .upl-xbit:last-of-type{animation-delay:60ms}
+.upl-xor-card-active .upl-xbit-out{animation-delay:110ms}
+.upl-xor-pad-card{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;font:800 9px ui-monospace,monospace;line-height:1.15;
+  animation:upl-xor-card-in .38s ease both;
+}
+.upl-xor-pad-card.upl-xor-pad-hot{border-radius:6px;outline:1px solid rgba(88,166,255,.45);background:rgba(88,166,255,.1)}
+.upl-xor-pad-card.upl-xor-pad-anim .upl-xb{animation:upl-xbit-pop .48s ease both}
+.upl-xor-pad-card.upl-xor-pad-anim .upl-xb-a{animation-delay:0ms}
+.upl-xor-pad-card.upl-xor-pad-anim .upl-xb-b{animation-delay:55ms}
+.upl-xor-pad-card.upl-xor-pad-anim .upl-xb-y{animation-delay:110ms}
+.upl-xb{display:inline-flex;align-items:center;justify-content:center;min-width:12px;min-height:12px;padding:1px 3px;border-radius:3px;border:1px solid var(--upl-m-edge);background:var(--upl-m-surface)}
+.upl-xor-op,.upl-xor-eq{font-size:7px;font-weight:800;opacity:.7}
+.upl-iron-cap{margin-top:6px;font:600 8px ui-monospace,monospace;color:var(--upl-m-muted);line-height:1.35;max-width:min(280px,40vw)}
+.upl-iron-cap code{color:var(--upl-m-fg);font-size:8px}
+.upl-side{width:min(380px,40vw);flex-shrink:0;display:flex;flex-direction:column;gap:8px;min-height:0}
+.upl-metric{font:12px ui-monospace,monospace;padding:10px;border-radius:10px;border:1px solid var(--upl-m-edge);background:var(--upl-m-surface);color:var(--upl-m-muted)}
+.upl-metric strong{color:var(--upl-m-fg)}
+.upl-log{
+  flex:1;min-height:0;font:10px ui-monospace,monospace;padding:10px;border-radius:10px;border:1px solid var(--upl-m-edge);
+  background:var(--upl-m-input);color:var(--upl-m-fg);overflow-x:hidden;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
+  scrollbar-gutter:auto;scrollbar-width:none;
+}
+.upl-side:hover .upl-log,
+.upl-log:focus-within{scrollbar-width:thin;scrollbar-color:var(--upl-m-muted) transparent}
+.upl-log::-webkit-scrollbar{width:0;height:0}
+.upl-side:hover .upl-log::-webkit-scrollbar,
+.upl-log:focus-within::-webkit-scrollbar{width:6px}
+.upl-log::-webkit-scrollbar-thumb{background:var(--upl-m-faint);border-radius:3px}
+.upl-side:hover .upl-log::-webkit-scrollbar-thumb,
+.upl-log:focus-within::-webkit-scrollbar-thumb{background:var(--upl-m-muted)}
+@media (hover:none){
+  .upl-log{scrollbar-width:thin}
+  .upl-log::-webkit-scrollbar{width:4px}
+}
+[data-theme="light"] .upl-side .upl-metric,
+[data-theme="light"] .upl-side .upl-log{box-shadow:0 1px 3px rgba(31,35,40,.05)}
+[data-theme="light"] .upl-go-19{box-shadow:0 1px 4px rgba(31,35,40,.06)}
+.upl-foot{position:fixed;bottom:0;left:0;right:0;padding:6px 10px;font:500 9px ui-monospace,monospace;color:var(--upl-m-muted);text-align:center;background:linear-gradient(0deg,rgba(10,10,11,.92),transparent)}
+[data-theme="light"] .upl-foot{background:linear-gradient(0deg,rgba(250,250,252,.95),transparent)}
+.upl-foot a{color:inherit}
+.upl-pd-wrap{
+  flex-shrink:0;display:flex;flex-direction:column;min-height:200px;max-height:38vh;
+  border:1px solid var(--upl-m-edge);border-radius:12px;overflow:hidden;background:var(--upl-m-surface);
+}
+.upl-pd-head{
+  font:600 10px ui-monospace,monospace;padding:6px 10px;border-bottom:1px solid var(--upl-m-faint);color:var(--upl-m-muted);
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;
+}
+.upl-pd-head .upl-pd-title{min-width:0;flex:1}
+.upl-pd-head code{color:var(--upl-m-fg)}
+.upl-pd-actions{display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0}
+.upl-pd-actions button{
+  font:600 9px ui-monospace,monospace;padding:4px 10px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--upl-m-edge);background:var(--upl-m-input);color:var(--upl-m-fg);
+}
+.upl-pd-actions button:hover{border-color:var(--upl-m-muted)}
+.upl-pd-frame{width:100%;flex:1;border:none;min-height:180px;background:#0a0a0b}
+[data-theme="light"] .upl-pd-wrap{border-color:rgba(31,35,40,.12);box-shadow:0 2px 14px rgba(31,35,40,.08)}
+[data-theme="light"] .upl-pd-frame{background:#fafafa}
+.visually-hidden{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+</style>
+</head>
+<body data-ugrad-game="pad">
+<h1 class="visually-hidden">μPad lab — inner and outer training loop</h1>
+<div class="upl-prog" aria-hidden="true"><i></i></div>
+<div class="upl-bar" role="toolbar">
+  <label>Data <select id="upl-data"><option value="xor">xor</option><option value="goboard">goboard (9-cell)</option></select></label>
+  <label>Steps <input type="number" id="upl-steps" value="120" min="10" max="5000" step="10"></label>
+  <button type="button" class="upl-primary" id="upl-run-inner">Inner loop</button>
+  <label>Outer <input type="number" id="upl-outer-n" value="5" min="1" max="200" step="1" title="Stress ticks"></label>
+  <button type="button" id="upl-run-outer">Outer stress</button>
+  <button type="button" id="upl-dl-log">stress-log.jsonl</button>
+  <button type="button" id="upl-clear-log">Clear log</button>
+  <label title="Each outer tick applies random layout JSON in iframe (PadDataTable.applyDocument)"><input type="checkbox" id="upl-layout-stress" checked> Layout stress</label>
+  <label title="Cycle gutter · prefixes · DAC · gluelam · steno · preflight · iron-browser · dispatch… on pad + 3×3"><input type="checkbox" id="upl-flow-map" checked> Flow map</label>
+</div>
+<div class="upl-gutter-loader upl-gl-idle" id="upl-gutter-loader" aria-hidden="true" title="pong.ugrad.ai — Pong-style bracket clock + loader (see Framer Pong Loader: https://www.framer.com/marketplace/components/pong-loader/)">
+  <span class="upl-gl-label"><a href="https://pong.ugrad.ai" target="_blank" rel="noopener noreferrer">pong.ugrad.ai</a></span>
+  <div class="upl-pong">
+    <div class="upl-pong-clock" aria-live="polite"><span class="upl-pong-ch" id="upl-pong-ch">a</span><span class="upl-pong-pat" id="upl-pong-pat">[....]</span></div>
+    <div class="upl-pong-pad" aria-hidden="true"></div>
+    <div class="upl-pong-pad upl-pong-right" aria-hidden="true"></div>
+    <div class="upl-pong-ball" aria-hidden="true"></div>
+  </div>
+</div>
+<div class="upl-main">
+  <div class="upl-viz">
+    <div class="upl-pad-wrap">
+      <div class="upl-pad-work" id="upl-pad-work"><div class="upl-pad-grid" id="upl-pad-grid"></div></div>
+    </div>
+    <div class="upl-go-panel">
+      <div class="upl-go-snap-row">
+        <div class="upl-go-19" aria-label="19 by 19 go board · go.ugrad.ai">
+          <div class="upl-go-19-hd"><a href="https://go.ugrad.ai" target="_blank" rel="noopener noreferrer">go.ugrad.ai</a> · 19×19</div>
+          <svg id="upl-svg-go" width="200" height="200" viewBox="0 0 19 19"></svg>
+        </div>
+        <div class="upl-snap-wrap" id="upl-snap-wrap">
+          <div class="upl-snap-hd">Iteration snapshots · scroll →</div>
+          <div class="upl-snap-strip" id="upl-snap-strip" role="list" aria-label="Training iteration snapshots"></div>
+        </div>
+      </div>
+      <div>
+        <div class="upl-metric" style="margin-bottom:6px" id="upl-go-caption"><strong>goboard slice</strong> (same 9-dim heuristic as <code>ugrad-r0</code> <code>Datasets.goboard</code>) — last sample below. With <strong>Flow map</strong> on, 3×3 shows the same Iron pipeline feed as the pad (design path → <code>iron-browser</code> / <code>iron-dispatch-v2-snapshot</code>).</div>
+        <div class="upl-mini9" id="upl-mini9" aria-hidden="true"></div>
+        <div class="upl-iron-cap" id="upl-iron-cap" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="upl-pd-wrap" id="upl-pd-wrap">
+      <div class="upl-pd-head">
+        <span class="upl-pd-title"><code>pad-datatable.html</code> iframe — random <code>applyDocument</code> when <strong>Layout stress</strong> is on</span>
+        <span class="upl-pd-actions">
+          <button type="button" id="upl-pd-popout" title="Open pad-datatable in a new window (matches saved theme)">Pop out</button>
+          <button type="button" id="upl-pd-reload" title="Reload embedded frame">Reload</button>
+        </span>
+      </div>
+      <iframe id="upl-pd-frame" class="upl-pd-frame" title="Pad data table stress target" src="pad-datatable.html?uplEmbed=1"></iframe>
+    </div>
+  </div>
+  <div class="upl-side">
+    <div class="upl-metric" id="upl-metrics">step <strong>0</strong> · loss <strong>—</strong> · acc <strong>—</strong> · outer <strong>0</strong></div>
+    <div class="upl-log" id="upl-log" aria-live="polite"></div>
+  </div>
+</div>
+<p class="upl-foot"><code>ugrad-pad-lab.html</code> · <a href="go-ugrad.html">go-ugrad</a> · <a href="games-ugrad-hub.html">games hub</a> · <a href="https://go.ugrad.ai" target="_blank" rel="noopener noreferrer">go.ugrad.ai</a> · <a href="https://pong.ugrad.ai" target="_blank" rel="noopener noreferrer">pong.ugrad.ai</a> · <a href="ugrad-r0.html">ugrad-r0</a> <code>padlab</code> · <a href="iron-browser.html">iron-browser</a> · <a href="iron-dispatch-v2-snapshot.html">iron-dispatch-v2-snapshot</a> · <a href="pad-datatable.html">pad-datatable</a></p>
+<script>
+(function () {
+  'use strict';
+  var SP = 28;
+  var padGrid = document.getElementById('upl-pad-grid');
+  var padWork = document.getElementById('upl-pad-work');
+  var mini9 = document.getElementById('upl-mini9');
+  var logEl = document.getElementById('upl-log');
+  var metricsEl = document.getElementById('upl-metrics');
+  var stressLines = [];
+  var outerGen = 0;
+  var lastMiniBoard = null;
+  var pdFrame = document.getElementById('upl-pd-frame');
+  var pdWrap = document.getElementById('upl-pd-wrap');
+  var pdReady = false;
+
+  /** Ordered Iron / gluelam design-flow — pad grid + 3×3 “go” window. Export for iron-browser / dispatch snapshot UIs. */
+  var IRON_FLOW_NODES = [
+    { id: 'gutter', label: 'quantum gutter', abbr: 'qGUT' },
+    { id: 'prefixes', label: 'quantum-prefixes (59 lang)', abbr: 'PFX' },
+    { id: 'dac', label: 'DAC+ · qbit-dac', abbr: 'DAC' },
+    { id: 'steno', label: 'steno · qbit-steno', abbr: 'STENO' },
+    { id: 'codec', label: '.qbit codec / round-trip', abbr: 'CODEC' },
+    { id: 'preflight', label: 'qbit-preflight', abbr: 'PFLT' },
+    { id: 'gluelam', label: 'gluelam · Cursor+MCP+hooks', abbr: 'GLUE' },
+    { id: 'schema', label: 'jsonschema · plan .md', abbr: 'SCH' },
+    { id: 'contrail', label: 'contrail universal layer', abbr: 'CTR' },
+    { id: 'ironline', label: 'Iron Line L0–L7', abbr: 'L0-7' },
+    { id: 't5', label: 'T5 prefix-engine (Rust)', abbr: 'T5' },
+    { id: 'wasm', label: 'WASM classify path', abbr: 'WASM' },
+    { id: 'hexterm', label: 'BroadcastChannel · hexterm', abbr: 'HEX' },
+    { id: 'plan', label: 'plan corpus indexer', abbr: 'PLAN' },
+    { id: 'iron-browser', label: 'iron-browser.html', abbr: 'IBR' },
+    { id: 'dispatch', label: 'iron-dispatch-v2-snapshot', abbr: 'DISPv2' },
+    { id: 'ugrad', label: 'μgrad · ugrad-r0', abbr: 'μGR' },
+    { id: 'padlab', label: 'μPad lab (this)', abbr: 'μPAD' },
+    { id: 'search', label: 'history-search · 17 connectors', abbr: 'H17' },
+    { id: 'sw', label: 'PWA sw.js cache lane', abbr: 'SW' }
+  ];
+  var ironFlowCursor = 0;
+  /** Clock-wise slot order on 3×3 (perimeter then center) — flow “hand” */
+  var IRON_CLOCK_ORDER = [0, 1, 2, 5, 8, 7, 6, 3, 4];
+  var FLOW_PAD_SNAKE_LEN = 6;
+  var flowTrainingActive = false;
+  /** Drum-pad style loading brackets — cycle like [::::] [..::] [....] [:.::] … */
+  var DRUM_DOT_PAT = ['::::', '..::', '....', ':.::', ':..:', '::.:', '..:.', ':.:.'];
+  var drumDotTick = 0;
+  var ALPHA = 'abcdefghijklmnopqrstuvwxyz';
+  var alphabetClockIdx = 0;
+  var snapStrip = document.getElementById('upl-snap-strip');
+  var snapSeq = 0;
+  /** XOR truth table rows — order matches 2×2 readout grid (top 0,0 | 0,1 / bottom 1,0 | 1,1). */
+  var XOR_TRUTH = [
+    { a: 0, b: 0, y: 0 },
+    { a: 0, b: 1, y: 1 },
+    { a: 1, b: 0, y: 1 },
+    { a: 1, b: 1, y: 0 }
+  ];
+  var lastPadNc = 6;
+  var lastPadNr = 10;
+  /** Highlight index 0..3 while training xor; −1 = show all rows calmly. */
+  var xorHighlightIx = -1;
+
+  function dataSelectXor() {
+    var s = document.getElementById('upl-data');
+    return !!(s && s.value === 'xor');
+  }
+
+  function syncGoCaption() {
+    var el = document.getElementById('upl-go-caption');
+    if (!el) return;
+    if (dataSelectXor()) {
+      el.innerHTML = '<strong>xor readout</strong> — 2×2 truth trainer <code>a⊻b=y</code> (animated bits fill each card); <strong>pad</strong> top-left 2×2 mirrors the same four rows. With <strong>Flow map</strong>, remaining pad cells keep Iron snake + bracket drum.';
+    } else {
+      el.innerHTML = '<strong>goboard slice</strong> (same 9-dim heuristic as <code>ugrad-r0</code> <code>Datasets.goboard</code>) — last sample below. With <strong>Flow map</strong> on, 3×3 shows the same Iron pipeline feed as the pad (design path → <code>iron-browser</code> / <code>iron-dispatch-v2-snapshot</code>).';
+    }
+  }
+
+  function xorCellIndices(nc, nr) {
+    if (nc < 2 || nr < 2) return null;
+    return [0, 1, nc, nc + 1];
+  }
+
+  function paintXorReadoutMini(activeIx, reanimate) {
+    var ti, row, card, bits, eqrow;
+    mini9.className = 'upl-mini9 upl-xor-trainer';
+    mini9.innerHTML = '';
+    mini9.setAttribute('aria-hidden', 'false');
+    for (ti = 0; ti < 4; ti++) {
+      row = XOR_TRUTH[ti];
+      card = document.createElement('div');
+      card.className = 'upl-xor-card' + (activeIx === ti ? ' upl-xor-card-active' : '');
+      if (reanimate) card.style.animation = 'none';
+      bits = document.createElement('div');
+      bits.className = 'upl-xor-bits';
+      bits.innerHTML = '<span class="upl-xbit">' + row.a + '</span><span class="upl-xor-cross">⊻</span><span class="upl-xbit">' + row.b + '</span>';
+      eqrow = document.createElement('div');
+      eqrow.className = 'upl-xor-eqrow';
+      eqrow.innerHTML = '<span class="upl-xor-eq2">=</span><span class="upl-xbit upl-xbit-out">' + row.y + '</span>';
+      card.appendChild(bits);
+      card.appendChild(eqrow);
+      card.title = 'XOR ' + row.a + '⊻' + row.b + '=' + row.y;
+      mini9.appendChild(card);
+    }
+    if (reanimate) {
+      requestAnimationFrame(function () {
+        mini9.querySelectorAll('.upl-xor-card').forEach(function (c, i) {
+          c.style.animation = '';
+          c.style.animationDelay = (i * 48) + 'ms';
+        });
+      });
+    }
+  }
+
+  function paintBracketDotsOnNonXorCells() {
+    if (!dataSelectXor()) return;
+    var cells = padGrid.querySelectorAll('.upl-cell');
+    var ix = xorCellIndices(lastPadNc, lastPadNr);
+    var skip = {};
+    if (ix) ix.forEach(function (i) { skip[i] = 1; });
+    cells.forEach(function (el, idx) {
+      if (skip[idx]) return;
+      ensureCellShell(el);
+      var dots = el.querySelector('.upl-cell-dots');
+      dots.style.display = '';
+      dots.textContent = bracketDots(idx);
+    });
+  }
+
+  function paintPadXorCornerGlyphs(activeIx, reanimate) {
+    if (!dataSelectXor()) return;
+    var cells = padGrid.querySelectorAll('.upl-cell');
+    var ix = xorCellIndices(lastPadNc, lastPadNr);
+    var ti, cell, row, abbr, dots, wrap;
+    if (!ix || cells.length < ix[3] + 1) return;
+    for (ti = 0; ti < 4; ti++) {
+      cell = cells[ix[ti]];
+      if (!cell) continue;
+      row = XOR_TRUTH[ti];
+      ensureCellShell(cell);
+      dots = cell.querySelector('.upl-cell-dots');
+      dots.textContent = '';
+      dots.style.display = 'none';
+      abbr = cell.querySelector('.upl-cell-abbr');
+      abbr.textContent = '';
+      wrap = document.createElement('div');
+      wrap.className = 'upl-xor-pad-card' + (activeIx === ti ? ' upl-xor-pad-hot' : '') + (reanimate ? ' upl-xor-pad-anim' : '');
+      wrap.innerHTML = '<span class="upl-xb upl-xb-a">' + row.a + '</span><span class="upl-xor-op">⊻</span><span class="upl-xb upl-xb-b">' + row.b + '</span><span class="upl-xor-eq">=</span><span class="upl-xb upl-xb-y">' + row.y + '</span>';
+      abbr.appendChild(wrap);
+      cell.title = 'XOR ' + row.a + '⊻' + row.b + '=' + row.y;
+    }
+  }
+
+  function flowMapOn() {
+    var el = document.getElementById('upl-flow-map');
+    return !!(el && el.checked);
+  }
+
+  function logLine(s) {
+    logEl.textContent = (logEl.textContent + s + '\n').slice(-12000);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setGutterLoaderTraining(on) {
+    var g = document.getElementById('upl-gutter-loader');
+    if (!g) return;
+    g.classList.toggle('upl-gl-train', !!on);
+    g.classList.toggle('upl-gl-idle', !on);
+  }
+
+  /** 4-char bracket pattern per letter — Pong-loader / drum-pad “braille” idiom ([:.] nibbles), not Unicode braille. */
+  function bracketPatternForLetterIndex(idx) {
+    var i = ((idx % 26) + 26) % 26;
+    var b = (i ^ (i << 2) ^ (i >>> 1)) & 15;
+    var bits = b.toString(2).padStart(4, '0').replace(/0/g, '.').replace(/1/g, ':');
+    return '[' + bits + ']';
+  }
+
+  function refreshAlphabetClock() {
+    var idx = flowTrainingActive ? (drumDotTick % 26) : (alphabetClockIdx % 26);
+    var ch = ALPHA.charAt(idx);
+    var elCh = document.getElementById('upl-pong-ch');
+    var elPat = document.getElementById('upl-pong-pat');
+    if (elCh) elCh.textContent = ch;
+    if (elPat) elPat.textContent = bracketPatternForLetterIndex(idx);
+  }
+
+  function drawGo19(board9) {
+    var svg = document.getElementById('upl-svg-go');
+    if (!svg) return;
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    var gridStroke = isLight ? 'rgba(31,35,40,.14)' : 'rgba(250,250,252,.14)';
+    var hoshiFill = isLight ? 'rgba(31,35,40,.42)' : 'rgba(250,250,252,.35)';
+    var ns = 'http://www.w3.org/2000/svg';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var i, l, c, ri, cx, cy, b;
+    for (i = 0; i < 19; i++) {
+      l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', i); l.setAttribute('y1', 0); l.setAttribute('x2', i); l.setAttribute('y2', 18);
+      l.setAttribute('stroke', gridStroke); l.setAttribute('stroke-width', 0.08);
+      svg.appendChild(l);
+      l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', 0); l.setAttribute('y1', i); l.setAttribute('x2', 18); l.setAttribute('y2', i);
+      l.setAttribute('stroke', gridStroke); l.setAttribute('stroke-width', 0.08);
+      svg.appendChild(l);
+    }
+    [[3, 3], [3, 15], [9, 9], [15, 3], [15, 15]].forEach(function (p) {
+      c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]); c.setAttribute('r', 0.25);
+      c.setAttribute('fill', hoshiFill);
+      svg.appendChild(c);
+    });
+    if (board9 && board9.length === 9) {
+      for (ri = 0; ri < 9; ri++) {
+        cx = 3 + (ri % 3) * 6;
+        cy = 3 + Math.floor(ri / 3) * 6;
+        c = document.createElementNS(ns, 'rect');
+        c.setAttribute('x', cx - 2.6); c.setAttribute('y', cy - 2.6);
+        c.setAttribute('width', 5.2); c.setAttribute('height', 5.2);
+        c.setAttribute('rx', 0.35); c.setAttribute('fill', 'none');
+        c.setAttribute('stroke', isLight ? 'rgba(31,35,40,.14)' : 'rgba(250,250,252,.12)');
+        c.setAttribute('stroke-width', 0.1);
+        svg.appendChild(c);
+      }
+      for (ri = 0; ri < 9; ri++) {
+        b = board9[ri];
+        if (!b) continue;
+        cx = 3 + (ri % 3) * 6;
+        cy = 3 + Math.floor(ri / 3) * 6;
+        c = document.createElementNS(ns, 'circle');
+        c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', b === 1 ? 0.42 : 0.38);
+        if (b === 1) {
+          c.setAttribute('fill', isLight ? 'rgba(20,24,32,.88)' : 'rgba(250,250,252,.82)');
+        } else {
+          c.setAttribute('fill', isLight ? 'rgba(255,255,255,.92)' : 'rgba(230,230,235,.2)');
+          c.setAttribute('stroke', isLight ? 'rgba(20,24,32,.35)' : 'rgba(250,250,252,.5)');
+          c.setAttribute('stroke-width', 0.09);
+        }
+        svg.appendChild(c);
+      }
+    }
+  }
+
+  function bracketDots(i) {
+    var k = (i + drumDotTick * 2) % DRUM_DOT_PAT.length;
+    return '[' + DRUM_DOT_PAT[k] + ']';
+  }
+
+  function ensureCellShell(cell) {
+    if (cell.querySelector('.upl-cell-abbr')) return;
+    cell.innerHTML = '<span class="upl-cell-dots"></span><span class="upl-cell-abbr"></span>';
+  }
+
+  /** @param {boolean} [reanimXorPad] stagger glyph pop on xor corner cells */
+  function paintCellDotsOnly(reanimXorPad) {
+    if (dataSelectXor()) {
+      paintPadXorCornerGlyphs(xorHighlightIx, !!reanimXorPad);
+      paintBracketDotsOnNonXorCells();
+      return;
+    }
+    padGrid.querySelectorAll('.upl-cell').forEach(function (el, idx) {
+      ensureCellShell(el);
+      var d = el.querySelector('.upl-cell-dots');
+      d.style.display = '';
+      d.textContent = bracketDots(idx);
+    });
+  }
+
+  function rebuildPad(nc, nr) {
+    lastPadNc = nc;
+    lastPadNr = nr;
+    padGrid.style.gridTemplateColumns = 'repeat(' + nc + ', ' + SP + 'px)';
+    padGrid.style.gridAutoRows = SP + 'px';
+    padGrid.style.backgroundSize = SP + 'px ' + SP + 'px';
+    padGrid.style.width = nc * SP + 'px';
+    padGrid.style.minHeight = nr * SP + 'px';
+    var need = nc * nr;
+    if (padGrid.childElementCount !== need) {
+      padGrid.innerHTML = '';
+      var r, c, d, idx = 0;
+      for (r = 0; r < nr; r++) {
+        for (c = 0; c < nc; c++) {
+          d = document.createElement('div');
+          d.className = 'upl-cell';
+          d.dataset.i = String(idx++);
+          d.innerHTML = '<span class="upl-cell-dots"></span><span class="upl-cell-abbr"></span>';
+          padGrid.appendChild(d);
+        }
+      }
+    }
+    padWork.style.minWidth = nc * SP + 32 + 'px';
+    paintCellDotsOnly();
+    if (dataSelectXor() && !flowTrainingActive) paintXorReadoutMini(-1, false);
+    if (flowMapOn()) {
+      if (flowTrainingActive) paintIronFlowPad(false);
+      else clearPadFlowLabels();
+    }
+  }
+
+  function clearPadFlowLabels() {
+    padGrid.querySelectorAll('.upl-cell').forEach(function (el, idx) {
+      ensureCellShell(el);
+      el.querySelector('.upl-cell-abbr').textContent = '';
+      el.title = '';
+    });
+    if (dataSelectXor()) {
+      paintPadXorCornerGlyphs(xorHighlightIx, false);
+      paintBracketDotsOnNonXorCells();
+      return;
+    }
+    padGrid.querySelectorAll('.upl-cell').forEach(function (el, idx) {
+      var d = el.querySelector('.upl-cell-dots');
+      d.style.display = '';
+      d.textContent = bracketDots(idx);
+    });
+  }
+
+  function advanceIronFlow(delta) {
+    var L = IRON_FLOW_NODES.length;
+    if (!L) return;
+    ironFlowCursor = (ironFlowCursor + (delta || 1) + L * 64) % L;
+  }
+
+  /** @param {boolean} [reanimXorPad] train-step pop on xor corner glyphs */
+  function paintIronFlowPad(reanimXorPad) {
+    if (!flowMapOn() || !flowTrainingActive) return;
+    var cells = padGrid.querySelectorAll('.upl-cell');
+    var L = IRON_FLOW_NODES.length;
+    var n = cells.length;
+    var i, s, idx, node;
+    var headIdx = (ironFlowCursor * 2) % (n || 1);
+    var snakeLen = Math.min(FLOW_PAD_SNAKE_LEN, n);
+    for (i = 0; i < n; i++) {
+      ensureCellShell(cells[i]);
+      cells[i].querySelector('.upl-cell-abbr').textContent = '';
+      cells[i].title = '';
+    }
+    for (s = 0; s < snakeLen; s++) {
+      idx = (headIdx - s + n * 50) % n;
+      node = IRON_FLOW_NODES[(ironFlowCursor - s + L * 50) % L];
+      ensureCellShell(cells[idx]);
+      cells[idx].querySelector('.upl-cell-abbr').textContent = node.abbr;
+      cells[idx].title = node.label + ' · ' + node.id;
+    }
+    paintCellDotsOnly(!!reanimXorPad);
+  }
+
+  function updateIronCap() {
+    var cap = document.getElementById('upl-iron-cap');
+    var L = IRON_FLOW_NODES.length;
+    var head;
+    if (cap && L && flowMapOn()) {
+      head = IRON_FLOW_NODES[ironFlowCursor % L];
+      cap.innerHTML = 'tick <code>' + head.abbr + '</code> · ' + head.label + ' → <code>iron-browser.html</code> · <code>iron-dispatch-v2-snapshot.html</code>';
+    }
+  }
+
+  function paintMini9FlowClockOnly() {
+    if (!flowMapOn()) return;
+    mini9.className = 'upl-mini9';
+    var L = IRON_FLOW_NODES.length;
+    var tickSlot = IRON_CLOCK_ORDER[ironFlowCursor % 9];
+    var i, d, fl, dots;
+    mini9.innerHTML = '';
+    for (i = 0; i < 9; i++) {
+      d = document.createElement('div');
+      d.className = 'upl-m9-slot' + (i === tickSlot ? ' upl-m9-tick' : '');
+      if (i === tickSlot) {
+        fl = document.createElement('span');
+        fl.className = 'upl-m9-flow';
+        fl.style.position = 'relative';
+        fl.style.transform = 'none';
+        fl.textContent = IRON_FLOW_NODES[ironFlowCursor % L].abbr;
+        d.appendChild(fl);
+      }
+      dots = document.createElement('span');
+      dots.className = 'upl-m9-dots';
+      dots.textContent = bracketDots(i + 24);
+      d.appendChild(dots);
+      mini9.appendChild(d);
+    }
+    updateIronCap();
+  }
+
+  function paintMini9Composite(board) {
+    if (!flowMapOn() || !board || board.length !== 9) {
+      paintMini9FlowClockOnly();
+      return;
+    }
+    mini9.className = 'upl-mini9';
+    var L = IRON_FLOW_NODES.length;
+    var tickSlot = IRON_CLOCK_ORDER[ironFlowCursor % 9];
+    var i, d, st, fl, dots;
+    mini9.innerHTML = '';
+    for (i = 0; i < 9; i++) {
+      d = document.createElement('div');
+      d.className = 'upl-m9-slot' + (i === tickSlot ? ' upl-m9-tick' : '');
+      st = document.createElement('span');
+      st.className = 'upl-m9-st';
+      st.textContent = board[i] === 1 ? '●' : board[i] === -1 ? '○' : '';
+      d.appendChild(st);
+      if (i === tickSlot) {
+        fl = document.createElement('span');
+        fl.className = 'upl-m9-flow';
+        fl.style.position = 'relative';
+        fl.style.bottom = 'auto';
+        fl.style.left = 'auto';
+        fl.style.transform = 'none';
+        fl.textContent = IRON_FLOW_NODES[ironFlowCursor % L].abbr;
+        d.appendChild(fl);
+      }
+      dots = document.createElement('span');
+      dots.className = 'upl-m9-dots';
+      dots.textContent = bracketDots(i + 24);
+      d.appendChild(dots);
+      mini9.appendChild(d);
+    }
+    updateIronCap();
+  }
+
+  function pushSnapshot(meta) {
+    if (!snapStrip) return;
+    snapSeq++;
+    var card = document.createElement('div');
+    card.className = 'upl-snap-card';
+    card.setAttribute('role', 'listitem');
+    var title = meta.title || ('iteration ' + snapSeq);
+    var flow = meta.flowAbbr != null ? meta.flowAbbr : '—';
+    var mini = '';
+    var bi;
+    if (meta.board9 && meta.board9.length === 9) {
+      mini = '<div class="upl-snap-mini9">';
+      for (bi = 0; bi < 9; bi++) {
+        mini += '<span>' + (meta.board9[bi] === 1 ? '●' : meta.board9[bi] === -1 ? '○' : '') + '</span>';
+      }
+      mini += '</div>';
+    } else if (meta.xorSnapshot) {
+      mini = '<div class="upl-snap-xor2">';
+      for (bi = 0; bi < 4; bi++) {
+        mini += '<span class="upl-snap-xc">' + XOR_TRUTH[bi].a + '⊻' + XOR_TRUTH[bi].b + '=' + XOR_TRUTH[bi].y + '</span>';
+      }
+      mini += '</div>';
+    }
+    card.innerHTML = '<div class="upl-snap-t">' + title + '</div>' +
+      '<div>' + flow + '</div>' +
+      '<div class="upl-snap-m">loss ' + (meta.loss != null ? (+meta.loss).toFixed(4) : '—') +
+      ' · acc ' + (meta.acc != null ? ((+meta.acc) * 100).toFixed(0) + '%' : '—') + '</div>' + mini;
+    snapStrip.appendChild(card);
+    requestAnimationFrame(function () {
+      snapStrip.scrollLeft = snapStrip.scrollWidth;
+    });
+  }
+
+  function syncIronFlowViz() {
+    if (!flowMapOn()) return;
+    if (flowTrainingActive) {
+      paintIronFlowPad(false);
+      if (lastMiniBoard && lastMiniBoard.length === 9) paintMini9Composite(lastMiniBoard);
+      else if (dataSelectXor()) paintXorReadoutMini(xorHighlightIx, false);
+      else paintMini9FlowClockOnly();
+    } else {
+      clearPadFlowLabels();
+      if (dataSelectXor()) paintXorReadoutMini(-1, false);
+      else paintMini9FlowClockOnly();
+    }
+  }
+
+  function heatPad(lossNorm) {
+    var cells = padGrid.querySelectorAll('.upl-cell');
+    var n = cells.length;
+    if (!n) return;
+    var t = Math.max(0, Math.min(1, lossNorm));
+    var k = Math.floor(t * (n - 1));
+    cells.forEach(function (el, i) {
+      ensureCellShell(el);
+      el.classList.toggle('is-hot', i <= k);
+    });
+  }
+
+  function renderMini9(board) {
+    lastMiniBoard = board;
+    mini9.className = 'upl-mini9';
+    mini9.innerHTML = '';
+    board.forEach(function (v, idx) {
+      var d = document.createElement('div');
+      d.className = 'upl-m9-slot ' + (v === 1 ? 'upl-st-b' : v === -1 ? 'upl-st-w' : 'upl-st-e');
+      var st = document.createElement('span');
+      st.className = 'upl-m9-st';
+      st.textContent = v === 1 ? '●' : v === -1 ? '○' : '';
+      d.appendChild(st);
+      var dots = document.createElement('span');
+      dots.className = 'upl-m9-dots';
+      dots.textContent = bracketDots(idx + 24);
+      d.appendChild(dots);
+      mini9.appendChild(d);
+    });
+  }
+
+  function syncMetaTheme() {
+    var m = document.getElementById('upl-meta-theme');
+    if (!m) return;
+    m.setAttribute('content', document.documentElement.getAttribute('data-theme') === 'light' ? '#f6f8fa' : '#0a0a0b');
+  }
+
+  var _uplSyncPdT = null;
+  function syncPadFrameTheme() {
+    if (!pdFrame) return;
+    var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var idoc = null;
+    try { idoc = pdFrame.contentDocument; } catch (e0) { idoc = null; }
+    if (idoc && idoc.documentElement) {
+      try {
+        idoc.documentElement.setAttribute('data-theme', t);
+      } catch (e1) {}
+    }
+    try {
+      var win = pdFrame.contentWindow;
+      if (win) {
+        if (win.QuantumPrefixes && win.QuantumPrefixes.setTheme) win.QuantumPrefixes.setTheme(t);
+        win.postMessage({ type: 'upl-sync-theme', theme: t, source: 'ugrad-pad-lab' }, '*');
+      }
+    } catch (e2) {}
+    try {
+      if (idoc) {
+        var tg = idoc.getElementById('qp-theme-toggle');
+        if (tg) tg.style.setProperty('display', 'none', 'important');
+      }
+    } catch (e3) {}
+  }
+
+  function scheduleSyncPadFrameTheme() {
+    if (_uplSyncPdT) clearTimeout(_uplSyncPdT);
+    _uplSyncPdT = setTimeout(function () {
+      _uplSyncPdT = null;
+      syncPadFrameTheme();
+      requestAnimationFrame(function () { syncPadFrameTheme(); });
+    }, 0);
+  }
+
+  function onLabThemeApplied() {
+    syncMetaTheme();
+    drawGo19(lastMiniBoard && lastMiniBoard.length === 9 ? lastMiniBoard : null);
+    if (flowMapOn() && flowTrainingActive) syncIronFlowViz();
+    else if (flowMapOn()) clearPadFlowLabels();
+    else if (lastMiniBoard && lastMiniBoard.length) renderMini9(lastMiniBoard);
+    else if (dataSelectXor()) {
+      paintCellDotsOnly();
+      paintXorReadoutMini(-1, false);
+    }
+    scheduleSyncPadFrameTheme();
+  }
+
+  /* ---- minimal autograd (aligned with ugrad-r0 BG worker shape) ---- */
+  function Value(d, ch, op) {
+    this.data = +d; this.grad = 0; this._prev = ch ? new Set(ch) : new Set();
+    this._op = op || ''; this._backward = function () {};
+  }
+  Value.prototype.add = function (o) {
+    o = o instanceof Value ? o : new Value(o);
+    var out = new Value(this.data + o.data, [this, o], '+');
+    var self = this;
+    var oo = o;
+    out._backward = function () {
+      self.grad += out.grad;
+      oo.grad += out.grad;
+    };
+    return out;
+  };
+  Value.prototype.mul = function (o) {
+    o = o instanceof Value ? o : new Value(o);
+    var out = new Value(this.data * o.data, [this, o], '*');
+    var self = this;
+    var oo = o;
+    var sd = self.data;
+    var od = oo.data;
+    out._backward = function () {
+      self.grad += od * out.grad;
+      oo.grad += sd * out.grad;
+    };
+    return out;
+  };
+  Value.prototype.tanh = function () {
+    var t = Math.tanh(this.data);
+    var out = new Value(t, [this], 'tanh');
+    var self = this;
+    out._backward = function () { self.grad += (1 - t * t) * out.grad; };
+    return out;
+  };
+  Value.prototype.neg = function () { return this.mul(-1); };
+  Value.prototype.sub = function (o) {
+    o = o instanceof Value ? o : new Value(o);
+    return this.add(o.neg());
+  };
+  Value.prototype.backward = function () {
+    var topo = [], vis = new Set();
+    var b = function (v) {
+      if (!vis.has(v)) { vis.add(v); v._prev.forEach(b); topo.push(v); }
+    };
+    b(this);
+    this.grad = 1;
+    for (var i = topo.length - 1; i >= 0; i--) topo[i]._backward();
+  };
+
+  function Neuron(nin) {
+    var s = Math.sqrt(2 / nin);
+    this.w = Array.from({ length: nin }, function () { return new Value((Math.random() * 2 - 1) * s); });
+    this.b = new Value(0);
+  }
+  Neuron.prototype.call = function (x) {
+    var a = this.b;
+    for (var i = 0; i < this.w.length; i++) a = a.add(this.w[i].mul(x[i]));
+    return a.tanh();
+  };
+  Neuron.prototype.params = function () { return this.w.concat([this.b]); };
+
+  function Layer(ni, no, nl) {
+    this.neurons = Array.from({ length: no }, function () { return new Neuron(ni); });
+    this.nl = nl;
+  }
+  Layer.prototype.call = function (x) {
+    return this.neurons.map(function (n) { return n.call(x); });
+  };
+  Layer.prototype.params = function () { return this.neurons.flatMap(function (n) { return n.params(); }); };
+
+  function MLP(sizes) {
+    this.layers = [];
+    for (var i = 0; i < sizes.length - 1; i++) {
+      this.layers.push(new Layer(sizes[i], sizes[i + 1], i < sizes.length - 2));
+    }
+  }
+  MLP.prototype.call = function (x) {
+    var li;
+    if (!Array.isArray(x)) x = [x];
+    for (li = 0; li < this.layers.length; li++) {
+      x = this.layers[li].call(x);
+    }
+    return x.length === 1 ? x[0] : x;
+  };
+  MLP.prototype.params = function () { return this.layers.flatMap(function (l) { return l.params(); }); };
+
+  function makeXor() {
+    return {
+      X: [[0, 0], [0, 1], [1, 0], [1, 1]],
+      Y: [0, 1, 1, 0],
+      dim: 2
+    };
+  }
+
+  function makeGoboard(n) {
+    n = n || 80;
+    var X = [], Y = [], i, p, board, b, w, c, lib, adv;
+    for (i = 0; i < n; i++) {
+      board = [];
+      for (p = 0; p < 9; p++) board.push(Math.random() < 0.3 ? 1 : Math.random() < 0.5 ? -1 : 0);
+      b = board.filter(function (v) { return v === 1; }).length;
+      w = board.filter(function (v) { return v === -1; }).length;
+      c = board[4];
+      var corners = [board[0], board[2], board[6], board[8]].filter(function (v) { return v === 1; }).length;
+      lib = board.filter(function (v) { return v === 0; }).length;
+      adv = b > w && lib > 3 && (c === 1 || corners >= 2);
+      X.push(board.map(Number));
+      Y.push(adv ? 1 : 0);
+    }
+    return { X: X, Y: Y, dim: 9 };
+  }
+
+  function trainSteps(arch, data, steps, lr, onStep) {
+    var model = new MLP(arch);
+    var si, j, total, pred, diff, lv, params, acc = 0;
+    for (si = 0; si < steps; si++) {
+      total = new Value(0);
+      for (j = 0; j < data.X.length; j++) {
+        pred = model.call(data.X[j].map(function (v) { return new Value(v); }));
+        diff = pred.sub(data.Y[j]);
+        total = total.add(diff.mul(diff));
+      }
+      total = total.mul(1 / data.X.length);
+      lv = total.data;
+      params = model.params();
+      params.forEach(function (p) { p.grad = 0; });
+      total.backward();
+      params.forEach(function (p) {
+        if (!isFinite(p.grad)) p.grad = 0;
+        p.data -= lr * p.grad;
+      });
+      acc = 0;
+      for (j = 0; j < data.X.length; j++) {
+        var o = model.call(data.X[j].map(function (v) { return new Value(v); }));
+        var pv = o.data != null ? o.data : o;
+        if (Math.round(pv) === data.Y[j]) acc++;
+      }
+      acc /= data.X.length;
+      if (onStep) onStep(si + 1, lv, acc, data);
+      if (!isFinite(lv)) break;
+    }
+    return { loss: lv, acc: acc, model: model };
+  }
+
+  function randomLayoutDoc() {
+    var modes = ['free', 'row', 'column', 'grid2'];
+    var mode = modes[Math.floor(Math.random() * modes.length)];
+    var nb = 1 + Math.floor(Math.random() * 4);
+    var blocks = [];
+    var tprefix = ['stress', 'cell', 'lane', 'mat'];
+    var b, mw;
+    for (b = 0; b < nb; b++) {
+      mw = Math.random() < 0.55 ? 140 + Math.floor(Math.random() * 240) : null;
+      blocks.push({
+        id: tprefix[b % 4] + '-' + outerGen + '-' + b,
+        cols: 2 + Math.floor(Math.random() * 7),
+        rows: 2 + Math.floor(Math.random() * 12),
+        title: (tprefix[b % 4] + ' ' + b).toUpperCase(),
+        minWidth: mw || undefined
+      });
+    }
+    if (Math.random() < 0.25) {
+      blocks[0].x = 20;
+      blocks[0].y = 20;
+      blocks[0].layoutFixed = true;
+    }
+    return { version: 1, layoutMode: mode, blocks: blocks };
+  }
+
+  function applyLayoutInIframe(doc) {
+    var out = { ok: false, err: 'not-ready', blockCount: null };
+    if (!pdReady || !pdFrame || !pdFrame.contentWindow) {
+      out.err = 'iframe-not-ready';
+      return out;
+    }
+    var win = pdFrame.contentWindow;
+    var PD = win.PadDataTable;
+    if (!PD || typeof PD.applyDocument !== 'function') {
+      out.err = 'PadDataTable-missing';
+      return out;
+    }
+    try {
+      PD.applyDocument(doc);
+      out.ok = true;
+      out.err = null;
+      if (typeof PD.getState === 'function') {
+        var st = PD.getState();
+        out.blockCount = st.blockCount != null ? st.blockCount : null;
+      }
+    } catch (e) {
+      out.err = String(e && e.message ? e.message : e);
+    }
+    return out;
+  }
+
+  function layoutPad() {
+    var w = padWork.clientWidth || 400;
+    var nc = Math.max(6, Math.floor(w / SP) - 1);
+    var nr = 10;
+    rebuildPad(nc, nr);
+  }
+
+  function runInner() {
+    var dataName = document.getElementById('upl-data').value;
+    var steps = parseInt(document.getElementById('upl-steps').value, 10) || 120;
+    var data = dataName === 'goboard' ? makeGoboard(96) : makeXor();
+    xorHighlightIx = dataName === 'xor' ? 0 : -1;
+    flowTrainingActive = true;
+    setGutterLoaderTraining(true);
+    if (dataName === 'goboard' && !flowMapOn()) renderMini9(data.X[data.X.length - 1]);
+    if (dataName === 'xor') paintXorReadoutMini(0, true);
+    if (flowMapOn()) {
+      clearPadFlowLabels();
+      drawGo19(dataName === 'goboard' ? data.X[data.X.length - 1] : null);
+      if (dataName === 'goboard') {
+        lastMiniBoard = data.X[data.X.length - 1];
+        paintMini9Composite(lastMiniBoard);
+      } else if (dataName === 'xor') {
+        drawGo19(null);
+        paintXorReadoutMini(0, true);
+      } else paintMini9FlowClockOnly();
+    } else if (dataName === 'xor') {
+      paintPadXorCornerGlyphs(0, true);
+      paintBracketDotsOnNonXorCells();
+    }
+    var arch = dataName === 'xor' ? [data.dim, 16, 8, 1] : [data.dim, 32, 16, 1];
+    logLine('inner: ' + dataName + ' arch=' + arch.join('→') + ' steps=' + steps);
+    var fnLast = IRON_FLOW_NODES[ironFlowCursor % IRON_FLOW_NODES.length];
+    var trainOut = trainSteps(arch, data, steps, 0.05, function (step, loss, acc, d) {
+      drumDotTick++;
+      refreshAlphabetClock();
+      if (dataName === 'xor') xorHighlightIx = (step - 1 + 4) % 4;
+      var flowHtml = '';
+      if (flowMapOn()) {
+        advanceIronFlow(1);
+        paintIronFlowPad(dataName === 'xor');
+        if (dataName === 'goboard' && d && d.X.length) {
+          var brd = d.X[step % d.X.length];
+          lastMiniBoard = brd;
+          drawGo19(brd);
+          paintMini9Composite(brd);
+        } else {
+          drawGo19(null);
+          if (dataName === 'xor') paintXorReadoutMini(xorHighlightIx, true);
+          else paintMini9FlowClockOnly();
+        }
+        fnLast = IRON_FLOW_NODES[ironFlowCursor % IRON_FLOW_NODES.length];
+        flowHtml = ' · flow <strong title="' + (fnLast.label + '') + '">' + fnLast.abbr + '</strong>';
+      } else {
+        paintCellDotsOnly(dataName === 'xor');
+        if (dataName === 'xor') paintXorReadoutMini(xorHighlightIx, true);
+      }
+      metricsEl.innerHTML = 'step <strong>' + step + '</strong> · loss <strong>' + loss.toFixed(4) + '</strong> · acc <strong>' + (acc * 100).toFixed(0) + '%</strong> · outer <strong>' + outerGen + '</strong>' + flowHtml;
+      heatPad(Math.min(1, loss / (dataName === 'xor' ? 1 : 2)));
+      if (!flowMapOn() && dataName === 'goboard' && d && d.X.length) renderMini9(d.X[step % d.X.length]);
+    });
+    pushSnapshot({
+      title: 'inner · ' + dataName,
+      loss: trainOut.loss,
+      acc: trainOut.acc,
+      flowAbbr: fnLast.abbr,
+      board9: dataName === 'goboard' && lastMiniBoard && lastMiniBoard.length === 9 ? lastMiniBoard.slice() : null,
+      xorSnapshot: dataName === 'xor'
+    });
+    flowTrainingActive = false;
+    setGutterLoaderTraining(false);
+    if (flowMapOn()) syncIronFlowViz();
+    else if (dataName === 'xor') {
+      xorHighlightIx = -1;
+      paintCellDotsOnly();
+      paintXorReadoutMini(-1, false);
+    }
+    logLine('inner done');
+  }
+
+  function runOuter() {
+    var n = parseInt(document.getElementById('upl-outer-n').value, 10) || 5;
+    var i, pick, data, arch, lr, rec;
+    flowTrainingActive = true;
+    setGutterLoaderTraining(true);
+    for (i = 0; i < n; i++) {
+      outerGen++;
+      pick = Math.random() < 0.45 ? 'xor' : 'goboard';
+      lr = 0.03 + Math.random() * 0.07;
+      data = pick === 'xor' ? makeXor() : makeGoboard(40 + Math.floor(Math.random() * 80));
+      arch = pick === 'xor' ? [2, 8 + Math.floor(Math.random() * 16), 4, 1] : [9, 24 + Math.floor(Math.random() * 24), 12, 1];
+      xorHighlightIx = pick === 'xor' ? 0 : -1;
+      if (pick === 'xor') paintXorReadoutMini(0, true);
+      rec = trainSteps(arch, data, 40 + Math.floor(Math.random() * 60), lr, function (step, loss2, acc2, d) {
+        drumDotTick++;
+        refreshAlphabetClock();
+        if (pick === 'xor') xorHighlightIx = (step - 1 + 4) % 4;
+        if (flowMapOn()) {
+          advanceIronFlow(1);
+          paintIronFlowPad(pick === 'xor');
+          if (pick === 'goboard' && d && d.X.length) {
+            var brd = d.X[step % d.X.length];
+            lastMiniBoard = brd;
+            drawGo19(brd);
+            paintMini9Composite(brd);
+          } else {
+            drawGo19(null);
+            if (pick === 'xor') paintXorReadoutMini(xorHighlightIx, true);
+            else paintMini9FlowClockOnly();
+          }
+        } else {
+          paintCellDotsOnly(pick === 'xor');
+          if (pick === 'xor') paintXorReadoutMini(xorHighlightIx, true);
+        }
+      });
+      rec = {
+        type: 'upl-stress',
+        ts: Date.now(),
+        outerGen: outerGen,
+        pick: pick,
+        arch: arch,
+        lr: lr,
+        loss: rec.loss,
+        acc: rec.acc,
+        innerSteps: 'batched'
+      };
+      stressLines.push(JSON.stringify(rec));
+      logLine('outer ' + outerGen + ' ' + pick + ' loss=' + (rec.loss != null ? rec.loss.toFixed(4) : '?') + ' acc=' + (rec.acc * 100).toFixed(0) + '%');
+      pushSnapshot({
+        title: 'outer #' + outerGen + ' · ' + pick,
+        loss: rec.loss,
+        acc: rec.acc,
+        flowAbbr: IRON_FLOW_NODES[ironFlowCursor % IRON_FLOW_NODES.length].abbr,
+        board9: pick === 'goboard' && lastMiniBoard && lastMiniBoard.length === 9 ? lastMiniBoard.slice() : null,
+        xorSnapshot: pick === 'xor'
+      });
+    }
+    flowTrainingActive = false;
+    setGutterLoaderTraining(false);
+    if (flowMapOn()) syncIronFlowViz();
+    else if (dataSelectXor()) {
+      xorHighlightIx = -1;
+      paintCellDotsOnly();
+      paintXorReadoutMini(-1, false);
+    }
+    drawGo19(lastMiniBoard && lastMiniBoard.length === 9 ? lastMiniBoard : null);
+    metricsEl.innerHTML = 'step <strong>—</strong> · loss <strong>—</strong> · acc <strong>—</strong> · outer <strong>' + outerGen + '</strong>';
+  }
+
+  function downloadJsonl() {
+    var blob = new Blob([stressLines.join('\n') + '\n'], { type: 'application/x-ndjson' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stress-log.jsonl';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+
+  try {
+    if (window.QuantumPrefixes && QuantumPrefixes.onThemeChange) {
+      QuantumPrefixes.onThemeChange(function () { onLabThemeApplied(); });
+    }
+  } catch (eTh) {}
+
+  drawGo19(null);
+  layoutPad();
+  syncGoCaption();
+  syncMetaTheme();
+  refreshAlphabetClock();
+  setInterval(function () {
+    if (!flowTrainingActive) {
+      alphabetClockIdx++;
+      refreshAlphabetClock();
+    }
+  }, 480);
+  if (flowMapOn()) syncIronFlowViz();
+  window.addEventListener('resize', layoutPad);
+
+  document.getElementById('upl-flow-map').addEventListener('change', function () {
+    var cap = document.getElementById('upl-iron-cap');
+    if (this.checked) {
+      syncIronFlowViz();
+    } else {
+      if (cap) cap.innerHTML = '';
+      padGrid.innerHTML = '';
+      layoutPad();
+      drawGo19(lastMiniBoard && lastMiniBoard.length === 9 ? lastMiniBoard : null);
+      if (lastMiniBoard && lastMiniBoard.length) renderMini9(lastMiniBoard);
+      else if (dataSelectXor()) paintXorReadoutMini(-1, false);
+    }
+  });
+
+  document.getElementById('upl-data').addEventListener('change', function () {
+    syncGoCaption();
+    xorHighlightIx = -1;
+    if (dataSelectXor()) {
+      layoutPad();
+      drawGo19(null);
+      paintXorReadoutMini(-1, false);
+    } else {
+      mini9.className = 'upl-mini9';
+      if (lastMiniBoard && lastMiniBoard.length === 9) renderMini9(lastMiniBoard);
+      else {
+        mini9.innerHTML = '';
+        layoutPad();
+      }
+      drawGo19(lastMiniBoard && lastMiniBoard.length === 9 ? lastMiniBoard : null);
+    }
+  });
+
+  document.getElementById('upl-run-inner').addEventListener('click', runInner);
+  document.getElementById('upl-run-outer').addEventListener('click', runOuter);
+  document.getElementById('upl-dl-log').addEventListener('click', downloadJsonl);
+  document.getElementById('upl-clear-log').addEventListener('click', function () {
+    stressLines.length = 0;
+    logEl.textContent = '';
+    outerGen = 0;
+    snapSeq = 0;
+    if (snapStrip) snapStrip.innerHTML = '';
+  });
+
+  if (pdFrame) {
+    pdFrame.addEventListener('load', function () {
+      pdReady = true;
+      scheduleSyncPadFrameTheme();
+      logLine('pad-datatable iframe ready (PadDataTable.applyDocument available)');
+    });
+  }
+
+  document.getElementById('upl-layout-stress').addEventListener('change', function () {
+    if (pdWrap) pdWrap.style.display = this.checked ? '' : 'none';
+  });
+
+  (function uplPdActions() {
+    var pop = document.getElementById('upl-pd-popout');
+    var rel = document.getElementById('upl-pd-reload');
+    var basePd = 'pad-datatable.html?uplEmbed=1';
+    if (pop) {
+      pop.addEventListener('click', function () {
+        var th = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        try {
+          localStorage.setItem('qp-theme', th);
+          localStorage.setItem('qp-theme-override', 'yes');
+        } catch (e) {}
+        try {
+          window.open('pad-datatable.html', 'upl-pad-datatable', 'noopener,noreferrer');
+        } catch (e2) {
+          location.href = 'pad-datatable.html';
+        }
+        logLine('pop out: pad-datatable.html (theme ' + th + ' saved for new window)');
+      });
+    }
+    if (rel && pdFrame) {
+      rel.addEventListener('click', function () {
+        pdReady = false;
+        pdFrame.src = basePd + '&r=' + Date.now();
+        logLine('reload: embedded pad-datatable');
+      });
+    }
+  })();
+
+  window.UgradPadLab = {
+    VERSION: '0.2.7',
+    stressLines: stressLines,
+    runInner: runInner,
+    runOuter: runOuter,
+    randomLayoutDoc: randomLayoutDoc,
+    applyLayoutInIframe: applyLayoutInIframe,
+    IRON_FLOW_NODES: IRON_FLOW_NODES,
+    IRON_CLOCK_ORDER: IRON_CLOCK_ORDER,
+    getIronFlowState: function () {
+      var L = IRON_FLOW_NODES.length;
+      var i = ironFlowCursor % L;
+      return {
+        cursor: ironFlowCursor,
+        index: i,
+        head: IRON_FLOW_NODES[i],
+        slice9: [0, 1, 2, 3, 4, 5, 6, 7, 8].map(function (j) {
+          return IRON_FLOW_NODES[(ironFlowCursor + j) % L];
+        })
+      };
+    },
+    setIronFlowCursor: function (n) {
+      var L = IRON_FLOW_NODES.length;
+      if (!L) return;
+      ironFlowCursor = ((parseInt(n, 10) || 0) % L + L) % L;
+      if (flowMapOn()) syncIronFlowViz();
+    },
+    syncIronFlowViz: syncIronFlowViz,
+    XOR_TRUTH: XOR_TRUTH,
+    paintXorReadoutMini: paintXorReadoutMini
+  };
+
+  /* Playwright: wait __UPL_READY__ then optional iframe PadDataTable */
+  window.__UPL_READY__ = true;
+})();
+</script>
+<script>
+(function () {
+  try {
+    if (window.QuantumPrefixes && QuantumPrefixes.broadcastState) {
+      QuantumPrefixes.broadcastState('ugrad-pad-lab', { app: 'ugrad-pad-lab', version: '0.2.7', ts: Date.now() });
+    }
+  } catch (e) {}
+  try {
+    var bc = new BroadcastChannel('hexterm');
+    bc.postMessage({ type: 'ugrad-pad-lab-ready', source: 'ugrad-pad-lab', ts: Date.now() });
+    bc.close();
+  } catch (e2) {}
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+</script>
+</body>
+</html>

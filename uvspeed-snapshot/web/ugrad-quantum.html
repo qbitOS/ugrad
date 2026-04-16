@@ -1,0 +1,789 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>μQ — quantum autograd on topology</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:#000;color:#c9d1d9;font:11px/1.4 'SF Mono',monospace;overflow:hidden}
+#a{display:flex;flex-direction:column;height:100vh}
+#top{display:flex;height:calc(100vh - 24px)}
+#o{flex:1;overflow-y:auto;padding:6px 10px;white-space:pre-wrap;contain:content}
+#o::-webkit-scrollbar{width:2px}#o::-webkit-scrollbar-thumb{background:#161b22}
+canvas#topo{width:320px;height:100%;background:#010409;border-left:1px solid #0d1117}
+#b{display:flex;gap:6px;padding:2px 10px;font-size:9px;color:#484f58;border-top:1px solid #0d1117;user-select:none;height:24px;align-items:center}
+#b input{flex:0;background:0 0;border:0;color:#c9d1d9;font:inherit;outline:0;caret-color:#a78bfa;width:50%}
+#b b{color:#a78bfa;font-weight:400;user-select:none}
+.g{color:#3fb950}.r{color:#f85149}.c{color:#58a6ff}.d{color:#484f58}.m{color:#d2a8ff}.o{color:#f0883e}.y{color:#c9a84c}
+.ln{min-height:1.2em}
+@media(max-width:700px){canvas#topo{width:100%;height:200px}#top{flex-direction:column}}
+</style></head><body data-ugrad-game="quantum">
+<div id="a">
+<div id="top">
+<div id="o"></div>
+<canvas id="topo"></canvas>
+</div>
+<div id="b">
+<b>μQ❯</b><input id="i" spellcheck="false" autocomplete="off">
+<span id="s0">boot:—</span><span id="s1">·layer:—</span><span id="s2">·fidelity:—</span><span id="s3">·gate-err:—</span><span id="s4">·depth:—</span>
+</div>
+</div>
+<script>
+(function(){
+var T=performance.now(),O=document.getElementById('o'),I=document.getElementById('i');
+var TC=document.getElementById('topo'),TX=TC.getContext('2d');
+var _r=0;
+function w(h){var d=document.createElement('div');d.className='ln';d.innerHTML=h;O.appendChild(d);if(!_r){_r=1;requestAnimationFrame(function(){O.scrollTop=O.scrollHeight;_r=0})}}
+function e(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function wc(s,c){w(c?'<span class="'+c+'">'+e(s)+'</span>':e(s))}
+function pad(n,l){var s=''+n;while(s.length<l)s=' '+s;return s}
+
+// ═══════════════════════════════════════════════════════════════
+// μQ: QUANTUM AUTOGRAD ON TOPOLOGY
+//
+// The terrain IS the computation. Each value lives on the Bloch
+// sphere. Each operation is a gate rotation. The backward pass
+// is a ballistic waveform bouncing off the topology surface.
+//
+// Earth layers = refinement steps:
+//   CRUST   (0-35km)   → input encoding, raw data
+//   MANTLE  (35-2900km) → hidden layers, feature extraction
+//   OUTER CORE (2900-5100km) → deep representations, phase transitions
+//   INNER CORE (5100-6371km) → final classification, crystallized knowledge
+//
+// Waypoints at each boundary = injection/offload points
+// where you can checkpoint, steno-encode, or broadcast state.
+// ═══════════════════════════════════════════════════════════════
+
+var PI=Math.PI,PI2=PI*2,sqrt=Math.sqrt,sin=Math.sin,cos=Math.cos,atan2=Math.atan2,acos=Math.acos,tanh=Math.tanh,abs=Math.abs,pow=Math.pow,log=Math.log,max=Math.max,min=Math.min,rng=Math.random;
+
+// ⊞ Earth layer constants (km → normalized 0-1)
+var LAYERS={
+  crust:   {name:'Crust',   depth:0,    r:1.0,   temp:300,   color:'#8b949e', gateErr:0.001},
+  mantle:  {name:'Mantle',  depth:0.005,r:0.545,  temp:3700,  color:'#f0883e', gateErr:0.003},
+  outer:   {name:'Outer Core',depth:0.455,r:0.199, temp:5200,  color:'#f85149', gateErr:0.008},
+  inner:   {name:'Inner Core',depth:0.801,r:0.0,   temp:6000,  color:'#a78bfa', gateErr:0.015}
+};
+var LAYER_ORDER=['crust','mantle','outer','inner'];
+
+// ⊞ Quantum Value — a scalar on the Bloch sphere
+// Each value has: data (scalar), theta/phi (Bloch angles),
+// fidelity (1-gate_error accumulation), depth (earth layer)
+function QV(d,theta,phi,ch,op,layer){
+  this.d=+d;
+  this.g=0;
+  this.theta=theta!==undefined?theta:2*acos(sqrt(max(0.01,min(0.99,abs(d)%1))));
+  this.phi=phi!==undefined?phi:(d>=0?0:PI);
+  this.fidelity=1.0;
+  this.gateErr=0;
+  this.layer=layer||'crust';
+  this._b=null;
+  this._p=ch||[];
+  this._o=op||'';
+  this._waypoint=null;
+}
+
+// Bloch coordinates from angles
+QV.prototype.bloch=function(){
+  return{x:sin(this.theta)*cos(this.phi),y:sin(this.theta)*sin(this.phi),z:cos(this.theta)};
+};
+
+// Ballistic waveform: observer detects state from surface topology
+// ψ(r,t) = A·exp(i(k·r - ωt)) — plane wave on the topo surface
+// The "observation" collapses to probability |⟨0|ψ⟩|² = cos²(θ/2)
+QV.prototype.observe=function(){
+  var p0=cos(this.theta/2);
+  return{prob:p0*p0, phase:this.phi, fidelity:this.fidelity, layer:this.layer};
+};
+
+// ○ Quantum gates as operations on Bloch angles
+// Each gate introduces error from the current earth layer
+
+function gateError(layer){return LAYERS[layer]?LAYERS[layer].gateErr:0.001}
+function nextLayer(layer){var i=LAYER_ORDER.indexOf(layer);return LAYER_ORDER[min(3,i+1)]}
+function prevLayer(layer){var i=LAYER_ORDER.indexOf(layer);return LAYER_ORDER[max(0,i-1)]}
+
+// Ry(θ) gate: rotate around Y axis — used for add
+function qAdd(a,b){
+  b=b instanceof QV?b:new QV(b);
+  var d=a.d+b.d;
+  var theta=(a.theta+b.theta)/2;
+  var phi=atan2(sin(a.phi)+sin(b.phi),cos(a.phi)+cos(b.phi));
+  var ly=a.layer;
+  var err=gateError(ly);
+  var r=new QV(d,theta+err*(rng()-.5),phi,[a,b],'Ry+',ly);
+  r.fidelity=a.fidelity*b.fidelity*(1-err);
+  r.gateErr=err;
+  var sa=a,sb=b;
+  r._b=function(){sa.g+=r.g;sb.g+=r.g};
+  return r;
+}
+
+// Rz(θ) gate: rotate around Z axis — used for mul
+function qMul(a,b){
+  b=b instanceof QV?b:new QV(b);
+  var d=a.d*b.d;
+  var theta=min(PI,a.theta*abs(b.d)+b.theta*abs(a.d));
+  var phi=a.phi+b.phi;
+  var ly=a.layer;
+  var err=gateError(ly);
+  var r=new QV(d,theta+err*(rng()-.5),phi%(PI2),[a,b],'Rz*',ly);
+  r.fidelity=a.fidelity*b.fidelity*(1-err);
+  r.gateErr=err;
+  var sa=a,sb=b;
+  r._b=function(){sa.g+=sb.d*r.g;sb.g+=sa.d*r.g};
+  return r;
+}
+
+// H gate: Hadamard — used for tanh (superposition of +/- states)
+function qTanh(a){
+  var t=tanh(a.d);
+  var theta=acos(max(-1,min(1,t)));
+  var phi=a.phi+PI/4;
+  var ly=nextLayer(a.layer);
+  var err=gateError(ly);
+  var r=new QV(t,theta,phi%PI2,[a],'H·th',ly);
+  r.fidelity=a.fidelity*(1-err);
+  r.gateErr=err;
+  r._waypoint={type:'activation',fromLayer:a.layer,toLayer:ly,fidelity:r.fidelity};
+  var sa=a;
+  r._b=function(){sa.g+=(1-t*t)*r.g};
+  return r;
+}
+
+// X gate: bit-flip — used for relu (collapse negative states)
+function qRelu(a){
+  var d=a.d>0?a.d:0;
+  var theta=d>0?a.theta:PI;
+  var phi=d>0?a.phi:0;
+  var ly=a.layer;
+  var err=gateError(ly);
+  var r=new QV(d,theta,phi,[a],'X·rl',ly);
+  r.fidelity=a.fidelity*(1-err*(d>0?0.5:1));
+  r.gateErr=err;
+  var sa=a;
+  r._b=function(){sa.g+=(r.d>0?1:0)*r.g};
+  return r;
+}
+
+// SWAP gate: used for pow
+function qPow(a,n){
+  var d=pow(a.d,n);
+  var theta=min(PI,a.theta*abs(n));
+  var phi=a.phi*n;
+  var ly=a.layer;
+  var err=gateError(ly);
+  var r=new QV(d,theta%PI,phi%PI2,[a],'SW**',ly);
+  r.fidelity=a.fidelity*(1-err);
+  r.gateErr=err;
+  var sa=a;
+  r._b=function(){sa.g+=n*pow(sa.d,n-1)*r.g};
+  return r;
+}
+
+// Backward: ballistic waveform — topo sort then reverse propagation
+// The waveform travels from inner core (output) back to crust (input),
+// layer by layer. At each waypoint boundary, state is checkpointed.
+function qBackward(root){
+  var tp=[],vi=new Set(),waypoints=[];
+  var go=function(v){
+    if(v&&!vi.has(v)){vi.add(v);
+      for(var i=0;i<v._p.length;i++)go(v._p[i]);
+      tp.push(v);
+      if(v._waypoint)waypoints.push(v._waypoint);
+    }
+  };
+  go(root);root.g=1;
+  // Ballistic: propagate from deepest layer outward
+  // The gradient IS the waveform amplitude at each node
+  for(var i=tp.length-1;i>=0;i--){
+    if(tp[i]._b){
+      // Dispersion: gradient attenuated by fidelity
+      tp[i]._b();
+      // Gate error injection: noise proportional to depth
+      var err=tp[i].gateErr||0;
+      if(err>0)tp[i].g*=(1-err*0.5);
+    }
+  }
+  return{nodes:tp.length,waypoints:waypoints,maxDepth:root.layer};
+}
+
+// ⊞ Quantum Neuron — perceptron on the Bloch sphere
+// Weights are QV nodes at crust level
+// Forward pass descends through layers (crust→mantle→core)
+function QNeuron(ni,nl,layer){
+  var s=sqrt(2/ni),w=[],i;
+  for(i=0;i<ni;i++){
+    var theta=rng()*PI,phi=rng()*PI2;
+    w[i]=new QV((rng()*2-1)*s,theta,phi,[],'w',layer||'crust');
+  }
+  var b=new QV(0,PI/2,0,[],'b',layer||'crust');
+  return{
+    f:function(x){
+      var a=b,j;
+      for(j=0;j<ni;j++)a=qAdd(a,qMul(w[j],x[j]));
+      return nl!==false?qTanh(a):a;
+    },
+    w:w,b:b,
+    ps:function(){return w.concat(b)},
+    fidelity:function(){var f=1;for(var j=0;j<w.length;j++)f*=w[j].fidelity;return f*b.fidelity}
+  };
+}
+
+// ⊞ Quantum Layer — neurons at a specific earth depth
+function QLayer(ni,no,nl,layer){
+  var ns=[],i;
+  for(i=0;i<no;i++)ns[i]=QNeuron(ni,nl,layer);
+  return{
+    f:function(x){var o=[],j;for(j=0;j<no;j++)o[j]=ns[j].f(x);return o},
+    ps:function(){var p=[],j;for(j=0;j<no;j++)p=p.concat(ns[j].ps());return p},
+    fidelity:function(){var f=1;for(var j=0;j<no;j++)f*=ns[j].fidelity();return pow(f,1/no)},
+    layer:layer,ns:ns
+  };
+}
+
+// ⊞ Quantum MLP — layers mapped to earth strata
+// Layer 0 = crust (input), Layer 1 = mantle, Layer 2 = outer core, final = inner core
+function QMLP(sz){
+  var ls=[],i,nLayers=sz.length-1;
+  for(i=0;i<nLayers;i++){
+    var earthLayer=LAYER_ORDER[min(3,Math.floor(i/(nLayers-1)*3.99))];
+    ls[i]=QLayer(sz[i],sz[i+1],i<nLayers-1,earthLayer);
+  }
+  return{
+    f:function(x){
+      var i;
+      for(i=0;i<ls.length;i++){var o=ls[i].f(x);x=o.length===1?o:o}
+      return x.length===1?x[0]:x;
+    },
+    ps:function(){var p=[],i;for(i=0;i<ls.length;i++)p=p.concat(ls[i].ps());return p},
+    zg:function(){var p=this.ps(),i;for(i=0;i<p.length;i++)p[i].g=0},
+    ls:ls,
+    fidelity:function(){var f=1;for(var i=0;i<ls.length;i++)f*=ls[i].fidelity();return f},
+    layerMap:function(){return ls.map(function(l,i){return{idx:i,layer:l.layer,neurons:l.ns.length,fidelity:l.fidelity()}})},
+    observe:function(x){
+      var out=this.f(x);
+      return out.observe?out.observe():{prob:out.d,fidelity:1};
+    }
+  };
+}
+
+// ○ Train with quantum-aware loss, waypoint logging, fidelity tracking
+function qTrain(m,X,y,ep,lr,log){
+  var t0=performance.now(),totalWaypoints=0,totalFidelity=0,totalGateErr=0;
+  for(var e=0;e<ep;e++){
+    var tl=new QV(0),cor=0,epFidelity=0,epWP=0,epErr=0;
+    for(var i=0;i<X.length;i++){
+      var pr=m.f(X[i].map(function(v){return new QV(v)}));
+      tl=qAdd(tl,qRelu(qAdd(qMul(pr,-y[i]),new QV(1))));
+      if((pr.d>0)===(y[i]>0))cor++;
+      epFidelity+=pr.fidelity;
+      epErr+=pr.gateErr;
+    }
+    tl=qMul(tl,new QV(1/X.length));
+    m.zg();
+    var bwInfo=qBackward(tl);
+    epWP+=bwInfo.waypoints.length;
+    totalWaypoints+=epWP;
+    var clr=lr*(1-e/ep*.9);
+    var ps=m.ps();
+    for(var j=0;j<ps.length;j++)ps[j].d-=clr*ps[j].g;
+    var avgFid=(epFidelity/X.length);
+    totalFidelity+=avgFid;
+    totalGateErr+=epErr/X.length;
+    if(log&&(e%5===0||e===ep-1))log(e,tl.d,cor/X.length,clr,avgFid,bwInfo.waypoints.length,bwInfo.nodes);
+  }
+  return{ms:performance.now()-t0,params:ps.length,avgFidelity:totalFidelity/ep,totalWaypoints:totalWaypoints,avgGateErr:totalGateErr/ep};
+}
+
+// ○ Datasets
+function gXOR(n){n=n||100;var X=[],y=[];for(var i=0;i<n;i++){var a=rng()>.5?1:0,b=rng()>.5?1:0;X.push([a*2-1,b*2-1]);y.push((a^b)?1:-1)}return[X,y]}
+function gMoon(n){n=n||200;var X=[],y=[];for(var i=0;i<n;i++){var t=rng()*PI;if(i<n/2){X.push([cos(t)+rng()*.3,sin(t)+rng()*.3]);y.push(1)}else{X.push([1-cos(t)+rng()*.3,1-sin(t)-.5+rng()*.3]);y.push(-1)}}return[X,y]}
+function gSpiral(n){n=n||200;var X=[],y=[];for(var i=0;i<n;i++){var r=i/n*5,t=1.75*i/n*PI2;if(i<n/2){X.push([r*cos(t)+rng()*.2,r*sin(t)+rng()*.2]);y.push(1)}else{X.push([r*cos(t+PI)+rng()*.2,r*sin(t+PI)+rng()*.2]);y.push(-1)}}return[X,y]}
+
+// ═══════════════════════════════════════════════════════════════
+// TOPO TERRAIN: the gate error landscape IS the computation surface.
+// The AI agent travels along paths where gate fidelity > threshold.
+// Ballistic waveform from observer detects flip/flow on surface.
+// ═══════════════════════════════════════════════════════════════
+
+// ⊞ Dispersion relation: ω(k) = √(Δ² + 4J²sin²(ka/2))
+// Δ = gate gap (error rate), J = coupling strength, a = lattice spacing
+// This defines how fast information propagates through the topo surface
+function dispersion(k,gateGap,coupling){
+  coupling=coupling||1;
+  return sqrt(gateGap*gateGap+4*coupling*coupling*pow(sin(k/2),2));
+}
+
+// ⊞ Ballistic waveform packet — Gaussian envelope * plane wave
+// ψ(x,t) = exp(-(x-x₀-vg·t)²/4σ²) · exp(i(k₀x - ω₀t))
+// vg = group velocity = dω/dk — speed of the "information bullet"
+function ballisticPacket(x,t,x0,k0,sigma,gateGap){
+  var omega=dispersion(k0,gateGap);
+  var domdk=4*pow(sin(k0/2),2)>0?cos(k0/2)*sin(k0/2)*4/(2*omega):0;
+  var vg=domdk;
+  var env=Math.exp(-pow(x-x0-vg*t,2)/(4*sigma*sigma));
+  var phase=k0*x-omega*t;
+  return{re:env*cos(phase),im:env*sin(phase),prob:env*env,vg:vg,omega:omega};
+}
+
+// ⊞ Topo grid — the surface the AI walks on
+// Each cell has: elevation (1-error), gradient field, and gate type
+var TOPO_GRID=null,TOPO_SIZE=32;
+
+function buildTopoGrid(){
+  var G=TOPO_SIZE,grid=[];
+  for(var r=0;r<G;r++){
+    grid[r]=[];
+    var layerIdx=min(3,Math.floor(r/(G-1)*3.99));
+    var ly=LAYERS[LAYER_ORDER[layerIdx]];
+    for(var c=0;c<G;c++){
+      var u=c/(G-1),v=r/(G-1);
+      var baseErr=ly.gateErr;
+      var noise=sin(u*12+v*8)*0.003+sin(u*5-v*13)*0.002+cos(u*20+v*3)*0.001;
+      var err=max(0.0001,baseErr+noise);
+      var elev=1-err*40;
+      grid[r][c]={
+        err:err,elev:elev,layer:LAYER_ORDER[layerIdx],
+        gate:['Ry','Rz','H','X','SWAP'][Math.floor(rng()*5)],
+        visited:0,pathCost:Infinity,from:null
+      };
+    }
+  }
+  TOPO_GRID=grid;
+  return grid;
+}
+
+// ○ Pathfinding on topo: find lowest gate-error route from crust to core
+// Dijkstra on the error landscape — the AI finds the "error-free" corridor
+function findPath(startC,endC){
+  if(!TOPO_GRID)buildTopoGrid();
+  var G=TOPO_SIZE,grid=TOPO_GRID;
+  // Reset
+  for(var r=0;r<G;r++)for(var c=0;c<G;c++){grid[r][c].pathCost=Infinity;grid[r][c].from=null;grid[r][c].visited=0}
+  grid[0][startC].pathCost=0;
+  var pq=[{r:0,c:startC,cost:0}];
+  while(pq.length){
+    pq.sort(function(a,b){return a.cost-b.cost});
+    var cur=pq.shift();
+    if(cur.r===G-1&&cur.c===endC)break;
+    if(grid[cur.r][cur.c].visited)continue;
+    grid[cur.r][cur.c].visited=1;
+    var dirs=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+    for(var d=0;d<dirs.length;d++){
+      var nr=cur.r+dirs[d][0],nc=cur.c+dirs[d][1];
+      if(nr<0||nr>=G||nc<0||nc>=G)continue;
+      var moveCost=grid[nr][nc].err*100+(abs(dirs[d][0])+abs(dirs[d][1])>1?1.414:1);
+      var newCost=cur.cost+moveCost;
+      if(newCost<grid[nr][nc].pathCost){
+        grid[nr][nc].pathCost=newCost;
+        grid[nr][nc].from={r:cur.r,c:cur.c};
+        pq.push({r:nr,c:nc,cost:newCost});
+      }
+    }
+  }
+  // Reconstruct path
+  var path=[],cr=G-1,cc=endC;
+  while(grid[cr][cc].from){
+    path.unshift({r:cr,c:cc,cell:grid[cr][cc]});
+    var prev=grid[cr][cc].from;cr=prev.r;cc=prev.c;
+  }
+  path.unshift({r:0,c:startC,cell:grid[0][startC]});
+  return path;
+}
+
+// ○ Ballistic sweep: fire wavepacket across the topo surface
+// Observer at crust, target at inner core
+// Detects where the waveform scatters (high error regions)
+function ballisticSweep(nProbes){
+  nProbes=nProbes||16;
+  if(!TOPO_GRID)buildTopoGrid();
+  var G=TOPO_SIZE,results=[];
+  for(var p=0;p<nProbes;p++){
+    var col=Math.floor(rng()*G);
+    var probeData=[];
+    for(var r=0;r<G;r++){
+      var cell=TOPO_GRID[r][col];
+      var t=r/(G-1);
+      var pkt=ballisticPacket(r/G,t*10,0,PI*2,0.2,cell.err);
+      probeData.push({r:r,prob:pkt.prob,vg:pkt.vg,omega:pkt.omega,err:cell.err,layer:cell.layer,gate:cell.gate});
+    }
+    var maxScatter=probeData.reduce(function(mx,d){return d.err>mx.err?d:mx},probeData[0]);
+    results.push({col:col,scatter:maxScatter,penetration:probeData.filter(function(d){return d.prob>0.1}).length/G,probeData:probeData});
+  }
+  return results;
+}
+
+// ○ Refinement cascade: run value through layers, collecting waypoint data
+// at each earth boundary. Input at crust, output at core.
+function refinementCascade(x0,x1){
+  if(!curModel)return null;
+  var checkpoints=[];
+  var inputs=[new QV(x0,undefined,undefined,[],'','crust'),new QV(x1,undefined,undefined,[],'','crust')];
+  var x=inputs;
+  for(var i=0;i<curModel.ls.length;i++){
+    var out=curModel.ls[i].f(x);
+    var layerFid=curModel.ls[i].fidelity();
+    var blochPts=out.map(function(v){return v.bloch()});
+    checkpoints.push({
+      layerIdx:i,layer:curModel.ls[i].layer,
+      fidelity:layerFid,
+      values:out.map(function(v){return v.d}),
+      bloch:blochPts,
+      gateOps:out.map(function(v){return v._o})
+    });
+    x=out;
+  }
+  return checkpoints;
+}
+
+// ▶ REPL
+var curArch=[2,8,8,1],curModel=null,trainHistory=[];
+
+function exec(cmd){
+  cmd=cmd.trim();if(!cmd)return;
+  wc('μQ❯ '+cmd,'m');
+  var parts=cmd.split(/\s+/),c=parts[0].toLowerCase();
+
+  if(c==='help'){
+    wc('\n═══ μQ — quantum autograd on topology ═══','m');
+    wc('values live on the Bloch sphere. ops are gates. backward is ballistic.','d');
+    wc('earth layers: crust→mantle→outer core→inner core = refinement depth.','d');
+    wc('','');
+    var cs=[['train [ds] [ep]','train on topo (xor|moon|spiral)'],['arch [s]','set architecture (2,8,8,1)'],['observe','observe Bloch state of predictions'],['layers','earth layer mapping + fidelity'],['topo','render gate error topology terrain'],['sweep [n]','ballistic waveform across surface'],['path [from] [to]','find lowest-error path crust→core'],['cascade [x0] [x1]','refinement cascade with waypoints'],['qstate','full quantum state dump'],['waypoints','waypoint injection/offload log'],['fidelity','cumulative gate fidelity report'],['clear','clear']];
+    for(var i=0;i<cs.length;i++)wc('  '+cs[i][0].toString().padEnd(18)+cs[i][1],'d');
+
+  } else if(c==='train'){
+    var ds=parts[1]||'xor',ep=parseInt(parts[2])||40;
+    var gen={xor:gXOR,moon:gMoon,spiral:gSpiral}[ds]||gXOR;
+    var data=gen(200);
+    curModel=QMLP(curArch);
+    wc('\n═══ TRAIN '+ds.toUpperCase()+' on TOPOLOGY ═══','g');
+    wc('arch: '+curArch.join('→')+' · params: '+curModel.ps().length,'c');
+    wc('layer map:','d');
+    curModel.layerMap().forEach(function(l){
+      wc('  L'+l.idx+' → '+LAYERS[l.layer].name.padEnd(12)+' ('+l.neurons+'n, err:'+LAYERS[l.layer].gateErr+', '+LAYERS[l.layer].temp+'K)','d');
+    });
+    wc('','');
+    trainHistory=[];
+    var res=qTrain(curModel,data[0],data[1],ep,0.05,function(e,loss,acc,lr,fid,wp,nodes){
+      var fidStr=(fid*100).toFixed(2)+'%';
+      wc('ep '+pad(e,3)+' │ loss '+loss.toFixed(4)+' │ acc '+(acc*100).toFixed(1)+'% │ fid '+fidStr+' │ wp '+wp+' │ nodes '+nodes);
+      trainHistory.push({e:e,loss:loss,acc:acc,fid:fid,wp:wp});
+    });
+    wc('','');
+    wc('done in '+res.ms.toFixed(1)+'ms · avg fidelity '+(res.avgFidelity*100).toFixed(2)+'%','g');
+    wc('waypoints traversed: '+res.totalWaypoints+' · avg gate err: '+(res.avgGateErr*1000).toFixed(3)+'‰','c');
+    document.getElementById('s2').textContent='·fid:'+(res.avgFidelity*100).toFixed(1)+'%';
+    document.getElementById('s3').textContent='·err:'+(res.avgGateErr*1000).toFixed(1)+'‰';
+    renderTopo();
+
+  } else if(c==='arch'){
+    var sz=parts.slice(1).join(',').split(',').map(Number).filter(function(n){return n>0});
+    if(sz.length>=2){curArch=sz;wc('arch: '+sz.join('→'),'c')}else wc('usage: arch 2,16,16,1','y');
+
+  } else if(c==='observe'){
+    if(!curModel){wc('no model — run train first','r');return}
+    wc('\n═══ BLOCH OBSERVATION ═══','m');
+    var testPts=[[1,-1],[-1,1],[1,1],[-1,-1]];
+    testPts.forEach(function(pt){
+      var out=curModel.f(pt.map(function(v){return new QV(v)}));
+      var obs=out.observe();
+      var b=out.bloch();
+      wc('input ['+pt.join(',')+']:','c');
+      wc('  scalar: '+out.d.toFixed(4)+' → P(|0⟩)='+obs.prob.toFixed(4)+' → class:'+(out.d>0?'+1':'-1'),'d');
+      wc('  Bloch: θ='+(out.theta*180/PI).toFixed(1)+'° φ='+(out.phi*180/PI).toFixed(1)+'° → ('+b.x.toFixed(3)+','+b.y.toFixed(3)+','+b.z.toFixed(3)+')','d');
+      wc('  fidelity: '+(obs.fidelity*100).toFixed(3)+'% · layer: '+obs.layer+' · phase: '+(obs.phase*180/PI).toFixed(1)+'°','d');
+    });
+
+  } else if(c==='layers'){
+    if(!curModel){wc('no model — run train first','r');return}
+    wc('\n═══ EARTH LAYER MAP ═══','m');
+    wc('┌─────┬──────────────┬──────┬─────────┬────────┬─────────┐','d');
+    wc('│ Idx │ Layer        │ Neur │ Err/gate│ Temp K │ Fidelity│','c');
+    wc('├─────┼──────────────┼──────┼─────────┼────────┼─────────┤','d');
+    curModel.layerMap().forEach(function(l){
+      var ly=LAYERS[l.layer];
+      wc('│ L'+l.idx+'  │ '+ly.name.padEnd(12)+' │ '+pad(l.neurons,4)+' │ '+ly.gateErr.toFixed(3).padStart(7)+' │ '+pad(ly.temp,6)+' │ '+(l.fidelity*100).toFixed(2).padStart(6)+'% │');
+    });
+    wc('└─────┴──────────────┴──────┴─────────┴────────┴─────────┘','d');
+    wc('total fidelity: '+(curModel.fidelity()*100).toFixed(4)+'%','g');
+    document.getElementById('s1').textContent='·layers:'+curModel.ls.length;
+    document.getElementById('s4').textContent='·depth:'+curModel.ls[curModel.ls.length-1].layer;
+
+  } else if(c==='topo'){
+    renderTopo();
+    wc('topology rendered (gate error landscape)','g');
+
+  } else if(c==='sweep'){
+    var nProbes=parseInt(parts[1])||16;
+    wc('\n═══ BALLISTIC SWEEP ═══','m');
+    wc('firing '+nProbes+' wavepackets from observer at crust...','d');
+    wc('ψ(x,t) = exp(-(x-x₀-vg·t)²/4σ²) · exp(i(k₀x - ω₀t))','d');
+    wc('dispersion: ω(k) = √(Δ² + 4J²sin²(ka/2))','d');
+    wc('','');
+    var results=ballisticSweep(nProbes);
+    wc('┌─────┬──────────┬───────┬──────┬────────┬──────────────────────────┐','d');
+    wc('│ Col │ Penetr.  │ vg    │ ω    │ Err    │ Scatter Layer/Gate       │','c');
+    wc('├─────┼──────────┼───────┼──────┼────────┼──────────────────────────┤','d');
+    results.forEach(function(r){
+      var cls=r.penetration>0.7?'g':r.penetration>0.4?'y':'r';
+      var sc=r.scatter;
+      var last=r.probeData[r.probeData.length-1];
+      wc('│ '+pad(r.col,3)+' │ '+(r.penetration*100).toFixed(1).padStart(6)+'%  │ '+last.vg.toFixed(3)+' │ '+last.omega.toFixed(2).padStart(4)+' │ '+(sc.err*1000).toFixed(2).padStart(5)+'‰ │ '+sc.layer.padEnd(6)+' '+sc.gate.padEnd(4)+' r='+sc.r+' '.padEnd(7)+'│',cls);
+    });
+    wc('└─────┴──────────┴───────┴──────┴────────┴──────────────────────────┘','d');
+    var avgPen=results.reduce(function(s,r){return s+r.penetration},0)/nProbes;
+    wc('avg penetration: '+(avgPen*100).toFixed(1)+'% (fraction of wavepacket reaching inner core)','g');
+    wc('deep penetration = low gate error corridor found','d');
+    renderTopo();
+
+  } else if(c==='path'){
+    var from=parseInt(parts[1])||Math.floor(TOPO_SIZE/2);
+    var to=parseInt(parts[2])||from;
+    from=max(0,min(TOPO_SIZE-1,from));to=max(0,min(TOPO_SIZE-1,to));
+    wc('\n═══ PATHFINDING: CRUST → INNER CORE ═══','m');
+    wc('Dijkstra on gate error landscape (col '+from+' → col '+to+')','d');
+    buildTopoGrid();
+    var path=findPath(from,to);
+    var totalErr=0,prevLayer='',boundaries=[];
+    wc('','');
+    path.forEach(function(p,i){
+      totalErr+=p.cell.err;
+      if(p.cell.layer!==prevLayer){
+        boundaries.push({step:i,layer:p.cell.layer});
+        wc('  ◆ WAYPOINT: entering '+LAYERS[p.cell.layer].name+' (step '+i+', err '+(p.cell.err*1000).toFixed(2)+'‰, gate '+p.cell.gate+')','o');
+        prevLayer=p.cell.layer;
+      }
+    });
+    wc('','');
+    wc('path length: '+path.length+' steps','c');
+    wc('total error: '+(totalErr*1000).toFixed(2)+'‰ · avg error/step: '+(totalErr/path.length*1000).toFixed(3)+'‰','c');
+    wc('layer boundaries crossed: '+boundaries.length+' (injection/offload waypoints)','g');
+    wc('cumulative fidelity: '+((1-totalErr/path.length)**path.length*100).toFixed(4)+'%','g');
+    // Render path on topo
+    renderTopo(path);
+
+  } else if(c==='cascade'){
+    if(!curModel){wc('no model — run train first','r');return}
+    var x0=parseFloat(parts[1])||1,x1=parseFloat(parts[2])||-1;
+    wc('\n═══ REFINEMENT CASCADE ═══','m');
+    wc('input ('+x0+', '+x1+') descending through earth layers...','d');
+    wc('each layer refines features; waypoints capture Bloch state.','d');
+    wc('','');
+    var cpts=refinementCascade(x0,x1);
+    if(!cpts){wc('cascade failed','r');return}
+    cpts.forEach(function(cp){
+      var ly=LAYERS[cp.layer];
+      wc('╔══ Layer '+cp.layerIdx+': '+ly.name+' ('+ly.temp+'K, err '+ly.gateErr+') ══╗','o');
+      wc('  fidelity: '+(cp.fidelity*100).toFixed(3)+'%');
+      wc('  values: ['+cp.values.map(function(v){return v.toFixed(4)}).join(', ')+']');
+      wc('  gates: ['+cp.gateOps.join(', ')+']');
+      cp.bloch.forEach(function(b,j){
+        wc('  qubit '+j+': ('+b.x.toFixed(3)+', '+b.y.toFixed(3)+', '+b.z.toFixed(3)+') → |ψ⟩','d');
+      });
+      wc('  ◆ waypoint: checkpoint '+cp.values.length+' qubits at '+ly.name+' boundary','g');
+      wc('');
+    });
+    var finalObs=curModel.f([new QV(x0),new QV(x1)]);
+    wc('  final output: '+finalObs.d.toFixed(6)+' → class '+(finalObs.d>0?'+1':'-1'),'c');
+    wc('  total fidelity: '+(finalObs.fidelity*100).toFixed(4)+'%','g');
+
+  } else if(c==='qstate'){
+    if(!curModel){wc('no model — run train first','r');return}
+    wc('\n═══ FULL QUANTUM STATE ═══','m');
+    var ps=curModel.ps();
+    var layerCounts={};
+    ps.forEach(function(p){layerCounts[p.layer]=(layerCounts[p.layer]||0)+1});
+    wc('total qubits (parameters): '+ps.length);
+    LAYER_ORDER.forEach(function(l){
+      if(layerCounts[l])wc('  '+LAYERS[l].name+': '+layerCounts[l]+' params','d');
+    });
+    wc('','');
+    // Entanglement estimate: correlation between adjacent params
+    var entanglement=0;
+    for(var i=1;i<ps.length;i++){
+      var dp=sin(ps[i].theta)*cos(ps[i].phi)*sin(ps[i-1].theta)*cos(ps[i-1].phi)+sin(ps[i].theta)*sin(ps[i].phi)*sin(ps[i-1].theta)*sin(ps[i-1].phi)+cos(ps[i].theta)*cos(ps[i-1].theta);
+      entanglement+=abs(dp);
+    }
+    entanglement/=(ps.length-1);
+    wc('entanglement estimate (avg Bloch dot product): '+entanglement.toFixed(4));
+    wc('(1.0 = fully aligned, 0.0 = orthogonal, indicates coupling)','d');
+    // Von Neumann entropy estimate
+    var totalTheta=0;
+    ps.forEach(function(p){totalTheta+=p.theta});
+    var avgTheta=totalTheta/ps.length;
+    var p0=cos(avgTheta/2)**2,p1=sin(avgTheta/2)**2;
+    var entropy=-(p0>0?p0*log(p0)/log(2):0)-(p1>0?p1*log(p1)/log(2):0);
+    wc('von Neumann entropy (avg): '+entropy.toFixed(4)+' bits','c');
+    wc('(0 = pure state, 1 = max mixed — higher = more information capacity)','d');
+
+  } else if(c==='waypoints'){
+    if(!trainHistory.length){wc('no training history — run train first','r');return}
+    wc('\n═══ WAYPOINT LOG ═══','m');
+    wc('activation boundaries crossed during training:','d');
+    var totalWP=0;
+    trainHistory.forEach(function(h){
+      wc('  ep '+pad(h.e,3)+' → '+h.wp+' waypoints · fidelity '+(h.fid*100).toFixed(2)+'% · loss '+h.loss.toFixed(4));
+      totalWP+=h.wp;
+    });
+    wc('total waypoints: '+totalWP+' (layer transitions where state was checkpointed)','g');
+
+  } else if(c==='fidelity'){
+    if(!curModel){wc('no model — run train first','r');return}
+    wc('\n═══ FIDELITY REPORT ═══','m');
+    var ps=curModel.ps();
+    var fidBuckets={'>99%':0,'>95%':0,'>90%':0,'>80%':0,'<80%':0};
+    ps.forEach(function(p){
+      var f=p.fidelity;
+      if(f>0.99)fidBuckets['>99%']++;
+      else if(f>0.95)fidBuckets['>95%']++;
+      else if(f>0.90)fidBuckets['>90%']++;
+      else if(f>0.80)fidBuckets['>80%']++;
+      else fidBuckets['<80%']++;
+    });
+    Object.keys(fidBuckets).forEach(function(k){
+      var pct=(fidBuckets[k]/ps.length*100).toFixed(1);
+      var bar='█'.repeat(Math.round(fidBuckets[k]/ps.length*30));
+      wc('  '+k.padEnd(5)+' '+pad(fidBuckets[k],4)+' ('+pct.padStart(5)+'%) '+bar);
+    });
+    wc('cumulative: '+(curModel.fidelity()*100).toFixed(4)+'%','g');
+
+  } else if(c==='clear'){O.innerHTML='';boot()}
+  else wc('? '+c+' (try help)','r');
+}
+
+// ○ Topology renderer — gate error landscape as terrain
+function renderTopo(path){
+  var dpr=devicePixelRatio||1;
+  var W=TC.clientWidth,H=TC.clientHeight;
+  TC.width=W*dpr;TC.height=H*dpr;
+  TX.scale(dpr,dpr);
+  TX.fillStyle='#010409';TX.fillRect(0,0,W,H);
+
+  var G=48,mW=W-20,mH=H-40,ox=10,oy=20;
+
+  // Build error terrain from model or default
+  for(var r=0;r<G;r++){
+    for(var c=0;c<G;c++){
+      var u=c/(G-1),v=r/(G-1);
+      var layerIdx=min(3,Math.floor(v*4));
+      var ly=LAYERS[LAYER_ORDER[layerIdx]];
+      var baseErr=ly.gateErr;
+      var noise=sin(u*12+v*8)*0.003+sin(u*5-v*13)*0.002+cos(u*20+v*3)*0.001;
+      var err=max(0,baseErr+noise);
+      var h=1-err*50;
+
+      var x=ox+u*mW,y=oy+v*mH;
+      var pw=mW/G+1,ph=mH/G+1;
+
+      // Color by earth layer + error magnitude
+      var lr=parseInt(ly.color.slice(1,3),16)/255;
+      var lg=parseInt(ly.color.slice(3,5),16)/255;
+      var lb=parseInt(ly.color.slice(5,7),16)/255;
+      var bright=0.3+h*0.7;
+      TX.fillStyle='rgb('+Math.round(lr*bright*255)+','+Math.round(lg*bright*255)+','+Math.round(lb*bright*255)+')';
+      TX.fillRect(x,y,pw,ph);
+    }
+  }
+
+  // Layer boundaries (waypoints)
+  TX.strokeStyle='rgba(255,255,255,0.3)';TX.lineWidth=1;TX.setLineDash([3,3]);
+  for(var i=1;i<4;i++){
+    var y=oy+i/4*mH;
+    TX.beginPath();TX.moveTo(ox,y);TX.lineTo(ox+mW,y);TX.stroke();
+    TX.fillStyle='#c9d1d9';TX.font='9px monospace';
+    TX.fillText(LAYERS[LAYER_ORDER[i]].name+' ↓',ox+2,y-3);
+  }
+  TX.setLineDash([]);
+
+  // Labels
+  TX.fillStyle='#a78bfa';TX.font='10px monospace';
+  TX.fillText('GATE ERROR TOPOLOGY',ox,12);
+  TX.fillStyle='#484f58';TX.font='9px monospace';
+  TX.fillText('Crust (low err)',ox+mW-80,oy+15);
+  TX.fillText('Inner Core (high err)',ox+mW-110,oy+mH-5);
+
+  // If model exists, overlay fidelity heatmap
+  if(curModel){
+    TX.globalAlpha=0.4;
+    var ps=curModel.ps();
+    ps.forEach(function(p,i){
+      var u=(i%12)/12,v=Math.floor(i/12)/(ps.length/12);
+      var x=ox+u*mW,y=oy+v*mH;
+      var f=p.fidelity;
+      var cr=f>0.95?0:f>0.85?255:255;
+      var cg=f>0.95?200:f>0.85?180:60;
+      var cb=f>0.95?80:(f>0.85?0:0);
+      TX.fillStyle='rgb('+cr+','+cg+','+cb+')';
+      TX.beginPath();TX.arc(x,y,3,0,PI2);TX.fill();
+    });
+    TX.globalAlpha=1;
+
+    // Ballistic waveform path
+    TX.strokeStyle='rgba(167,139,250,0.6)';TX.lineWidth=1.5;
+    TX.beginPath();
+    var nPts=40;
+    for(var i=0;i<nPts;i++){
+      var t=i/(nPts-1);
+      var x=ox+t*mW;
+      var waveY=oy+t*mH+sin(t*PI*6+performance.now()/500)*15;
+      if(i===0)TX.moveTo(x,waveY);else TX.lineTo(x,waveY);
+    }
+    TX.stroke();
+    TX.fillStyle='#a78bfa';TX.font='8px monospace';
+    TX.fillText('← ballistic waveform →',ox+mW/2-50,oy+mH+12);
+  }
+
+  // Draw path if provided
+  if(path&&path.length>1){
+    TX.strokeStyle='#3fb950';TX.lineWidth=2;TX.globalAlpha=0.8;
+    TX.beginPath();
+    path.forEach(function(p,i){
+      var x=ox+p.c/(TOPO_SIZE-1)*mW;
+      var y=oy+p.r/(TOPO_SIZE-1)*mH;
+      if(i===0)TX.moveTo(x,y);else TX.lineTo(x,y);
+    });
+    TX.stroke();
+    // Waypoint markers
+    TX.globalAlpha=1;
+    var prevL='';
+    path.forEach(function(p){
+      if(p.cell.layer!==prevL){
+        prevL=p.cell.layer;
+        var x=ox+p.c/(TOPO_SIZE-1)*mW;
+        var y=oy+p.r/(TOPO_SIZE-1)*mH;
+        TX.fillStyle='#f0883e';TX.beginPath();TX.arc(x,y,4,0,PI2);TX.fill();
+        TX.fillStyle='#fff';TX.font='7px monospace';TX.fillText('◆',x-3,y+2);
+      }
+    });
+    TX.fillStyle='#3fb950';TX.font='8px monospace';
+    TX.fillText('path: '+path.length+' steps',ox+2,oy+mH+12);
+  }
+}
+
+function boot(){
+  var ms=(performance.now()-T).toFixed(1);
+  document.getElementById('s0').textContent='boot:'+ms+'ms';
+  wc('μQ — quantum autograd on topology — boot '+ms+'ms','m');
+  wc('values = Bloch sphere nodes · ops = quantum gates · backward = ballistic waveform','d');
+  wc('layers: Crust(0.1%) → Mantle(0.3%) → Outer Core(0.8%) → Inner Core(1.5%) gate error','d');
+  wc('waypoints at layer boundaries: injection/offload/checkpoint','d');
+  wc('type help · train · observe · layers · sweep · topo\n','d');
+  renderTopo();
+}
+boot();
+I.addEventListener('keydown',function(ev){if(ev.key==='Enter'){var v=I.value;I.value='';exec(v)}});
+
+// live topo animation
+setInterval(function(){if(curModel)renderTopo()},2000);
+
+// Iron Line
+try{var bc=new BroadcastChannel('iron-line');bc.postMessage({type:'ugrad-quantum-boot',source:'ugrad-quantum',layer:'L0-L3',t:performance.now()});bc.close()}catch(e){}
+})();
+</script>
+<script defer src="quantum-prefixes.js"></script>
+<script defer src="qbit-dac.js"></script>
+<script defer src="qbit-steno.js"></script>
+<script>
+// ===== QUANTUM PREFIX LIVE SYNC =====
+if(window.QuantumPrefixes){var QP=window.QuantumPrefixes;QP.broadcastState('ugrad-quantum',{coverage:0,totalLines:0,role:'ugrad-quantum',layer:'L0-L3'});QP.requestStateSync()}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body></html>

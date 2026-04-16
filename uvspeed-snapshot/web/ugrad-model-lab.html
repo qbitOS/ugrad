@@ -1,0 +1,1455 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!-- ugrad-model-lab.html v0.2.0 — μgrad shell (go-ugrad parity): quantum-theme + ugb-surface + gu-header -->
+<!-- Copyright (c) 2026 qbitOS / ugrad.ai. All rights reserved. -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Source: https://github.com/qbitOS/uvspeed -->
+<!-- Provenance: ai-created-control-envelope -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1419" id="uml-meta-theme">
+  <title>Model lab — μgrad · modellab.ugrad.ai</title>
+  <link rel="stylesheet" href="quantum-theme.css">
+  <link rel="stylesheet" href="ugrad-go-board-theme.css">
+  <link rel="stylesheet" href="ugrad-numsy-footer.css">
+  <style>
+    /* Shell aligned with go-ugrad.html / go.ugrad.ai — quantum + ugb tokens */
+    :root { font-family: ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      background: var(--ugb-page);
+      color: var(--qp-fg-primary, #e8edf4);
+    }
+    .gu-header-spacer { flex: 1; min-width: 12px; }
+    .gu-theme-host { flex-shrink: 0; display: flex; align-items: center; line-height: 1; }
+    .uml-main {
+      flex: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 14px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .uml-app {
+      display: grid;
+      gap: 12px;
+      width: 100%;
+    }
+    .uml-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 2px 0 4px;
+    }
+    .uml-head h1 {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--qp-fg-body);
+      letter-spacing: 0.02em;
+      line-height: 1.35;
+    }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid var(--qp-border, #30363d);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font: 600 9px ui-monospace, monospace;
+      color: var(--qp-fg-muted);
+      background: rgba(0, 0, 0, 0.22);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid var(--qp-border, #30363d);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .row { display: grid; gap: 5px; }
+    label {
+      font: 700 11px ui-sans-serif, system-ui, sans-serif;
+      color: var(--qp-fg-muted);
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--qp-border);
+      border-radius: 8px;
+      background: var(--qp-bg-base, #161b22);
+      color: inherit;
+      font-size: 12px;
+      padding: 8px 10px;
+      outline: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    textarea { min-height: 190px; resize: vertical; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    button {
+      font: 600 10px ui-monospace, monospace;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--qp-border);
+      background: transparent;
+      color: var(--qp-fg-primary);
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--ugb-hover-ring, #58a6ff); background: rgba(88, 166, 255, 0.08); }
+    .pane {
+      border: 1px solid var(--qp-border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 10px;
+      min-height: 96px;
+      white-space: pre-wrap;
+      font: 11px ui-monospace, monospace;
+      color: var(--qp-fg-body);
+      overflow: auto;
+    }
+    .status {
+      font: 11px ui-monospace, monospace;
+      color: var(--qp-fg-muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      border-top: 1px dashed var(--qp-border);
+      padding-top: 10px;
+    }
+    .flow {
+      border: 1px solid var(--qp-border);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.18);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .flow-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .flow-title {
+      font: 700 10px ui-monospace, monospace;
+      color: var(--qp-fg-body);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .step-progress {
+      font: 600 10px ui-monospace, monospace;
+      color: var(--qp-fg-muted);
+      border: 1px solid var(--qp-border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .step-card {
+      border: 1px solid var(--qp-border);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    .step-card summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-weight: 700;
+      color: var(--qp-fg-body);
+      font-size: 12px;
+    }
+    .step-card summary::-webkit-details-marker { display: none; }
+    .step-meta {
+      font: 600 9px ui-monospace, monospace;
+      color: var(--qp-fg-muted);
+      border: 1px solid var(--qp-border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+    .step-body {
+      padding: 0 12px 12px;
+      font-size: 13px;
+      color: var(--qp-fg-body);
+      line-height: 1.45;
+    }
+    .step-controls {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--qp-border);
+    }
+    .step-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .step-card.done summary {
+      color: #3fb950;
+      background: rgba(46, 160, 67, 0.12);
+    }
+    .step-card.done .step-meta {
+      color: #3fb950;
+      border-color: rgba(63, 185, 80, 0.45);
+      background: rgba(46, 160, 67, 0.12);
+    }
+    .step-card.current summary {
+      background: rgba(88, 166, 255, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.2);
+    }
+    .race-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      border: 1px dashed var(--qp-border);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .race-grid .small-note {
+      grid-column: 1 / -1;
+    }
+    .small-note {
+      font-size: 11px;
+      color: var(--qp-fg-muted);
+    }
+    .chat-shell {
+      border: 1px solid var(--qp-border);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .chat-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .chat-title {
+      font: 700 10px ui-monospace, monospace;
+      color: var(--qp-fg-body);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .chat-messages {
+      border: 1px solid var(--qp-border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.22);
+      min-height: 120px;
+      max-height: 260px;
+      overflow: auto;
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+    }
+    .chat-msg {
+      border: 1px solid var(--qp-border);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--qp-fg-body);
+    }
+    .chat-msg.user {
+      border-color: rgba(88, 166, 255, 0.45);
+      background: rgba(88, 166, 255, 0.08);
+    }
+    .chat-msg.assistant {
+      border-color: rgba(63, 185, 80, 0.4);
+      background: rgba(46, 160, 67, 0.08);
+    }
+    .ok { color: #3fb950; }
+    .warn { color: #d29922; }
+    .bad { color: #f85149; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    button.gu-primary {
+      background: var(--qp-fg-primary);
+      color: var(--qp-bg-base);
+      border-color: var(--qp-fg-primary);
+    }
+    button.gu-primary:hover {
+      filter: brightness(1.08);
+      background: var(--qp-fg-primary);
+    }
+    [data-theme="light"] .chat-msg.user { background: rgba(9, 105, 218, 0.08); }
+    [data-theme="light"] .step-card.current summary { background: rgba(9, 105, 218, 0.08); }
+    @media (max-width: 960px) {
+      .race-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .race-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-ugrad-game="modellab" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>modellab.ugrad.ai</strong>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark (μgrad stack)"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <span style="font-size:11px;color:var(--qp-fg-muted)">Inference · dataset · report export</span>
+    <span class="gu-header-spacer"></span>
+    <button type="button" onclick="location.href='go-ugrad.html'">go lab</button>
+    <button type="button" onclick="location.href='games-ugrad-hub.html'">μgrad hub</button>
+    <button type="button" class="gu-primary" onclick="location.href='ugrad-pad-lab.html'">μPad lab</button>
+  </div>
+</header>
+<div class="gu-main uml-main">
+  <main class="uml-app">
+    <div class="uml-head">
+      <h1>◇ Model lab — cold flow + race · same chrome as go.ugrad.ai</h1>
+      <div class="chips">
+        <span class="chip">standalone desktop app</span>
+        <span class="chip">real backend inference</span>
+        <span class="chip">dataset + report export</span>
+      </div>
+    </div>
+
+    <section class="chat-shell" id="model-lab-chat">
+      <div class="chat-head">
+        <div class="chat-title">Model Lab Chat Prompt</div>
+        <span class="small-note">asks current provider/model directly</span>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg assistant">Ask a question. I will run it with your active setup and show response + telemetry.</div>
+      </div>
+      <div class="row">
+        <label for="chat-input">Question</label>
+        <input id="chat-input" type="text" placeholder="Ask anything... e.g. summarize quantum-math readiness in 3 bullets">
+      </div>
+      <div class="step-actions">
+        <button id="chat-send" type="button">Ask</button>
+        <button id="chat-clear" type="button">Clear Chat</button>
+      </div>
+    </section>
+
+    <section class="flow" id="guided-flow">
+      <div class="flow-head">
+        <div class="flow-title">Guided Cold Model Flow</div>
+        <div class="step-progress" id="step-progress">step 1 of 6</div>
+      </div>
+
+      <details class="step-card" id="step-setup" open>
+        <summary><span>1) Configure model + provider</span><span class="step-meta" id="meta-setup">pending</span></summary>
+        <div class="step-body">
+          Pick provider, set base URL, and model IDs. Use auto-calibration for your offline-first lane.
+          <div class="step-controls">
+            <div class="row">
+              <label for="provider">Provider</label>
+              <select id="provider">
+                <option value="ollama">Ollama (offline local)</option>
+                <option value="uvmis">uvmis.ugrad.ai (evolving runtime)</option>
+                <option value="mistral">Mistral API (cloud)</option>
+                <option value="simulate">Simulate (offline dry run)</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="setup-profile">Auto-calibration profile</label>
+              <select id="setup-profile">
+                <option value="ollama_offline">Offline Ollama Fast</option>
+                <option value="uvmis_runtime">uvmis Runtime Main</option>
+                <option value="mistral_cloud">Mistral Cloud Parity</option>
+                <option value="mathstral_quantum">Mathstral Quantum Math Eval</option>
+              </select>
+            </div>
+            <div class="step-actions">
+              <button id="auto-calibrate" type="button">Auto Calibrate Setup</button>
+            </div>
+            <div class="row">
+              <label for="base-url">Base URL</label>
+              <input id="base-url" type="text" value="http://127.0.0.1:11434">
+            </div>
+            <div class="row">
+              <label for="model-id">Primary model id</label>
+              <input id="model-id" type="text" value="mistral:latest">
+            </div>
+            <div class="race-grid">
+              <div class="row">
+                <label for="race-model-a">Race model A</label>
+                <select id="race-model-a">
+                  <option value="mistral:latest">mistral:latest</option>
+                  <option value="mistral-small:latest">mistral-small:latest</option>
+                  <option value="devstral">devstral</option>
+                  <option value="codestral">codestral</option>
+                  <option value="mathstral">mathstral</option>
+                  <option value="mixtral">mixtral</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="race-model-b">Race model B</label>
+                <select id="race-model-b">
+                  <option value="devstral">devstral</option>
+                  <option value="mistral:latest">mistral:latest</option>
+                  <option value="mistral-small:latest">mistral-small:latest</option>
+                  <option value="codestral">codestral</option>
+                  <option value="mathstral">mathstral</option>
+                  <option value="mixtral">mixtral</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="race-model-c">Race model C</label>
+                <select id="race-model-c">
+                  <option value="codestral">codestral</option>
+                  <option value="mistral:latest">mistral:latest</option>
+                  <option value="mistral-small:latest">mistral-small:latest</option>
+                  <option value="devstral">devstral</option>
+                  <option value="mathstral">mathstral</option>
+                  <option value="mixtral">mixtral</option>
+                </select>
+              </div>
+              <div class="row">
+                <label for="race-model-d">Race model D</label>
+                <select id="race-model-d">
+                  <option value="mathstral">mathstral</option>
+                  <option value="mistral:latest">mistral:latest</option>
+                  <option value="mistral-small:latest">mistral-small:latest</option>
+                  <option value="devstral">devstral</option>
+                  <option value="codestral">codestral</option>
+                  <option value="mixtral">mixtral</option>
+                </select>
+              </div>
+              <div class="small-note">Race uses same provider, base URL, prompts, and parameters for fair comparison.</div>
+            </div>
+            <div class="row">
+              <label for="engine-tag">Engine tag</label>
+              <input id="engine-tag" type="text" placeholder="ex: noBLINK-t5-v1">
+            </div>
+            <div class="row">
+              <label for="api-key">API key (optional)</label>
+              <input id="api-key" type="password" placeholder="set for cloud/secure runtime">
+            </div>
+            <div class="row">
+              <label for="temperature">Temperature</label>
+              <input id="temperature" type="number" step="0.1" min="0" max="2" value="0.2">
+            </div>
+            <div class="row">
+              <label for="max-tokens">Max tokens</label>
+              <input id="max-tokens" type="number" min="32" max="32768" value="512">
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="step-card" id="step-questions">
+        <summary><span>2) Add simple question set</span><span class="step-meta" id="meta-questions">pending</span></summary>
+        <div class="step-body">
+          Use one question per line in Prompt suite (10-20 prompts works best for races).
+          <div class="step-controls">
+            <div class="row">
+              <label for="prompt-pack">Prompt pack</label>
+              <select id="prompt-pack">
+                <option value="custom">Custom</option>
+                <option value="cold_baseline">Cold Baseline 10</option>
+                <option value="ops_calibration">Ops Calibration 12</option>
+                <option value="agent_policy">Agent Policy + Action 10</option>
+                <option value="quantum_math">Quantum Math Probe 10</option>
+              </select>
+            </div>
+            <div class="step-actions">
+              <button id="load-pack" type="button">Load Prompt Pack</button>
+            </div>
+            <div class="row">
+              <label for="prompt-suite">Prompt suite (one prompt per line)</label>
+              <textarea id="prompt-suite" placeholder="benchmark the current stack&#10;summarize bottlenecks in 4 bullets&#10;generate a corrective plan"></textarea>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="step-card" id="step-run">
+        <summary><span>3) Run suite (cold pass)</span><span class="step-meta" id="meta-run">pending</span></summary>
+        <div class="step-body">
+          Run one cold pass, then race A/B/C/D for direct comparison.
+          <div class="step-controls">
+            <div class="row">
+              <label for="tweak-prefix">Minor tweak: prompt prefix</label>
+              <input id="tweak-prefix" type="text" placeholder="optional short instruction prefix">
+            </div>
+            <div class="row">
+              <label for="tweak-suffix">Minor tweak: prompt suffix</label>
+              <input id="tweak-suffix" type="text" placeholder="optional constraint suffix">
+            </div>
+            <div class="row">
+              <label for="tweak-temp-delta">Minor tweak: temperature delta</label>
+              <input id="tweak-temp-delta" type="number" step="0.1" min="-1" max="1" value="0">
+            </div>
+            <div class="row">
+              <label for="tweak-max-delta">Minor tweak: max tokens delta</label>
+              <input id="tweak-max-delta" type="number" step="16" min="-2048" max="2048" value="0">
+            </div>
+            <div class="row">
+              <label for="tweak-note">Iteration note</label>
+              <input id="tweak-note" type="text" placeholder="ex: shorter answers + strict JSON">
+            </div>
+            <div class="step-actions">
+              <button id="tweak-bump" type="button">Bump Iteration</button>
+              <span class="small-note" id="tweak-version">iteration 0</span>
+            </div>
+            <div class="step-actions">
+              <button id="run-suite" type="button">Run Suite</button>
+              <button id="run-race" type="button">Run Race A/B/C/D</button>
+            </div>
+            <div class="pane" id="out">model lab ready</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="step-card" id="step-export-report">
+        <summary><span>4) Export benchmark report</span><span class="step-meta" id="meta-export-report">pending</span></summary>
+        <div class="step-body">
+          Export report JSON to compare model runs (latency, score, throughput).
+          <div class="step-controls">
+            <div class="step-actions">
+              <button id="export-report" type="button">Export Report</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="step-card" id="step-export-dataset">
+        <summary><span>5) Export Q/A dataset</span><span class="step-meta" id="meta-export-dataset">pending</span></summary>
+        <div class="step-body">
+          Export JSONL for fine-tune/eval corpus and replay tests.
+          <div class="step-controls">
+            <div class="step-actions">
+              <button id="export-jsonl" type="button">Export JSONL</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="step-card" id="step-iterate">
+        <summary><span>6) Iterate + save best pair</span><span class="step-meta" id="meta-iterate">pending</span></summary>
+        <div class="step-body">
+          Save best pair, open chat for interactive tests, or reset and rerun.
+          <div class="step-controls">
+            <div class="step-actions">
+              <button id="save-last" type="button">Save Last Pair</button>
+              <button id="open-chat" type="button">Open ugrad chat</button>
+              <button id="reset-data" type="button">Reset Data</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <div class="grid">
+      <aside class="panel">
+        <div class="pane" id="telemetry">telemetry pending...</div>
+        <div class="pane" id="race-board">race leaderboard pending...</div>
+        <div class="row">
+          <label for="race-prompt-index">Race prompt diff index</label>
+          <select id="race-prompt-index">
+            <option value="">run race first</option>
+          </select>
+        </div>
+        <div class="pane" id="race-diff">race prompt diff pending...</div>
+      </aside>
+    </div>
+
+    <div class="status">
+      <span id="dataset-status">dataset rows: 0</span>
+      <span id="report-status">last report: none</span>
+      <span id="health-status" class="mono">provider health: unknown</span>
+    </div>
+  </main>
+  <p class="gu-foot"><code>ugrad-model-lab.html</code> · <a href="go-ugrad.html">go-ugrad</a> · <a href="games-ugrad-hub.html">games hub</a> · <a href="ugrad-r0.html">ugrad-r0</a> · surfaces match <strong>go.ugrad.ai</strong> / μgrad lab chrome</p>
+</div>
+
+  <script src="quantum-prefixes.js"></script>
+  <script src="qbit-dac.js"></script>
+  <script src="qbit-steno.js"></script>
+  <script src="qbit-preflight.js"></script>
+  <script src="history-search-engine.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    // ===== QUANTUM PREFIX LIVE SYNC =====
+    try {
+      var QP = window.QuantumPrefixes;
+      var _ironLine = new BroadcastChannel('iron-line');
+      _ironLine.postMessage({ type: 'ugrad-model-lab-ready', source: 'ugrad-model-lab', ts: Date.now() });
+      _ironLine.close();
+      var _historyBus = new BroadcastChannel('history-search');
+      _historyBus.postMessage({ type: 'ugrad-model-lab-ready', source: 'ugrad-model-lab', ts: Date.now() });
+      _historyBus.close();
+      if (QP && QP.requestStateSync) QP.requestStateSync();
+      if (QP && QP.broadcastState) QP.broadcastState('ugrad-model-lab', { app: 'ugrad-model-lab', ts: Date.now() });
+    } catch (_) {}
+
+    try {
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+    } catch (_) {}
+
+    var LS_DATA = 'ugrad-model-lab-data-v1';
+    var LS_REPORT = 'ugrad-model-lab-report-v1';
+    var LS_LAST = 'ugrad-model-lab-last-v1';
+
+    function $(id) { return document.getElementById(id); }
+    var providerEl = $('provider');
+    var setupProfileEl = $('setup-profile');
+    var baseUrlEl = $('base-url');
+    var modelIdEl = $('model-id');
+    var raceModelAEl = $('race-model-a');
+    var raceModelBEl = $('race-model-b');
+    var raceModelCEl = $('race-model-c');
+    var raceModelDEl = $('race-model-d');
+    var engineTagEl = $('engine-tag');
+    var apiKeyEl = $('api-key');
+    var tempEl = $('temperature');
+    var maxTokensEl = $('max-tokens');
+    var promptPackEl = $('prompt-pack');
+    var suiteEl = $('prompt-suite');
+    var outEl = $('out');
+    var chatInputEl = $('chat-input');
+    var chatSendEl = $('chat-send');
+    var chatClearEl = $('chat-clear');
+    var chatMessagesEl = $('chat-messages');
+    var telemetryEl = $('telemetry');
+    var raceBoardEl = $('race-board');
+    var racePromptIndexEl = $('race-prompt-index');
+    var raceDiffEl = $('race-diff');
+    var tweakPrefixEl = $('tweak-prefix');
+    var tweakSuffixEl = $('tweak-suffix');
+    var tweakTempDeltaEl = $('tweak-temp-delta');
+    var tweakMaxDeltaEl = $('tweak-max-delta');
+    var tweakNoteEl = $('tweak-note');
+    var tweakVersionEl = $('tweak-version');
+    var datasetStatusEl = $('dataset-status');
+    var reportStatusEl = $('report-status');
+    var healthStatusEl = $('health-status');
+    var stepProgressEl = $('step-progress');
+
+    var STEP_STATE_KEY = 'ugrad-model-lab-step-state-v1';
+    var STEP_ORDER = ['setup', 'questions', 'run', 'export-report', 'export-dataset', 'iterate'];
+    var stepState = loadJson(STEP_STATE_KEY, {});
+
+    var rows = loadJson(LS_DATA, []);
+    var report = loadJson(LS_REPORT, null);
+    var lastPair = loadJson(LS_LAST, null);
+    var lastRaceReport = (report && report.type === 'race') ? report : null;
+    var tweakIteration = Number(loadJson('ugrad-model-lab-tweak-iteration-v1', 0) || 0);
+    var chatRows = loadJson('ugrad-model-lab-chat-v1', []);
+
+    function loadJson(key, fallback) {
+      try {
+        var raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        var parsed = JSON.parse(raw);
+        return parsed == null ? fallback : parsed;
+      } catch (_) { return fallback; }
+    }
+    function saveJson(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+    }
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function stepEls(id) {
+      return {
+        card: $('step-' + id),
+        meta: $('meta-' + id)
+      };
+    }
+
+    function renderFlow() {
+      var doneCount = 0;
+      var current = null;
+      for (var i = 0; i < STEP_ORDER.length; i++) {
+        var id = STEP_ORDER[i];
+        var els = stepEls(id);
+        if (!els.card || !els.meta) continue;
+        var done = !!stepState[id];
+        if (done) doneCount += 1;
+        els.meta.textContent = done ? 'done' : 'pending';
+        els.card.classList.toggle('done', done);
+        if (!done && !current) current = id;
+      }
+      for (var j = 0; j < STEP_ORDER.length; j++) {
+        var sid = STEP_ORDER[j];
+        var c = $('step-' + sid);
+        if (!c) continue;
+        c.classList.toggle('current', sid === current);
+      }
+      stepProgressEl.textContent = 'step ' + Math.min(doneCount + 1, STEP_ORDER.length) + ' of ' + STEP_ORDER.length + ' | completed ' + doneCount;
+      saveJson(STEP_STATE_KEY, stepState);
+      if (current && $('step-' + current) && !stepState[current]) $('step-' + current).open = true;
+    }
+
+    function markStepDone(id, note) {
+      if (!stepState[id]) {
+        stepState[id] = true;
+        saveJson(STEP_STATE_KEY, stepState);
+      }
+      var card = $('step-' + id);
+      if (card) card.open = false;
+      if (note) outEl.textContent = note;
+      renderFlow();
+    }
+
+    function maybeCompleteSetup() {
+      var provider = String(providerEl.value || '').trim();
+      var base = String(baseUrlEl.value || '').trim();
+      var model = String(modelIdEl.value || '').trim();
+      if (provider && base && model) markStepDone('setup');
+    }
+
+    function maybeCompleteQuestions() {
+      var count = String(suiteEl.value || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean).length;
+      if (count > 0) markStepDone('questions');
+    }
+
+    function ensureRaceDefaults() {
+      var primary = String(modelIdEl.value || '').trim();
+      if (primary && !String(raceModelAEl.value || '').trim()) raceModelAEl.value = primary;
+      if (!String(raceModelDEl.value || '').trim() && primary) raceModelDEl.value = 'mistral-small:latest';
+    }
+
+    function readPromptLines() {
+      return String(suiteEl.value || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+
+    function getTweakConfig() {
+      var prefix = String((tweakPrefixEl && tweakPrefixEl.value) || '').trim();
+      var suffix = String((tweakSuffixEl && tweakSuffixEl.value) || '').trim();
+      var tempDelta = Number((tweakTempDeltaEl && tweakTempDeltaEl.value) || 0);
+      var maxDelta = Number((tweakMaxDeltaEl && tweakMaxDeltaEl.value) || 0);
+      var note = String((tweakNoteEl && tweakNoteEl.value) || '').trim();
+      return {
+        prefix: prefix,
+        suffix: suffix,
+        tempDelta: isNaN(tempDelta) ? 0 : tempDelta,
+        maxDelta: isNaN(maxDelta) ? 0 : maxDelta,
+        note: note,
+        iteration: tweakIteration
+      };
+    }
+
+    function applyPromptTweaks(promptText, tweak) {
+      var p = String(promptText || '').trim();
+      if (tweak.prefix) p = tweak.prefix + '\n' + p;
+      if (tweak.suffix) p = p + '\n' + tweak.suffix;
+      return p;
+    }
+
+    function clampNum(v, lo, hi) {
+      return Math.max(lo, Math.min(hi, v));
+    }
+
+    function renderTweakVersion() {
+      if (tweakVersionEl) tweakVersionEl.textContent = 'iteration ' + tweakIteration;
+    }
+
+    var PROMPT_PACKS = {
+      cold_baseline: [
+        'Summarize UVSpeed in 2 bullets.',
+        'Give a 3-step fix plan for lint/test failures.',
+        'Classify this task as build/test/research and explain why.',
+        'Write one safe command to inspect repo status.',
+        'Suggest one performance benchmark to run first.',
+        'Create a minimal rollout checklist.',
+        'List top 3 risks and mitigations.',
+        'Produce a concise operator handoff note.',
+        'Return a JSON object with action and rationale.',
+        'Propose one follow-up question.'
+      ],
+      ops_calibration: [
+        'Generate a 5-item preflight checklist.',
+        'Given failing tests, prioritize remediation order.',
+        'Provide a safe rollback plan.',
+        'Summarize system health in one paragraph.',
+        'Draft a canary deployment gate.',
+        'Create a smoke test matrix.',
+        'List observable metrics for latency and quality.',
+        'Provide a failure triage tree.',
+        'Write a short operator update.',
+        'Create an acceptance checklist.',
+        'Return one YAML runbook fragment.',
+        'State one unknown requiring user confirmation.'
+      ],
+      agent_policy: [
+        'Output JSON with keys: intent, steps, risks, checks.',
+        'Propose tool calls without executing them.',
+        'State assumptions explicitly.',
+        'Provide one reversible action first.',
+        'Give short and long versions of the plan.',
+        'Mark confidence from 0 to 1 and why.',
+        'Flag policy-sensitive operations.',
+        'Provide a deterministic test plan.',
+        'Summarize in one executive sentence.',
+        'List required approvals before production.'
+      ],
+      quantum_math: [
+        'Explain the difference between a state vector and density matrix in 5 lines.',
+        'Given |psi> = (|0> + i|1>)/sqrt(2), compute measurement probabilities in Z basis.',
+        'Derive the matrix form of a single-qubit Rz(theta) gate and evaluate at theta=pi/2.',
+        'Show why Hadamard maps Z-basis to X-basis using matrix multiplication.',
+        'For Bell state (|00> + |11>)/sqrt(2), compute reduced density matrix of qubit A.',
+        'Given a 2x2 Hermitian matrix, check if it can represent an observable and why.',
+        'Compute commutator [X, Z] and interpret the result physically.',
+        'Write a short QASM circuit for creating |Phi+> and explain each gate.',
+        'Estimate circuit depth and gate count for a 3-qubit GHZ preparation.',
+        'Return strict JSON: {topic, derivation_steps, final_result, confidence}.'
+      ]
+    };
+
+    function loadPromptPack() {
+      var key = String((promptPackEl && promptPackEl.value) || 'custom');
+      var pack = PROMPT_PACKS[key];
+      if (!pack) return;
+      suiteEl.value = pack.join('\n');
+      maybeCompleteQuestions();
+      outEl.textContent = 'loaded prompt pack: ' + key + ' (' + pack.length + ' prompts)';
+    }
+
+    function applySetupProfile(profile) {
+      var p = String(profile || (setupProfileEl && setupProfileEl.value) || 'ollama_offline');
+      if (p === 'ollama_offline') {
+        providerEl.value = 'ollama';
+        baseUrlEl.value = 'http://127.0.0.1:11434';
+        modelIdEl.value = 'mistral:latest';
+        raceModelAEl.value = 'mistral:latest';
+        raceModelBEl.value = 'devstral';
+        raceModelCEl.value = 'codestral';
+        raceModelDEl.value = 'mistral-small:latest';
+        tempEl.value = '0.2';
+        maxTokensEl.value = '512';
+      } else if (p === 'uvmis_runtime') {
+        providerEl.value = 'uvmis';
+        baseUrlEl.value = 'https://uvmis.ugrad.ai/v1';
+        modelIdEl.value = 'mistral-medium-2508';
+        raceModelAEl.value = 'mistral-medium-2508';
+        raceModelBEl.value = 'codestral-2508';
+        raceModelCEl.value = 'devstral-2512';
+        raceModelDEl.value = 'mistral-small-2506';
+        tempEl.value = '0.2';
+        maxTokensEl.value = '768';
+      } else if (p === 'mistral_cloud') {
+        providerEl.value = 'mistral';
+        baseUrlEl.value = 'https://api.mistral.ai/v1';
+        modelIdEl.value = 'mistral-medium-2508';
+        raceModelAEl.value = 'mistral-medium-2508';
+        raceModelBEl.value = 'codestral-2508';
+        raceModelCEl.value = 'devstral-2512';
+        raceModelDEl.value = 'mistral-small-2506';
+        tempEl.value = '0.2';
+        maxTokensEl.value = '768';
+      } else if (p === 'mathstral_quantum') {
+        providerEl.value = 'ollama';
+        baseUrlEl.value = 'http://127.0.0.1:11434';
+        modelIdEl.value = 'mathstral';
+        raceModelAEl.value = 'mathstral';
+        raceModelBEl.value = 'mistral:latest';
+        raceModelCEl.value = 'devstral';
+        raceModelDEl.value = 'codestral';
+        tempEl.value = '0.1';
+        maxTokensEl.value = '768';
+        if (promptPackEl) promptPackEl.value = 'quantum_math';
+        loadPromptPack();
+      }
+      maybeCompleteSetup();
+      outEl.textContent = 'auto-calibrated setup: ' + p;
+    }
+
+    function updateProviderDefaults() {
+      var p = providerEl.value;
+      if (p === 'ollama') baseUrlEl.value = 'http://127.0.0.1:11434';
+      if (p === 'uvmis') baseUrlEl.value = 'https://uvmis.ugrad.ai/v1';
+      if (p === 'mistral') baseUrlEl.value = 'https://api.mistral.ai/v1';
+      if (p === 'simulate') baseUrlEl.value = 'offline://simulate';
+    }
+
+    async function inferOne(promptText, options) {
+      var opts = options || {};
+      var provider = providerEl.value;
+      var baseUrl = String(opts.baseUrl || baseUrlEl.value || '').trim();
+      var modelId = String(opts.modelId || modelIdEl.value || '').trim();
+      var apiKey = String(apiKeyEl.value || '').trim();
+      var temperature = Number(opts.temperature != null ? opts.temperature : tempEl.value || 0.2);
+      var maxTokens = Number(opts.maxTokens != null ? opts.maxTokens : maxTokensEl.value || 512);
+      var started = performance.now();
+
+      if (!promptText) throw new Error('empty prompt');
+      if (!modelId && provider !== 'simulate') throw new Error('model id missing');
+
+      if (provider === 'simulate') {
+        var simText = 'simulated response for: ' + promptText.slice(0, 90);
+        var simLatency = Number((performance.now() - started).toFixed(2));
+        return {
+          text: simText,
+          finishReason: 'simulated',
+          latencyMs: simLatency,
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, tokPerSec: 0 }
+        };
+      }
+
+      if (provider === 'uvmis' || provider === 'mistral') {
+        var url = baseUrl.replace(/\/$/, '') + '/chat/completions';
+        var body = {
+          model: modelId,
+          messages: [{ role: 'user', content: promptText }],
+          temperature: temperature,
+          max_tokens: maxTokens
+        };
+        var headers = { 'Content-Type': 'application/json' };
+        if (provider === 'mistral' && apiKey) headers.Authorization = 'Bearer ' + apiKey;
+        if (provider === 'uvmis' && apiKey) {
+          headers.Authorization = 'Bearer ' + apiKey;
+          headers['X-API-Key'] = apiKey;
+        }
+        var res = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('chat/completions http ' + res.status);
+        var payload = await res.json();
+        var latency = Number((performance.now() - started).toFixed(2));
+        var choice = (payload.choices && payload.choices[0]) || {};
+        var text = (choice.message && choice.message.content) || '';
+        var usage = payload.usage || {};
+        var pt = Number(usage.prompt_tokens || 0);
+        var ct = Number(usage.completion_tokens || 0);
+        var tokPerSec = ct > 0 ? Number((ct / Math.max(0.001, latency / 1000)).toFixed(2)) : 0;
+        return {
+          text: String(text || '').trim(),
+          finishReason: String(choice.finish_reason || 'unknown'),
+          latencyMs: latency,
+          usage: { promptTokens: pt, completionTokens: ct, totalTokens: Number(usage.total_tokens || (pt + ct)), tokPerSec: tokPerSec }
+        };
+      }
+
+      if (provider === 'ollama') {
+        var ollamaUrl = baseUrl.replace(/\/$/, '') + '/api/generate';
+        var ollamaBody = { model: modelId, prompt: promptText, stream: false, options: { temperature: temperature, num_predict: maxTokens } };
+        var ollamaRes = await fetch(ollamaUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ollamaBody) });
+        if (!ollamaRes.ok) throw new Error('ollama generate http ' + ollamaRes.status);
+        var op = await ollamaRes.json();
+        var olat = Number((performance.now() - started).toFixed(2));
+        var evalCount = Number(op.eval_count || 0);
+        var promptEvalCount = Number(op.prompt_eval_count || 0);
+        var evalDurationNs = Number(op.eval_duration || 0);
+        var tokPerSecO = (evalDurationNs > 0 && evalCount > 0) ? Number((evalCount / (evalDurationNs / 1e9)).toFixed(2)) : 0;
+        return {
+          text: String(op.response || '').trim(),
+          finishReason: String(op.done_reason || (op.done ? 'stop' : 'unknown')),
+          latencyMs: olat,
+          usage: { promptTokens: promptEvalCount, completionTokens: evalCount, totalTokens: promptEvalCount + evalCount, tokPerSec: tokPerSecO }
+        };
+      }
+
+      throw new Error('unknown provider: ' + provider);
+    }
+
+    function score(row) {
+      var s = 0;
+      if (row.response && row.response.length > 24) s += 24;
+      if (row.next_action && row.next_action.length > 4) s += 18;
+      if (row.usage && row.usage.completionTokens > 0) s += 18;
+      if (row.latency_ms > 0 && row.latency_ms < 12000) s += 16;
+      if (/(next|run|build|verify|train)/i.test(String(row.response || ''))) s += 14;
+      if (String(row.finish_reason || '').toLowerCase() === 'length') s -= 6;
+      return clamp(s, 0, 100);
+    }
+
+    function suggestAction(promptText) {
+      var t = String(promptText || '').toLowerCase();
+      if (/(benchmark|speed|latency)/.test(t)) return 'run hyperfine pack and compare token throughput';
+      if (/(train|fine|dataset|eval)/.test(t)) return 'capture this sample in fine-tune corpus';
+      if (/(fix|error|debug)/.test(t)) return 'create repro + patch list and rerun suite';
+      return 'store result and iterate prompt variant';
+    }
+
+    function renderStatus() {
+      datasetStatusEl.textContent = 'dataset rows: ' + rows.length;
+      reportStatusEl.textContent = report ? ('last report avg score: ' + report.avgScore) : 'last report: none';
+    }
+    function renderTelemetry(lastRow) {
+      if (!lastRow) {
+        telemetryEl.textContent = 'telemetry pending...';
+        return;
+      }
+      telemetryEl.textContent = [
+        'provider=' + lastRow.provider + ' model=' + lastRow.model_id,
+        'latency_ms=' + lastRow.latency_ms,
+        'tokens(prompt/completion/total)=' + lastRow.usage.promptTokens + '/' + lastRow.usage.completionTokens + '/' + lastRow.usage.totalTokens,
+        'tok_per_sec=' + lastRow.usage.tokPerSec,
+        'finish=' + lastRow.finish_reason
+      ].join('\n');
+    }
+
+    function renderChat() {
+      if (!chatMessagesEl) return;
+      chatMessagesEl.innerHTML = '';
+      if (!chatRows.length) {
+        var intro = document.createElement('div');
+        intro.className = 'chat-msg assistant';
+        intro.textContent = 'Ask a question. I will run it with your active setup and show response + telemetry.';
+        chatMessagesEl.appendChild(intro);
+        return;
+      }
+      for (var i = 0; i < chatRows.length; i++) {
+        var r = chatRows[i];
+        var el = document.createElement('div');
+        el.className = 'chat-msg ' + (r.role === 'user' ? 'user' : 'assistant');
+        el.textContent = r.text;
+        chatMessagesEl.appendChild(el);
+      }
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    }
+
+    function pushChat(role, text) {
+      chatRows.push({ role: role, text: String(text || '') });
+      if (chatRows.length > 80) chatRows = chatRows.slice(-80);
+      saveJson('ugrad-model-lab-chat-v1', chatRows);
+      renderChat();
+    }
+
+    async function askChat() {
+      if (!chatInputEl) return;
+      var question = String(chatInputEl.value || '').trim();
+      if (!question) return;
+      var tweak = getTweakConfig();
+      var prompt = applyPromptTweaks(question, tweak);
+      var runTemp = clampNum(Number(tempEl.value || 0.2) + Number(tweak.tempDelta || 0), 0, 2);
+      var runMax = Math.max(32, Number(maxTokensEl.value || 512) + Number(tweak.maxDelta || 0));
+      pushChat('user', question);
+      chatInputEl.value = '';
+      healthStatusEl.textContent = 'provider health: chat running';
+      try {
+        var inf = await inferOne(prompt, { temperature: runTemp, maxTokens: runMax });
+        var responseText = String(inf.text || '').trim() || '[empty response]';
+        var footer = '\n\n[' + providerEl.value + ' | ' + modelIdEl.value + ' | ' + inf.latencyMs + 'ms | tok/s ' + inf.usage.tokPerSec + ']';
+        pushChat('assistant', responseText + footer);
+        renderTelemetry({
+          provider: providerEl.value,
+          model_id: modelIdEl.value,
+          latency_ms: inf.latencyMs,
+          usage: inf.usage,
+          finish_reason: inf.finishReason
+        });
+        healthStatusEl.innerHTML = 'provider health: <span class="ok">ok</span>';
+      } catch (err) {
+        var msg = (err && err.message) ? err.message : String(err);
+        pushChat('assistant', 'chat error: ' + msg);
+        healthStatusEl.innerHTML = 'provider health: <span class="bad">error</span>';
+      }
+    }
+
+    function renderRacePromptSelector() {
+      racePromptIndexEl.innerHTML = '';
+      if (!lastRaceReport || !lastRaceReport.leaderboard || !lastRaceReport.leaderboard.length) {
+        racePromptIndexEl.innerHTML = '<option value="">run race first</option>';
+        raceDiffEl.textContent = 'race prompt diff pending...';
+        return;
+      }
+      var count = Number(lastRaceReport.count || 0);
+      for (var i = 0; i < count; i++) {
+        var opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = 'prompt #' + (i + 1);
+        racePromptIndexEl.appendChild(opt);
+      }
+      racePromptIndexEl.value = '0';
+      renderRaceDiff(0);
+    }
+
+    function renderRaceDiff(index) {
+      if (!lastRaceReport || !lastRaceReport.leaderboard || !lastRaceReport.leaderboard.length) {
+        raceDiffEl.textContent = 'race prompt diff pending...';
+        return;
+      }
+      var idx = Number(index || 0);
+      var entries = [];
+      for (var i = 0; i < lastRaceReport.leaderboard.length; i++) {
+        var model = lastRaceReport.leaderboard[i];
+        var row = (model.rows && model.rows[idx]) ? model.rows[idx] : null;
+        if (!row) continue;
+        entries.push({
+          modelId: model.modelId,
+          prompt: row.prompt,
+          response: row.response,
+          score: row.score,
+          latencyMs: row.latency_ms,
+          tokPerSec: Number((row.usage && row.usage.tokPerSec) || 0),
+          finish: row.finish_reason
+        });
+      }
+      if (!entries.length) {
+        raceDiffEl.textContent = 'no race data for prompt #' + (idx + 1);
+        return;
+      }
+      var lines = [];
+      lines.push('prompt #' + (idx + 1));
+      lines.push('question: ' + entries[0].prompt);
+      lines.push('');
+      for (var j = 0; j < entries.length; j++) {
+        var e = entries[j];
+        lines.push((j + 1) + ') ' + e.modelId + ' | score ' + e.score + ' | ' + e.latencyMs + 'ms | tok/s ' + e.tokPerSec + ' | finish ' + e.finish);
+        lines.push(e.response || '[empty]');
+        lines.push('---');
+      }
+      raceDiffEl.textContent = lines.join('\n');
+    }
+
+    function download(name, content) {
+      try {
+        var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        var href = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = href;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(href); }, 4000);
+      } catch (_) {}
+    }
+
+    async function runSuite() {
+      var lines = readPromptLines();
+      if (!lines.length) { outEl.textContent = 'add at least one prompt'; return; }
+      var tweak = getTweakConfig();
+
+      var provider = providerEl.value;
+      var modelId = String(modelIdEl.value || '').trim();
+      var engineTag = (engineTagEl.value || '').trim() || 'ugrad-model-lab';
+      var runTemp = clampNum(Number(tempEl.value || 0.2) + Number(tweak.tempDelta || 0), 0, 2);
+      var runMax = Math.max(32, Number(maxTokensEl.value || 512) + Number(tweak.maxDelta || 0));
+      var routeCounts = {};
+      var latencyTotal = 0;
+      var scoreTotal = 0;
+      var suiteRows = [];
+      outEl.textContent = 'running suite...';
+      healthStatusEl.textContent = 'provider health: running';
+
+      for (var i = 0; i < lines.length; i++) {
+        var promptOriginal = lines[i];
+        var promptText = applyPromptTweaks(promptOriginal, tweak);
+        try {
+          var inf = await inferOne(promptText, { temperature: runTemp, maxTokens: runMax });
+          var row = {
+            ts: Date.now(),
+            provider: provider,
+            model_id: modelId,
+            engine_tag: engineTag,
+            prompt_original: promptOriginal,
+            prompt: promptText,
+            response: inf.text,
+            finish_reason: inf.finishReason,
+            latency_ms: inf.latencyMs,
+            usage: inf.usage,
+            next_action: suggestAction(promptText),
+            tweak: tweak
+          };
+          row.score = score(row);
+          suiteRows.push(row);
+          rows.push(row);
+          routeCounts[provider] = (routeCounts[provider] || 0) + 1;
+          latencyTotal += row.latency_ms;
+          scoreTotal += row.score;
+          lastPair = row;
+          saveJson(LS_LAST, lastPair);
+          renderTelemetry(row);
+        } catch (err) {
+          var msg = (err && err.message) ? err.message : String(err);
+          outEl.textContent = 'suite failed at prompt #' + (i + 1) + ': ' + msg;
+          healthStatusEl.innerHTML = 'provider health: <span class="bad">error</span>';
+          return;
+        }
+      }
+
+      if (rows.length > 1500) rows = rows.slice(-1500);
+      saveJson(LS_DATA, rows);
+      report = {
+        ts: Date.now(),
+        provider: provider,
+        modelId: modelId,
+        engineTag: engineTag,
+        count: suiteRows.length,
+        avgLatencyMs: Number((latencyTotal / Math.max(1, suiteRows.length)).toFixed(2)),
+        avgScore: Number((scoreTotal / Math.max(1, suiteRows.length)).toFixed(2)),
+        routeCounts: routeCounts,
+        rows: suiteRows
+      };
+      saveJson(LS_REPORT, report);
+      outEl.textContent = [
+        'suite: ' + report.count + ' prompts',
+        'provider: ' + report.provider + ' | model: ' + report.modelId,
+        'engine: ' + report.engineTag,
+        'tweak: it=' + tweak.iteration + ' tempΔ=' + tweak.tempDelta + ' maxΔ=' + tweak.maxDelta,
+        'avg latency: ' + report.avgLatencyMs + 'ms',
+        'avg score: ' + report.avgScore + '/100',
+        'runs: ' + JSON.stringify(report.routeCounts)
+      ].join('\n');
+      healthStatusEl.innerHTML = 'provider health: <span class="ok">ok</span>';
+      markStepDone('run');
+      renderStatus();
+    }
+
+    async function runRace() {
+      var lines = readPromptLines();
+      if (!lines.length) { outEl.textContent = 'add at least one prompt for race'; return; }
+      var tweak = getTweakConfig();
+      var provider = providerEl.value;
+      var baseUrl = String(baseUrlEl.value || '').trim();
+      var engineTag = (engineTagEl.value || '').trim() || 'ugrad-model-lab';
+      var runTemp = clampNum(Number(tempEl.value || 0.2) + Number(tweak.tempDelta || 0), 0, 2);
+      var runMax = Math.max(32, Number(maxTokensEl.value || 512) + Number(tweak.maxDelta || 0));
+      var raceModels = [raceModelAEl.value, raceModelBEl.value, raceModelCEl.value, raceModelDEl.value]
+        .map(function (m) { return String(m || '').trim(); })
+        .filter(Boolean);
+      raceModels = Array.from(new Set(raceModels));
+      if (!raceModels.length) { outEl.textContent = 'set at least one race model id'; return; }
+
+      outEl.textContent = 'running race for ' + raceModels.length + ' models across ' + lines.length + ' prompts...';
+      healthStatusEl.textContent = 'provider health: race running';
+
+      var leaderboard = [];
+      for (var m = 0; m < raceModels.length; m++) {
+        var modelId = raceModels[m];
+        var latencyTotal = 0;
+        var scoreTotal = 0;
+        var tokTotal = 0;
+        var reportRows = [];
+
+        for (var i = 0; i < lines.length; i++) {
+          try {
+            var promptOriginal = lines[i];
+            var promptText = applyPromptTweaks(promptOriginal, tweak);
+            var inf = await inferOne(promptText, { modelId: modelId, baseUrl: baseUrl, temperature: runTemp, maxTokens: runMax });
+            var row = {
+              ts: Date.now(),
+              provider: provider,
+              model_id: modelId,
+              engine_tag: engineTag,
+              prompt_original: promptOriginal,
+              prompt: promptText,
+              response: inf.text,
+              finish_reason: inf.finishReason,
+              latency_ms: inf.latencyMs,
+              usage: inf.usage,
+              next_action: suggestAction(promptText),
+              race_run: true,
+              tweak: tweak
+            };
+            row.score = score(row);
+            rows.push(row);
+            reportRows.push(row);
+            latencyTotal += row.latency_ms;
+            scoreTotal += row.score;
+            tokTotal += Number((row.usage && row.usage.tokPerSec) || 0);
+            lastPair = row;
+            saveJson(LS_LAST, lastPair);
+            renderTelemetry(row);
+          } catch (err) {
+            var emsg = (err && err.message) ? err.message : String(err);
+            outEl.textContent = 'race failed for model ' + modelId + ' at prompt #' + (i + 1) + ': ' + emsg;
+            healthStatusEl.innerHTML = 'provider health: <span class="bad">error</span>';
+            return;
+          }
+        }
+
+        leaderboard.push({
+          modelId: modelId,
+          prompts: reportRows.length,
+          avgLatencyMs: Number((latencyTotal / Math.max(1, reportRows.length)).toFixed(2)),
+          avgScore: Number((scoreTotal / Math.max(1, reportRows.length)).toFixed(2)),
+          avgTokPerSec: Number((tokTotal / Math.max(1, reportRows.length)).toFixed(2)),
+          rows: reportRows
+        });
+      }
+
+      if (rows.length > 1500) rows = rows.slice(-1500);
+      saveJson(LS_DATA, rows);
+      leaderboard.sort(function (a, b) {
+        if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+        if (a.avgLatencyMs !== b.avgLatencyMs) return a.avgLatencyMs - b.avgLatencyMs;
+        return b.avgTokPerSec - a.avgTokPerSec;
+      });
+
+      report = {
+        ts: Date.now(),
+        type: 'race',
+        provider: provider,
+        engineTag: engineTag,
+        count: lines.length,
+        leaderboard: leaderboard
+      };
+      saveJson(LS_REPORT, report);
+      lastRaceReport = report;
+
+      var boardLines = ['race leaderboard'];
+      for (var r = 0; r < leaderboard.length; r++) {
+        var entry = leaderboard[r];
+        boardLines.push(
+          (r + 1) + '. ' + entry.modelId +
+          ' | score ' + entry.avgScore +
+          ' | latency ' + entry.avgLatencyMs + 'ms' +
+          ' | tok/s ' + entry.avgTokPerSec
+        );
+      }
+      boardLines.push('tweak: it=' + tweak.iteration + ' tempΔ=' + tweak.tempDelta + ' maxΔ=' + tweak.maxDelta + (tweak.note ? ' | note=' + tweak.note : ''));
+      raceBoardEl.textContent = boardLines.join('\n');
+      renderRacePromptSelector();
+      outEl.textContent = 'race complete | winner: ' + leaderboard[0].modelId + ' | compared ' + leaderboard.length + ' models';
+      healthStatusEl.innerHTML = 'provider health: <span class="ok">ok</span>';
+      markStepDone('run');
+      renderStatus();
+    }
+
+    function saveLastPair() {
+      if (!lastPair) { outEl.textContent = 'no last pair available'; return; }
+      rows.push(lastPair);
+      if (rows.length > 1500) rows = rows.slice(-1500);
+      saveJson(LS_DATA, rows);
+      outEl.textContent = 'saved last pair | score=' + lastPair.score + ' | provider=' + lastPair.provider;
+      markStepDone('iterate');
+      renderTelemetry(lastPair);
+      renderStatus();
+    }
+
+    providerEl.addEventListener('change', function () {
+      updateProviderDefaults();
+      healthStatusEl.textContent = 'provider health: unknown';
+      maybeCompleteSetup();
+    });
+    if (setupProfileEl) {
+      setupProfileEl.addEventListener('change', function () {
+        applySetupProfile(setupProfileEl.value);
+      });
+    }
+    $('auto-calibrate').addEventListener('click', function () {
+      applySetupProfile((setupProfileEl && setupProfileEl.value) || 'ollama_offline');
+    });
+    $('load-pack').addEventListener('click', loadPromptPack);
+    baseUrlEl.addEventListener('input', maybeCompleteSetup);
+    modelIdEl.addEventListener('input', maybeCompleteSetup);
+    modelIdEl.addEventListener('input', ensureRaceDefaults);
+    suiteEl.addEventListener('input', maybeCompleteQuestions);
+    $('run-suite').addEventListener('click', runSuite);
+    $('run-race').addEventListener('click', runRace);
+    if (chatSendEl) chatSendEl.addEventListener('click', askChat);
+    if (chatInputEl) {
+      chatInputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          askChat();
+        }
+      });
+    }
+    if (chatClearEl) {
+      chatClearEl.addEventListener('click', function () {
+        chatRows = [];
+        saveJson('ugrad-model-lab-chat-v1', chatRows);
+        renderChat();
+      });
+    }
+    $('tweak-bump').addEventListener('click', function () {
+      tweakIteration += 1;
+      saveJson('ugrad-model-lab-tweak-iteration-v1', tweakIteration);
+      renderTweakVersion();
+      outEl.textContent = 'tweak iteration bumped to ' + tweakIteration;
+    });
+    $('save-last').addEventListener('click', saveLastPair);
+    racePromptIndexEl.addEventListener('change', function () {
+      var idx = Number(racePromptIndexEl.value || 0);
+      renderRaceDiff(idx);
+    });
+    $('export-jsonl').addEventListener('click', function () {
+      if (!rows.length) { outEl.textContent = 'dataset empty'; return; }
+      var jsonl = rows.map(function (r) { return JSON.stringify(r); }).join('\n') + '\n';
+      download('ugrad-model-lab-dataset.jsonl', jsonl);
+      markStepDone('export-dataset');
+      outEl.textContent = 'exported dataset rows: ' + rows.length;
+    });
+    $('export-report').addEventListener('click', function () {
+      if (!report) { outEl.textContent = 'no report yet'; return; }
+      download('ugrad-model-lab-report.json', JSON.stringify(report, null, 2));
+      markStepDone('export-report');
+      if (report.type === 'race') {
+        outEl.textContent = 'exported race report for ' + (report.leaderboard ? report.leaderboard.length : 0) + ' models';
+      } else {
+        outEl.textContent = 'exported report for model ' + report.modelId;
+      }
+    });
+    $('open-chat').addEventListener('click', function () { window.location.href = 'ugrad-chat-stable.html'; });
+    $('reset-data').addEventListener('click', function () {
+      rows = [];
+      report = null;
+      lastPair = null;
+      saveJson(LS_DATA, rows);
+      saveJson(LS_REPORT, report);
+      saveJson(LS_LAST, lastPair);
+      stepState = {};
+      saveJson(STEP_STATE_KEY, stepState);
+      outEl.textContent = 'model lab data reset';
+      telemetryEl.textContent = 'telemetry reset';
+      raceBoardEl.textContent = 'race leaderboard pending...';
+      racePromptIndexEl.innerHTML = '<option value="">run race first</option>';
+      raceDiffEl.textContent = 'race prompt diff pending...';
+      lastRaceReport = null;
+      tweakIteration = 0;
+      saveJson('ugrad-model-lab-tweak-iteration-v1', tweakIteration);
+      renderTweakVersion();
+      healthStatusEl.textContent = 'provider health: unknown';
+      STEP_ORDER.forEach(function (id) {
+        var card = $('step-' + id);
+        if (card) card.open = id === 'setup';
+      });
+      renderStatus();
+      renderFlow();
+    });
+
+    updateProviderDefaults();
+    maybeCompleteSetup();
+    maybeCompleteQuestions();
+    ensureRaceDefaults();
+    renderTweakVersion();
+    renderStatus();
+    renderTelemetry(lastPair);
+    renderFlow();
+    renderRacePromptSelector();
+    renderChat();
+  })();
+  </script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>
+(function () {
+  if (window.QuantumPrefixes && QuantumPrefixes.onThemeChange) {
+    QuantumPrefixes.onThemeChange(function () {
+      try {
+        var m = document.getElementById('uml-meta-theme');
+        if (m) m.setAttribute('content', document.documentElement.getAttribute('data-theme') === 'light' ? '#f6f8fa' : '#0f1419');
+      } catch (e) {}
+    });
+  }
+})();
+</script>
+</body>
+</html>

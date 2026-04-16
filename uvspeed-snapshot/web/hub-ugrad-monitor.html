@@ -1,0 +1,35 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<title>μgrad monitors — hub index</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<style>
+html,body{min-height:100%;margin:0;background:#0a0a0b;color:#e8edf4;font-family:ui-sans-serif,system-ui,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.1rem;margin:0 0 12px}
+p{font:500 12px ui-monospace,monospace;color:#8d97a6;line-height:1.55;margin:0 0 14px}
+ul{margin:0;padding-left:1.2rem}
+li{margin:8px 0;font:500 12px ui-monospace,monospace}
+a{color:#58a6ff}
+.foot{margin-top:28px;font:500 10px ui-monospace,monospace;color:#6e7681}
+</style>
+</head>
+<body data-ugrad-game="hub-monitor">
+<div class="wrap">
+  <h1>μgrad game monitors</h1>
+  <p>Per-game BroadcastChannel dashboards. Open the arena shell, enable <strong>Broadcast</strong> / <strong>Publish slice</strong> as documented, then open a monitor here.</p>
+  <ul>
+    <li><a href="go-ugrad-monitor.html">go-ugrad-monitor.html</a> — <code>ugrad-go-board</code> · Go boards + clocks</li>
+    <li><a href="games-ugrad-hub.html">games-ugrad-hub.html</a> — μgrad games hub (all shells)</li>
+    <li><a href="go-ugrad.html">go-ugrad.html</a> — tensor lane + multi-monitor</li>
+  </ul>
+  <p class="foot"><code>hub-ugrad-monitor.html</code> · index only · add new monitors as channels ship</p>
+</div>
+<script src="quantum-prefixes.js"></script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});</script>
+</body>
+</html>

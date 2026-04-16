@@ -1,0 +1,644 @@
+/* ugrad-sportsfield-pitch.css — regulation-aspect pitch grid + layers (μgrad sportsfield) */
+.sf-pitch-root {
+  --sf-line: rgba(250, 250, 252, 0.14);
+  position: relative;
+  min-height: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sf-lede {
+  margin: 0;
+  font: 500 12px ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.45;
+  color: var(--qp-fg-body, #c9d1d9);
+}
+
+.sf-spec-bar {
+  font: 500 9px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sf-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font: 500 10px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+}
+
+.sf-bar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.sf-bar select {
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: var(--qp-bg-base, #161b22);
+  color: inherit;
+  font: inherit;
+}
+
+.sf-bar button {
+  font: 600 9px ui-monospace, monospace;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: transparent;
+  color: var(--qp-fg-primary, #e8edf4);
+  cursor: pointer;
+}
+
+.sf-bar button:hover {
+  background: rgba(63, 185, 80, 0.12);
+}
+
+.sf-bundle {
+  font: 600 9px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.sf-readout {
+  font: 600 10px ui-monospace, monospace;
+  color: var(--qp-fg-primary, #e8edf4);
+  min-height: 1.25rem;
+  padding: 4px 0;
+}
+
+.sf-stage {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid var(--qp-border, #30363d);
+  overflow: hidden;
+  background: linear-gradient(165deg, rgba(14, 22, 18, 0.95), rgba(6, 10, 8, 0.98));
+  box-shadow: inset 0 0 0 1px rgba(250, 250, 252, 0.04);
+  flex: 1 1 auto;
+  min-height: min(52vh, 480px);
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-scroll {
+  /* cqw = scroll viewport width → 51×cell fits without horizontal clip */
+  container-type: inline-size;
+  container-name: sfscroll;
+  --sf-cell: min(12px, calc((100cqw - 56px) / 51));
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(62vh, 560px);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px;
+  -webkit-overflow-scrolling: touch;
+  cursor: crosshair;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+@supports not (container-type: inline-size) {
+  .sf-scroll {
+    --sf-cell: clamp(5px, calc((100vw - 200px) / 51), 12px);
+  }
+}
+
+.sf-field-wrap {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.sf-ball-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sf-ball {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #e8edf4 45%, #58a6ff);
+  box-shadow: 0 0 10px rgba(88, 166, 255, 0.55);
+  left: 50%;
+  top: 50%;
+  will-change: left, top;
+}
+
+.sf-field-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.sf-field-svg .sf-grass {
+  fill: rgba(34, 197, 94, 0.07);
+}
+
+.sf-field-svg .sf-m {
+  fill: none;
+  stroke: rgba(250, 250, 252, 0.4);
+  stroke-width: 0.18;
+  vector-effect: non-scaling-stroke;
+}
+
+.sf-field-svg .sf-m-soft {
+  fill: none;
+  stroke: rgba(250, 250, 252, 0.24);
+  stroke-width: 0.12;
+  vector-effect: non-scaling-stroke;
+}
+
+.sf-field-svg .sf-spot {
+  fill: rgba(250, 250, 252, 0.42);
+  stroke: none;
+}
+
+[data-theme='light'] .sf-field-svg .sf-grass {
+  fill: rgba(34, 197, 94, 0.12);
+}
+
+/* Surface tint (genre presets also set data-surface on .sf-field-wrap) */
+.sf-field-svg .sf-surface-ice {
+  fill: rgba(147, 197, 253, 0.22);
+}
+.sf-field-svg .sf-surface-court {
+  fill: rgba(180, 83, 9, 0.18);
+}
+.sf-field-svg .sf-surface-acrylic {
+  fill: rgba(59, 130, 246, 0.14);
+}
+.sf-field-svg .sf-surface-synthetic {
+  fill: rgba(100, 116, 139, 0.14);
+}
+.sf-field-wrap[data-surface='sand'] .sf-field-svg .sf-grass {
+  fill: rgba(210, 180, 140, 0.28);
+}
+.sf-field-wrap[data-surface='turf'] .sf-field-svg .sf-grass {
+  fill: rgba(34, 160, 90, 0.12);
+}
+.sf-field-wrap[data-surface='hardwood'] .sf-field-svg .sf-grass {
+  fill: rgba(120, 53, 15, 0.2);
+}
+[data-theme='light'] .sf-field-svg .sf-surface-ice {
+  fill: rgba(59, 130, 246, 0.2);
+}
+[data-theme='light'] .sf-field-wrap[data-surface='sand'] .sf-field-svg .sf-grass {
+  fill: rgba(180, 140, 90, 0.35);
+}
+
+.sf-field-wrap[data-surface='dirt'] .sf-field-svg .sf-grass,
+.sf-field-svg .sf-surface-dirt {
+  fill: rgba(160, 110, 60, 0.22);
+}
+.sf-field-svg .sf-surface-turf {
+  fill: rgba(34, 110, 55, 0.16);
+}
+
+/* metricLines + scoringZones overlays (ugrad-sportsfield-presets renderFieldOverlays) */
+.sf-field-svg .sf-metric {
+  stroke: rgba(250, 250, 140, 0.42);
+  stroke-width: 0.14;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.sf-field-svg .sf-metric--dash {
+  stroke-dasharray: 0.9 1.1;
+}
+.sf-field-svg .sf-zone--goal {
+  stroke: rgba(251, 191, 36, 0.9);
+  stroke-width: 0.38;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.sf-field-svg .sf-zone--net {
+  stroke: rgba(244, 244, 252, 0.92);
+  stroke-width: 0.3;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.sf-field-svg .sf-zone--hoop {
+  fill: none;
+  stroke: rgba(251, 191, 36, 0.88);
+  stroke-width: 0.22;
+  vector-effect: non-scaling-stroke;
+}
+.sf-field-svg .sf-zone--home {
+  fill: rgba(251, 191, 36, 0.75);
+  stroke: none;
+}
+.sf-field-svg .sf-zone--endzone {
+  fill: rgba(30, 64, 175, 0.1);
+  stroke: none;
+}
+
+[data-theme='light'] .sf-field-svg .sf-metric {
+  stroke: rgba(120, 90, 0, 0.45);
+}
+[data-theme='light'] .sf-field-svg .sf-zone--endzone {
+  fill: rgba(30, 64, 175, 0.06);
+}
+
+[data-theme='light'] .sf-field-svg .sf-m {
+  stroke: rgba(0, 0, 0, 0.38);
+}
+
+[data-theme='light'] .sf-field-svg .sf-m-soft {
+  stroke: rgba(0, 0, 0, 0.24);
+}
+
+[data-theme='light'] .sf-field-svg .sf-spot {
+  fill: rgba(0, 0, 0, 0.45);
+}
+
+.sf-grid {
+  display: grid;
+  gap: 0;
+  width: max-content;
+  margin: 0 auto;
+  grid-template-columns: repeat(var(--sf-cols, 51), var(--sf-cell));
+  position: relative;
+  z-index: 1;
+  /* Faint cell grid only — halfway / boxes live in .sf-field-svg */
+  background-image: linear-gradient(var(--sf-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--sf-line) 1px, transparent 1px);
+  background-size: var(--sf-cell) var(--sf-cell), var(--sf-cell) var(--sf-cell);
+  user-select: none;
+}
+
+.sf-map-cell {
+  box-sizing: border-box;
+  width: var(--sf-cell);
+  height: var(--sf-cell);
+  border-right: 1px solid rgba(250, 250, 252, 0.05);
+  border-bottom: 1px solid rgba(250, 250, 252, 0.05);
+  padding: 0;
+  margin: 0;
+}
+
+[data-theme='light'] .sf-grid {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+/* Fullscreen (#ugc-fs-target): fill column, scale cells to viewport, avoid tiny scroll box */
+#ugc-fs-target:fullscreen .gu-board-wrap,
+#ugc-fs-target:-webkit-full-screen .gu-board-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+}
+
+#ugc-fs-target:fullscreen #sportsfield-main.sf-pitch-root,
+#ugc-fs-target:-webkit-full-screen #sportsfield-main.sf-pitch-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#ugc-fs-target:fullscreen .sf-scroll,
+#ugc-fs-target:-webkit-full-screen .sf-scroll {
+  --sf-cell: min(20px, calc((100cqw - 48px) / 51));
+}
+
+#ugc-fs-target:fullscreen #sportsfield-main.upl-main-slot,
+#ugc-fs-target:-webkit-full-screen #sportsfield-main.upl-main-slot {
+  min-height: 0;
+}
+
+#ugc-fs-target:fullscreen .sf-stage,
+#ugc-fs-target:-webkit-full-screen .sf-stage {
+  min-height: 0;
+  flex: 1 1 auto;
+  max-height: none;
+}
+
+#ugc-fs-target:fullscreen .sf-scroll,
+#ugc-fs-target:-webkit-full-screen .sf-scroll {
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: min(72vh, 720px);
+  padding: 12px 14px;
+}
+
+/* Board-only fullscreen (no ugc-fs-target) */
+.gu-board-wrap:fullscreen #sportsfield-main.sf-pitch-root,
+.gu-board-wrap:-webkit-full-screen #sportsfield-main.sf-pitch-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.gu-board-wrap:fullscreen .sf-scroll,
+.gu-board-wrap:-webkit-full-screen .sf-scroll {
+  --sf-cell: min(20px, calc((100cqw - 48px) / 51));
+}
+
+.gu-board-wrap:fullscreen #sportsfield-main.upl-main-slot,
+.gu-board-wrap:-webkit-full-screen #sportsfield-main.upl-main-slot {
+  min-height: 0;
+}
+
+.gu-board-wrap:fullscreen .sf-scroll,
+.gu-board-wrap:-webkit-full-screen .sf-scroll {
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: min(78vh, 800px);
+}
+
+/* Sidebar: YouTube + sky flow + kbatch transcript (sports-field-ugrad) */
+.sf-side-stack {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--qp-border, #30363d);
+}
+
+.sf-broadcast-meta {
+  margin: 0 0 8px;
+  font: 500 9px ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.45;
+  color: var(--qp-fg-muted, #8d97a6);
+}
+
+.sf-broadcast-meta a {
+  color: var(--qp-accent, #58a6ff);
+}
+
+.sf-yt-controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.sf-yt-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: var(--qp-bg-base, #161b22);
+  color: var(--qp-fg-primary, #e8edf4);
+  font: 500 10px ui-monospace, monospace;
+}
+
+.sf-yt-load {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--qp-fg-primary, #e8edf4);
+  font: 600 10px ui-monospace, monospace;
+  cursor: pointer;
+}
+
+.sf-yt-embed-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--qp-fg-muted, #8d97a6);
+  line-height: 1.35;
+}
+
+.sf-yt-open {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(88, 166, 255, 0.12);
+  color: var(--qp-accent, #58a6ff);
+  font: 600 10px ui-monospace, monospace;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sf-yt-open:hover {
+  background: rgba(88, 166, 255, 0.2);
+}
+
+.sf-yt-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: #0d1117;
+  margin-bottom: 12px;
+}
+
+.sf-yt-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+#sf-sky-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: #0a0f0c;
+}
+
+.sf-flow-stats {
+  font: 500 9px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin: 6px 0 4px;
+  line-height: 1.35;
+}
+
+.sf-flock-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 10px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin: 0 0 10px;
+  cursor: pointer;
+}
+
+.sf-tx-log {
+  max-height: 120px;
+  overflow-y: auto;
+  font: 500 9px ui-monospace, monospace;
+  line-height: 1.4;
+  color: var(--qp-fg-body, #c9d1d9);
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(0, 0, 0, 0.25);
+  margin-bottom: 8px;
+}
+
+.sf-tx-line {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+}
+
+.sf-tx-ts {
+  color: var(--qp-fg-muted, #8d97a6);
+  margin-right: 4px;
+}
+
+.sf-live-details {
+  font-size: 10px;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin-top: 4px;
+}
+
+.sf-live-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--qp-fg-body, #c9d1d9);
+}
+
+.sf-live-hint {
+  margin: 8px 0;
+  line-height: 1.45;
+}
+
+.sf-json-ta {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: var(--qp-bg-base, #161b22);
+  color: var(--qp-fg-primary, #e8edf4);
+  font: 500 10px ui-monospace, monospace;
+  resize: vertical;
+  margin-bottom: 6px;
+}
+
+.sf-json-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(88, 166, 255, 0.12);
+  color: var(--qp-fg-primary, #e8edf4);
+  font: 600 10px ui-monospace, monospace;
+  cursor: pointer;
+}
+
+.sf-vision-details {
+  font-size: 10px;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.sf-vision-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--qp-fg-body, #c9d1d9);
+}
+
+.sf-vision-hint {
+  margin: 8px 0;
+  line-height: 1.45;
+  color: var(--qp-fg-body, #c9d1d9);
+}
+
+.sf-vision-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 8px 0;
+}
+
+.sf-vision-video {
+  width: 160px;
+  max-width: 45%;
+  border-radius: 6px;
+  background: #000;
+  vertical-align: top;
+}
+
+.sf-vision-canvas {
+  border-radius: 6px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: #0a0f12;
+  max-width: 100%;
+  height: auto;
+}
+
+.sf-vision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font: 500 10px ui-monospace, monospace;
+}
+
+.sf-vision-actions button {
+  font: 600 9px ui-monospace, monospace;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-border, #30363d);
+  background: rgba(63, 185, 80, 0.12);
+  color: var(--qp-fg-primary, #e8edf4);
+  cursor: pointer;
+}
+
+.sf-vision-actions label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.sf-vision-status {
+  margin: 6px 0 0;
+  font: 500 9px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  min-height: 1.2em;
+}

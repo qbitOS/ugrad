@@ -1,0 +1,1366 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>μPark — IBM quantum gate race on Aurora topo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#010409;color:#c9d1d9;font:11px/1.4 'SF Mono',monospace;overflow:hidden}
+#wrap{display:flex;flex-direction:column;height:100vh}
+#top{display:flex;flex:1;min-height:0}
+canvas#park{flex:1;background:#000;cursor:crosshair}
+#term{width:320px;overflow-y:auto;padding:6px 8px;white-space:pre-wrap;border-left:1px solid #161b22;font-size:10px;contain:content}
+#term::-webkit-scrollbar{width:2px}#term::-webkit-scrollbar-thumb{background:#21262d}
+#bar{display:flex;gap:8px;padding:3px 10px;font-size:9px;color:#484f58;border-top:1px solid #161b22;align-items:center;height:22px;user-select:none}
+#bar b{color:#a78bfa;font-weight:400}
+#bar input{flex:0;width:40%;background:0 0;border:0;color:#c9d1d9;font:inherit;outline:0;caret-color:#a78bfa}
+.g{color:#3fb950}.r{color:#f85149}.c{color:#58a6ff}.d{color:#484f58}.m{color:#d2a8ff}.o{color:#f0883e}.y{color:#c9a84c}
+.ln{min-height:1.1em}
+@media(max-width:700px){#term{width:100%;height:180px;border-left:0;border-top:1px solid #161b22}#top{flex-direction:column}}
+</style></head><body data-ugrad-game="photonic">
+<div id="wrap">
+<div id="top">
+<canvas id="park"></canvas>
+<div id="term"></div>
+</div>
+<div id="bar">
+<b>μPark❯</b><input id="cmd" spellcheck="false" autocomplete="off">
+<span id="st0">boot:—</span>
+<span id="st1">·riders:4</span>
+<span id="st2">·sector:—</span>
+<span id="st3">·fidelity:—</span>
+<span id="st5">·gen:0</span>
+<span id="st4">·fps:—</span>
+</div>
+</div>
+<script>
+(function(){
+'use strict';
+var T0=performance.now();
+var C=document.getElementById('park'),ctx,TM=document.getElementById('term'),CMD=document.getElementById('cmd');
+var W,H,dpr;
+var _r=0;
+function tw(h){var d=document.createElement('div');d.className='ln';d.innerHTML=h;TM.appendChild(d);if(!_r){_r=1;requestAnimationFrame(function(){TM.scrollTop=TM.scrollHeight;_r=0})}}
+function tc(s,c){tw(c?'<span class="'+c+'">'+s.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>':s.replace(/&/g,'&amp;').replace(/</g,'&lt;'))}
+function pad(n,l){var s=''+n;while(s.length<l)s=' '+s;return s}
+var sin=Math.sin,cos=Math.cos,abs=Math.abs,sqrt=Math.sqrt,pow=Math.pow,min=Math.min,max=Math.max,PI=Math.PI,rng=Math.random,floor=Math.floor,tanh=Math.tanh;
+
+// ═══════════════════════════════════════════════════════════════
+// PHOTONIC SKATE PARK
+//
+// The terrain IS Xanadu's Aurora architecture:
+//   GBS Sources (84 squeezers) → Starting ramps
+//   Refinery (binary trees)    → Half-pipes
+//   QPU Cells (macronodes)     → Quarter-pipes / bowls
+//   Fiber Delays               → Loops / tunnels
+//   PNR Detectors              → Checkpoint gates
+//   Decoder                    → Finish line
+//
+// 4 riders race the topology:
+//   Original (class)  — steady, readable
+//   Raw (prototype)   — aggressive, fast
+//   Sentence (closure) — fluid, no wasted motion
+//   Quantum (Bloch)   — transcendent, fidelity-gated
+//
+// Physics: ballistic waveform + dispersion relation
+// Gate errors = terrain bumps. Fidelity = speed multiplier.
+// ═══════════════════════════════════════════════════════════════
+
+// Aurora architecture constants (from Nature paper)
+var AURORA={
+  squeezers:84, gbsCells:42, chips:21,
+  pnrDetectors:36, refineryInputs:48,
+  refineryChips:6, treeDepth:4,
+  qpuChips:5, modes:12, clockMHz:1,
+  lossP1_dB:5.6, lossP2P3_dB:9.5,
+  fiberDelay_m:253.286, fiberDelay_us:1.239,
+  feedforwardLatency_ns:976
+};
+
+// Terrain sectors (mapped from Aurora pipeline)
+var SECTORS=[
+  {name:'GBS Sources',    x0:0,   x1:0.15,color:'#a78bfa',gateErr:0.001,temp:300, desc:'84 squeezers, ring resonators, squeezed light generation'},
+  {name:'Fiber Buffer',   x0:0.15,x1:0.22,color:'#484f58',gateErr:0.0005,temp:300,desc:'253m delay lines, phase-stabilized, awaiting PNR heralding'},
+  {name:'PNR Detectors',  x0:0.22,x1:0.28,color:'#58a6ff',gateErr:0.01, temp:0.012,desc:'36 TES at 12mK, photon-number resolving, 1MHz native'},
+  {name:'Refinery',       x0:0.28,x1:0.48,color:'#3fb950',gateErr:0.003,temp:300, desc:'6 TFLN chips, 4-to-1 MUX trees, Bell pair synthesis'},
+  {name:'Fiber Routing',  x0:0.48,x1:0.55,color:'#484f58',gateErr:0.0005,temp:300,desc:'temporal delay, cluster-state spatial routing'},
+  {name:'QPU Array',      x0:0.55,x1:0.78,color:'#f0883e',gateErr:0.005,temp:300, desc:'5 silicon PIC chips, macronode stitch, homodyne detection'},
+  {name:'Decoder',        x0:0.78,x1:0.88,color:'#f85149',gateErr:0.008,temp:300, desc:'FPGA real-time decoder, belief propagation, 976ns latency'},
+  {name:'Fault Tolerance', x0:0.88,x1:1.0, color:'#d2a8ff',gateErr:0.015,temp:300,desc:'9.75dB threshold, surface code, logical qubits'}
+];
+
+// Terrain: 2D mesh grid mapped from Aurora topology
+// X = pipeline progress (GBS→Decoder), Z = mode/frequency space, Y = elevation
+var GRID=48, TERRAIN_RES=GRID;
+var terrain=new Float32Array(GRID); // 1D slice for physics
+var terrainColor=[];
+var meshPts=[]; // [{x,y,z,col,sec}] for 3D mesh
+
+// Camera orbit
+var camPitch=-0.55,camYaw=0.4,camDist=5.5;
+var camTargetX=0,camTargetZ=0;
+var dragging=false,dragX=0,dragY=0;
+
+function heightAt(u,v){
+  var sec=null;
+  for(var s=0;s<SECTORS.length;s++)if(u>=SECTORS[s].x0&&u<SECTORS[s].x1){sec=SECTORS[s];break}
+  if(!sec)sec=SECTORS[SECTORS.length-1];
+  var localU=(u-sec.x0)/(sec.x1-sec.x0);
+  var base=0;
+  if(sec.name==='GBS Sources')base=0.3+0.25*sin(localU*PI*3)+0.1*localU;
+  else if(sec.name==='Fiber Buffer'||sec.name==='Fiber Routing')base=0.4+0.06*sin(localU*PI*8);
+  else if(sec.name==='PNR Detectors')base=0.12+0.35*abs(sin(localU*PI*6));
+  else if(sec.name==='Refinery'){var p=sin(localU*PI*2);base=0.35+0.3*p*p+0.12*sin(localU*PI*7)}
+  else if(sec.name==='QPU Array')base=0.4+0.28*cos(localU*PI*5)+0.08*sin(localU*PI*12);
+  else if(sec.name==='Decoder')base=0.5+0.22*sin(localU*PI*9)+0.12*cos(localU*PI*14);
+  else if(sec.name==='Fault Tolerance')base=0.5+0.4*localU+0.1*sin(localU*PI*4);
+  // 2D variation: mode-space waves (spin-chain coupling)
+  base+=sin(v*PI*4)*0.08+cos(v*PI*7+u*12)*0.04+sin(v*PI*2+u*5)*0.05;
+  base+=sec.gateErr*25*(sin(u*47)*sin(v*31));
+  return max(0.02,min(0.98,base));
+}
+
+function sectorOf(u){
+  for(var s=0;s<SECTORS.length;s++)if(u>=SECTORS[s].x0&&u<SECTORS[s].x1)return SECTORS[s];
+  return SECTORS[SECTORS.length-1];
+}
+
+function buildTerrain(){
+  meshPts=[];
+  for(var r=0;r<GRID;r++){
+    for(var c=0;c<GRID;c++){
+      var u=c/(GRID-1),v=r/(GRID-1);
+      var h=heightAt(u,v);
+      var sec=sectorOf(u);
+      meshPts.push({u:u,v:v,x:(u-0.5)*6,y:h*2.5-1.2,z:(v-0.5)*6,h:h,sec:sec});
+    }
+  }
+  // 1D physics terrain (center row)
+  for(var c=0;c<GRID;c++){
+    terrain[c]=meshPts[floor(GRID/2)*GRID+c].h;
+    terrainColor[c]=meshPts[floor(GRID/2)*GRID+c].sec.color;
+  }
+}
+
+// 3D → 2D projection with orbit camera
+function project(x,y,z){
+  x-=camTargetX;z-=camTargetZ;
+  var cy=cos(camYaw),sy=sin(camYaw);
+  var rx=x*cy+z*sy,rz=-x*sy+z*cy;
+  var cp=cos(camPitch),sp=sin(camPitch);
+  var ry=y*cp-rz*sp,rz2=y*sp+rz*cp;
+  var d=camDist+rz2;
+  if(d<0.15)d=0.15;
+  var sc=min(W,H)*0.38/d;
+  return{sx:W*0.45+rx*sc,sy:H*0.45-ry*sc,d:d};
+}
+
+// Elevation → color (topo bands from qpu-pointcloud)
+function elevColor(h,secCol,glow){
+  glow=glow||0;
+  if(h>0.8)return'rgb('+(220+glow*35)+','+(130+glow*80)+','+(50+glow*40)+')';
+  if(h>0.6)return'rgb('+(70+glow*100)+','+(180+glow*50)+','+(80+glow*30)+')';
+  if(h>0.35)return'rgb('+(40+glow*60)+','+(90+glow*60)+','+(170+glow*60)+')';
+  return'rgb('+(25+glow*40)+','+(50+glow*40)+','+(120+glow*80)+')';
+}
+
+// Mouse orbit controls
+function initMouseControls(){
+  C.addEventListener('mousedown',function(e){dragging=true;dragX=e.clientX;dragY=e.clientY});
+  C.addEventListener('mousemove',function(e){if(!dragging)return;camYaw+=(e.clientX-dragX)*0.005;camPitch+=(e.clientY-dragY)*0.005;camPitch=max(-1.2,min(-0.1,camPitch));dragX=e.clientX;dragY=e.clientY});
+  C.addEventListener('mouseup',function(){dragging=false});
+  C.addEventListener('mouseleave',function(){dragging=false});
+  C.addEventListener('wheel',function(e){camDist+=e.deltaY*0.005;camDist=max(2,min(12,camDist));e.preventDefault()},{passive:false});
+}
+
+// ═══ 4 AUTOGRAD ENGINES (embedded, minimal) ═══
+
+// 1. Original (class-based)
+var OrigEngine=(function(){
+  function V(d,ch,op){this.data=+d;this.grad=0;this._backward=null;this._prev=ch||[];this._op=op||''}
+  V.prototype.add=function(o){o=o instanceof V?o:new V(o);var r=new V(this.data+o.data,[this,o],'+');var a=this,b=o;r._backward=function(){a.grad+=r.grad;b.grad+=r.grad};return r};
+  V.prototype.mul=function(o){o=o instanceof V?o:new V(o);var r=new V(this.data*o.data,[this,o],'*');var a=this,b=o;r._backward=function(){a.grad+=b.data*r.grad;b.grad+=a.data*r.grad};return r};
+  V.prototype.tanh=function(){var t=tanh(this.data);var r=new V(t,[this],'tanh');var a=this;r._backward=function(){a.grad+=(1-t*t)*r.grad};return r};
+  V.prototype.relu=function(){var r=new V(this.data>0?this.data:0,[this],'relu');var a=this;r._backward=function(){a.grad+=(r.data>0?1:0)*r.grad};return r};
+  V.prototype.backward=function(){var tp=[],vi=new Set();function b(v){if(!vi.has(v)){vi.add(v);v._prev.forEach(b);tp.push(v)}}b(this);this.grad=1;for(var i=tp.length-1;i>=0;i--)if(tp[i]._backward)tp[i]._backward()};
+  function N(ni,nl){var w=[],i;for(i=0;i<ni;i++)w[i]=new V((rng()*2-1)*sqrt(2/ni));var b=new V(0);return{f:function(x){var a=b,j;for(j=0;j<ni;j++)a=a.add(w[j].mul(x[j]));return nl!==false?a.tanh():a},ps:function(){return w.concat(b)}}}
+  function L(ni,no,nl){var ns=[],i;for(i=0;i<no;i++)ns[i]=N(ni,nl);return{f:function(x){var o=ns.map(function(n){return n.f(x)});return o},ps:function(){var p=[];ns.forEach(function(n){p=p.concat(n.ps())});return p}}}
+  function M(sz){var ls=[],i;for(i=0;i<sz.length-1;i++)ls[i]=L(sz[i],sz[i+1],i<sz.length-2);return{f:function(x){var i;for(i=0;i<ls.length;i++){var o=ls[i].f(x);x=o.length===1?o:o}return x.length===1?x[0]:x},ps:function(){var p=[];ls.forEach(function(l){p=p.concat(l.ps())});return p},zg:function(){this.ps().forEach(function(p){p.grad=0})}}}
+  return{name:'Original',sym:'◼',color:'#58a6ff',build:M,V:V};
+})();
+
+// 2. Raw (prototype, single-letter)
+var RawEngine=(function(){
+  function V(d,ch,op){this.d=+d;this.g=0;this._b=null;this._p=ch||[]}
+  V.prototype.a=function(o){o=o instanceof V?o:new V(o);var r=new V(this.d+o.d,[this,o]);var s=this,u=o;r._b=function(){s.g+=r.g;u.g+=r.g};return r};
+  V.prototype.m=function(o){o=o instanceof V?o:new V(o);var r=new V(this.d*o.d,[this,o]);var s=this,u=o;r._b=function(){s.g+=u.d*r.g;u.g+=s.d*r.g};return r};
+  V.prototype.t=function(){var t=tanh(this.d);var r=new V(t,[this]);var s=this;r._b=function(){s.g+=(1-t*t)*r.g};return r};
+  V.prototype.rl=function(){var r=new V(this.d>0?this.d:0,[this]);var s=this;r._b=function(){s.g+=(r.d>0?1:0)*r.g};return r};
+  V.prototype.bw=function(){var tp=[],vi=new Set();function b(v){if(!vi.has(v)){vi.add(v);for(var i=0;i<v._p.length;i++)b(v._p[i]);tp.push(v)}}b(this);this.g=1;for(var i=tp.length-1;i>=0;i--)if(tp[i]._b)tp[i]._b()};
+  function N(ni,nl){var w=[],i;for(i=0;i<ni;i++)w[i]=new V((rng()*2-1)*sqrt(2/ni));var b=new V(0);return{f:function(x){var a=b,j;for(j=0;j<ni;j++)a=a.a(w[j].m(x[j]));return nl!==false?a.t():a},ps:function(){return w.concat(b)}}}
+  function L(ni,no,nl){var ns=[],i;for(i=0;i<no;i++)ns[i]=N(ni,nl);return{f:function(x){var o=[],j;for(j=0;j<no;j++)o[j]=ns[j].f(x);return o},ps:function(){var p=[];for(var j=0;j<no;j++)p=p.concat(ns[j].ps());return p}}}
+  function M(sz){var ls=[],i;for(i=0;i<sz.length-1;i++)ls[i]=L(sz[i],sz[i+1],i<sz.length-2);return{f:function(x){var i;for(i=0;i<ls.length;i++){var o=ls[i].f(x);x=o.length===1?o:o}return x.length===1?x[0]:x},ps:function(){var p=[];for(var i=0;i<ls.length;i++)p=p.concat(ls[i].ps());return p},zg:function(){var p=this.ps();for(var i=0;i<p.length;i++)p[i].g=0}}}
+  return{name:'Raw',sym:'▲',color:'#3fb950',build:M,V:V};
+})();
+
+// 3. Sentence (closure factories)
+var SentEngine=(function(){
+  var V=function(d,p,b){return{d:+d,g:0,_p:p||[],_b:b||null}};
+  var A=function(a,b){b=b.d!==undefined?b:V(b);var r=V(a.d+b.d,[a,b],function(){a.g+=r.g;b.g+=r.g});return r};
+  var U=function(a,b){b=b.d!==undefined?b:V(b);var r=V(a.d*b.d,[a,b],function(){a.g+=b.d*r.g;b.g+=a.d*r.g});return r};
+  var TH=function(a){var t=tanh(a.d);var r=V(t,[a],function(){a.g+=(1-t*t)*r.g});return r};
+  var RL=function(a){var d=a.d>0?a.d:0;var r=V(d,[a],function(){a.g+=(r.d>0?1:0)*r.g});return r};
+  var BW=function(root){var tp=[],vi=new Set();function b(v){if(v&&!vi.has(v)){vi.add(v);for(var i=0;i<v._p.length;i++)b(v._p[i]);tp.push(v)}}b(root);root.g=1;for(var i=tp.length-1;i>=0;i--)if(tp[i]._b)tp[i]._b()};
+  var neuron=function(ni,nl){var w=[],i;for(i=0;i<ni;i++)w[i]=V((rng()*2-1)*sqrt(2/ni));var b=V(0);return{f:function(x){var a=b,j;for(j=0;j<ni;j++)a=A(a,U(w[j],x[j]));return nl!==false?TH(a):a},ps:function(){return w.concat(b)}}};
+  var layer=function(ni,no,nl){var ns=[],i;for(i=0;i<no;i++)ns[i]=neuron(ni,nl);return{f:function(x){var o=[],j;for(j=0;j<no;j++)o[j]=ns[j].f(x);return o},ps:function(){var p=[];for(var j=0;j<no;j++)p=p.concat(ns[j].ps());return p}}};
+  var mlp=function(sz){var ls=[],i;for(i=0;i<sz.length-1;i++)ls[i]=layer(sz[i],sz[i+1],i<sz.length-2);return{f:function(x){var i;for(i=0;i<ls.length;i++){var o=ls[i].f(x);x=o.length===1?o:o}return x.length===1?x[0]:x},ps:function(){var p=[];for(var i=0;i<ls.length;i++)p=p.concat(ls[i].ps());return p},zg:function(){var p=this.ps(),i;for(i=0;i<p.length;i++)p[i].g=0}}};
+  return{name:'Sentence',sym:'●',color:'#f0883e',build:mlp,V:V,A:A,U:U,TH:TH,RL:RL,BW:BW};
+})();
+
+// 4. Quantum (Bloch-sphere values, gate operations)
+var QuantEngine=(function(){
+  function QV(d){this.d=+d;this.g=0;this.theta=2*Math.acos(sqrt(max(0.01,min(0.99,abs(d)%1))));this.fidelity=1;this._b=null;this._p=[]}
+  function gErr(){return 0.001+rng()*0.002}
+  QV.prototype.add=function(o){o=o instanceof QV?o:new QV(o);var r=new QV(this.d+o.d);r._p=[this,o];r.theta=(this.theta+o.theta)/2;r.fidelity=this.fidelity*o.fidelity*(1-gErr());var a=this,b=o;r._b=function(){a.g+=r.g;b.g+=r.g};return r};
+  QV.prototype.mul=function(o){o=o instanceof QV?o:new QV(o);var r=new QV(this.d*o.d);r._p=[this,o];r.theta=min(PI,this.theta*abs(o.d)+o.theta*abs(this.d));r.fidelity=this.fidelity*o.fidelity*(1-gErr());var a=this,b=o;r._b=function(){a.g+=b.d*r.g;b.g+=a.d*r.g};return r};
+  QV.prototype.tanh=function(){var t=tanh(this.d);var r=new QV(t);r._p=[this];r.theta=Math.acos(max(-1,min(1,t)));r.fidelity=this.fidelity*(1-gErr());var a=this;r._b=function(){a.g+=(1-t*t)*r.g};return r};
+  QV.prototype.backward=function(){var tp=[],vi=new Set();function b(v){if(!vi.has(v)){vi.add(v);for(var i=0;i<v._p.length;i++)b(v._p[i]);tp.push(v)}}b(this);this.g=1;for(var i=tp.length-1;i>=0;i--){if(tp[i]._b){tp[i]._b();tp[i].g*=(1-tp[i].fidelity>0.99?0:gErr()*0.5)}}};
+  function N(ni,nl){var w=[],i;for(i=0;i<ni;i++)w[i]=new QV((rng()*2-1)*sqrt(2/ni));var b=new QV(0);return{f:function(x){var a=b,j;for(j=0;j<ni;j++)a=a.add(w[j].mul(x[j]));return nl!==false?a.tanh():a},ps:function(){return w.concat(b)}}}
+  function L(ni,no,nl){var ns=[],i;for(i=0;i<no;i++)ns[i]=N(ni,nl);return{f:function(x){var o=[],j;for(j=0;j<no;j++)o[j]=ns[j].f(x);return o},ps:function(){var p=[];for(var j=0;j<no;j++)p=p.concat(ns[j].ps());return p}}}
+  function M(sz){var ls=[],i;for(i=0;i<sz.length-1;i++)ls[i]=L(sz[i],sz[i+1],i<sz.length-2);return{f:function(x){var i;for(i=0;i<ls.length;i++){var o=ls[i].f(x);x=o.length===1?o:o}return x.length===1?x[0]:x},ps:function(){var p=[];for(var i=0;i<ls.length;i++)p=p.concat(ls[i].ps());return p},zg:function(){var p=this.ps();for(var i=0;i<p.length;i++)p[i].g=0}}}
+  return{name:'Quantum',sym:'◆',color:'#d2a8ff',build:M,QV:QV};
+})();
+
+// ═══ RIDERS: AI agents on the photonic terrain ═══
+var ENGINES=[OrigEngine,RawEngine,SentEngine,QuantEngine];
+var riders=[];
+var racing=false,raceTime=0,raceResults=[];
+
+function initRiders(){
+  riders=ENGINES.map(function(eng,i){
+    return{
+      eng:eng,
+      x:0.01, y:0, vx:0, vy:0,
+      speed:0, maxSpeed:0,
+      sector:0, lap:0,
+      fidelity:1,
+      model:null, trainLoss:1, trainAcc:0, trainMs:0,
+      fwdCount:0, bwCount:0,
+      finished:false, finishTime:0,
+      trail:[]
+    };
+  });
+}
+
+// Dispersion relation: ω(k) = √(Δ² + 4J²sin²(ka/2))
+function dispersion(k,gateGap){return sqrt(gateGap*gateGap+4*pow(sin(k/2),2))}
+
+// Terrain height at normalized position (0-1), uses center row of 2D grid
+function terrainAt(u){return heightAt(max(0,min(0.999,u)),0.5)}
+function terrainSlope(u){var du=0.008;return(terrainAt(u+du)-terrainAt(u-du))/(2*du)}
+function sectorAt(u){for(var i=0;i<SECTORS.length;i++)if(u>=SECTORS[i].x0&&u<SECTORS[i].x1)return i;return SECTORS.length-1}
+
+// Physics update: ballistic wavepacket on terrain surface
+function updateRiders(dt){
+  if(!racing)return;
+  raceTime+=dt;
+
+  riders.forEach(function(r,ri){
+    if(r.finished)return;
+    var sec=SECTORS[sectorAt(r.x)];
+    var slope=terrainSlope(r.x);
+    var errFriction=sec.gateErr*200;
+
+    // Base drive force (engine-specific speed characteristic)
+    var drive=[0.08,0.10,0.11,0.07][ri];
+
+    // Dispersion-modulated speed: higher ω = faster propagation
+    var omega=dispersion(r.x*PI*4,sec.gateErr);
+    drive*=(1+omega*0.3);
+
+    // Gravity component from slope
+    var gravity=-slope*0.15;
+
+    // Gate error friction
+    var friction=errFriction*abs(r.vx)*0.3;
+
+    // Fidelity boost (quantum rider advantage in high-error zones)
+    if(ri===3)friction*=0.6;
+
+    r.vx+=((drive+gravity-friction*Math.sign(r.vx))*dt);
+    r.vx=max(0.001,min(0.5,r.vx));
+    r.x+=r.vx*dt;
+
+    // Terrain following
+    var ty=terrainAt(r.x);
+    r.y=ty;
+
+    // Sector tracking
+    var newSec=sectorAt(r.x);
+    if(newSec!==r.sector){
+      r.sector=newSec;
+      // Waypoint: run a quick training step
+      doTrainStep(r,ri);
+    }
+
+    r.speed=r.vx;
+    r.maxSpeed=max(r.maxSpeed,r.speed);
+
+    // Trail
+    r.trail.push({x:r.x,y:r.y});
+    if(r.trail.length>200)r.trail.shift();
+
+    // Finish line
+    if(r.x>=0.99){
+      r.finished=true;
+      r.finishTime=raceTime;
+      raceResults.push({name:r.eng.name,time:raceTime,loss:r.trainLoss,acc:r.trainAcc,fwd:r.fwdCount,bw:r.bwCount,maxSpeed:r.maxSpeed,fidelity:r.fidelity});
+      tc(r.eng.sym+' '+r.eng.name+' FINISHED in '+raceTime.toFixed(2)+'s · loss:'+r.trainLoss.toFixed(4)+' · acc:'+(r.trainAcc*100).toFixed(1)+'%','g');
+      if(raceResults.length===4)raceComplete();
+    }
+  });
+
+  // Status bar
+  var lead=riders.reduce(function(a,b){return a.x>b.x?a:b});
+  document.getElementById('st2').textContent='·sector:'+SECTORS[sectorAt(lead.x)].name;
+  document.getElementById('st3').textContent='·fid:'+(lead.fidelity*100).toFixed(1)+'%';
+  document.getElementById('st5').textContent='·gen:'+evoGen+(activeGenome?' #'+activeGenome.id:'');
+}
+
+// XOR dataset
+var XOR_X=[[1,-1],[-1,1],[1,1],[-1,-1]];
+var XOR_Y=[1,1,-1,-1];
+
+function doTrainStep(r,ri){
+  var eng=r.eng;
+  var t0=performance.now();
+  if(!r.model)r.model=eng.build([2,8,8,1]);
+  var m=r.model;
+
+  // Quick 5-epoch burst at waypoint
+  for(var e=0;e<5;e++){
+    var totalLoss=0,correct=0;
+    for(var i=0;i<4;i++){
+      var x,pred;
+      if(ri===3){
+        x=XOR_X[i].map(function(v){return new eng.QV(v)});
+        pred=m.f(x);
+        var loss=pred.d*(-XOR_Y[i]);
+        if(loss<0)loss=0;
+        totalLoss+=loss;
+        if((pred.d>0)===(XOR_Y[i]>0))correct++;
+        m.zg();pred.backward();
+        r.fidelity=min(r.fidelity,pred.fidelity||1);
+      } else if(ri===2){
+        x=XOR_X[i].map(function(v){return eng.V(v)});
+        pred=m.f(x);
+        var lv=eng.RL(eng.A(eng.U(pred,eng.V(-XOR_Y[i])),eng.V(1)));
+        totalLoss+=lv.d;
+        if((pred.d>0)===(XOR_Y[i]>0))correct++;
+        m.zg();lv.g=1;eng.BW(lv);
+      } else if(ri===1){
+        x=XOR_X[i].map(function(v){return new eng.V(v)});
+        pred=m.f(x);
+        var lv=pred.m(new eng.V(-XOR_Y[i])).a(new eng.V(1)).rl();
+        totalLoss+=lv.d;
+        if((pred.d>0)===(XOR_Y[i]>0))correct++;
+        m.zg();lv.bw();
+      } else {
+        x=XOR_X[i].map(function(v){return new eng.V(v)});
+        pred=m.f(x);
+        var lv=pred.mul(new eng.V(-XOR_Y[i])).add(new eng.V(1)).relu();
+        totalLoss+=lv.data;
+        if((pred.data>0)===(XOR_Y[i]>0))correct++;
+        m.zg();lv.backward();
+      }
+      r.fwdCount++;r.bwCount++;
+    }
+    var lr=0.05;
+    var ps=m.ps();
+    for(var j=0;j<ps.length;j++){
+      var p=ps[j];
+      var g=p.grad!==undefined?p.grad:p.g;
+      var d=p.data!==undefined?'data':'d';
+      p[d]-=lr*g;
+    }
+    r.trainLoss=totalLoss/4;
+    r.trainAcc=correct/4;
+  }
+  r.trainMs+=performance.now()-t0;
+  gateJudgment(r,ri,r.sector);
+}
+
+function raceComplete(){
+  tc('','');
+  tc('═══ RACE COMPLETE ═══','m');
+  tc('┌──────────┬────────┬────────┬────────┬───────┬───────┬──────────┐','d');
+  tc('│ Rider    │ Time   │ Loss   │ Acc    │ Fwd   │ MaxSpd│ Fidelity │','c');
+  tc('├──────────┼────────┼────────┼────────┼───────┼───────┼──────────┤','d');
+  raceResults.sort(function(a,b){return a.time-b.time});
+  raceResults.forEach(function(r,i){
+    var cls=i===0?'g':i===1?'c':i===2?'y':'r';
+    tc('│ '+r.name.padEnd(8)+' │ '+r.time.toFixed(2).padStart(6)+' │ '+r.loss.toFixed(4)+' │ '+(r.acc*100).toFixed(0).padStart(4)+'%  │ '+pad(r.fwd,5)+' │ '+r.maxSpeed.toFixed(3)+' │ '+(r.fidelity*100).toFixed(2).padStart(6)+'%  │',cls);
+  });
+  tc('└──────────┴────────┴────────┴────────┴───────┴───────┴──────────┘','d');
+  racing=false;
+  // Broadcast results
+  try{var bc=new BroadcastChannel('iron-line');bc.postMessage({type:'photonic-park-race',source:'ugrad-photonic-park',results:raceResults,t:performance.now()});bc.close()}catch(e){}
+}
+
+// ═══ IBM QUANTUM GATE SYSTEM ═══
+// Commander judges at sector boundaries (core → crust → IBM → crust → core)
+// Each gate is a quantum checkpoint — only place you "see" the quantum
+
+var ibmApiKey='';
+var commanders=[];
+var gateLog=[];
+
+function initCommanders(){
+  commanders=[];
+  for(var s=1;s<SECTORS.length;s++){
+    commanders.push({
+      gate:s,x:SECTORS[s].x0,name:SECTORS[s].name,
+      judgments:[],active:false,activeRider:-1,
+      glowPhase:0,ibmPending:0
+    });
+  }
+}
+
+function weightsToQASM(model){
+  var ps=model.ps();
+  var weights=ps.map(function(p){return p.data!==undefined?p.data:p.d});
+  var nQ=min(5,max(2,Math.ceil(Math.log2(weights.length+1))));
+  var qasm='OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q['+nQ+'];\ncreg c['+nQ+'];\n';
+  for(var i=0;i<nQ;i++)qasm+='h q['+i+'];\n';
+  qasm+='\n';
+  for(var i=0;i<weights.length&&i<nQ*3;i++){
+    var q=i%nQ;
+    var angle=weights[i]*PI;
+    qasm+='rz('+angle.toFixed(6)+') q['+q+'];\n';
+    if(i%nQ===nQ-1&&i<weights.length-1){
+      for(var j=0;j<nQ-1;j++)qasm+='cz q['+j+'],q['+(j+1)+'];\n';
+      qasm+='\n';
+    }
+  }
+  qasm+='\nmeasure q -> c;\n';
+  return{qasm:qasm,nQ:nQ,nW:weights.length};
+}
+
+function localQSim(nQ){
+  var shots=1024,states=1<<nQ,counts={};
+  var sv=new Float64Array(states*2);
+  sv[0]=1;sv[1]=0;
+  for(var q=0;q<nQ;q++){
+    var nSv=new Float64Array(states*2);
+    for(var i=0;i<states;i++){
+      var bit=(i>>q)&1;
+      var re=sv[i*2],im=sv[i*2+1];
+      var j=bit?i^(1<<q):i;
+      var inv=0.7071067811865476;
+      if(bit===0){nSv[i*2]+=re*inv;nSv[i*2+1]+=im*inv;nSv[j*2]+=re*inv;nSv[j*2+1]+=im*inv}
+      else{nSv[j*2]+=re*inv;nSv[j*2+1]+=im*inv;nSv[i*2]-=re*inv;nSv[i*2+1]-=im*inv}
+    }
+    sv=nSv;
+  }
+  var probs=new Float64Array(states);
+  for(var i=0;i<states;i++)probs[i]=sv[i*2]*sv[i*2]+sv[i*2+1]*sv[i*2+1];
+  for(var s=0;s<shots;s++){
+    var r=rng(),cum=0,idx=0;
+    for(var i=0;i<states;i++){cum+=probs[i];if(r<cum){idx=i;break}}
+    var bits='';for(var q=0;q<nQ;q++)bits+=((idx>>q)&1);
+    counts[bits]=(counts[bits]||0)+1;
+  }
+  return counts;
+}
+
+function gateJudgment(rider,ri,sectorIdx){
+  if(!rider.model)return;
+  var cmdIdx=sectorIdx-1;
+  if(cmdIdx<0||cmdIdx>=commanders.length)return;
+  var cmd=commanders[cmdIdx];
+  var circuit=weightsToQASM(rider.model);
+  var localCounts=localQSim(circuit.nQ);
+
+  var total=0,entropy=0;
+  for(var k in localCounts)total+=localCounts[k];
+  for(var k in localCounts){var p=localCounts[k]/total;if(p>0)entropy-=p*Math.log2(p)}
+  var quality=min(1,entropy/circuit.nQ);
+  var verdict=quality>0.7?'PASS':quality>0.4?'WARN':'FAIL';
+  var boost=verdict==='PASS'?0.15:verdict==='WARN'?0:-0.1;
+  rider.vx*=(1+boost);
+  rider.fidelity*=(1-(1-quality)*0.1);
+
+  var j={rider:ri,name:rider.eng.name,color:rider.eng.color,
+    localCounts:localCounts,fidelity:quality,verdict:verdict,
+    boost:boost,time:raceTime,nQ:circuit.nQ,
+    ibmPending:false,ibmCounts:null,ibmFidelity:null};
+  cmd.judgments.push(j);
+  cmd.active=true;cmd.activeRider=ri;cmd.glowPhase=performance.now();
+  gateLog.push({gate:sectorIdx,rider:ri,name:rider.eng.name,verdict:verdict,fidelity:quality,time:raceTime});
+
+  var cls=verdict==='PASS'?'g':verdict==='WARN'?'y':'r';
+  tc('GATE '+sectorIdx+' │ '+rider.eng.sym+' '+rider.eng.name+' │ '+verdict+' │ fid:'+(quality*100).toFixed(1)+'% │ '+circuit.nQ+'Q',cls);
+
+  try{var gbc=new BroadcastChannel('iron-line');
+  gbc.postMessage({type:'gate-submit',source:'ugrad-photonic-park',gate:sectorIdx,rider:ri,
+    riderName:rider.eng.name,riderColor:rider.eng.color,qasm:circuit.qasm,nQ:circuit.nQ,
+    localCounts:localCounts,fidelity:quality,verdict:verdict,t:performance.now()});
+  gbc.close()}catch(e){}
+
+  if(!ibmApiKey)ibmApiKey=localStorage.getItem('ibm-quantum-token')||'';
+  if(ibmApiKey&&window.QuantumPrefixes&&window.QuantumPrefixes.submitToIBM){
+    j.ibmPending=true;cmd.ibmPending++;
+    tc('  └ submitting to IBM Quantum...','d');
+    var circuitObj={qubits:circuit.nQ,gates:[]};
+    circuit.qasm.split('\n').forEach(function(line){
+      line=line.trim();
+      var m;
+      if(m=line.match(/^h q\[(\d+)\]/))circuitObj.gates.push({gate:'H',qubit:+m[1]});
+      else if(m=line.match(/^rz\(([\d.e+-]+)\) q\[(\d+)\]/))circuitObj.gates.push({gate:'Rz',qubit:+m[2],param:+m[1]});
+      else if(m=line.match(/^cz q\[(\d+)\],q\[(\d+)\]/))circuitObj.gates.push({gate:'CZ',qubit:+m[1],target:+m[2]});
+    });
+    window.QuantumPrefixes.submitToIBM(circuitObj,ibmApiKey).then(function(ibmCounts){
+      j.ibmCounts=ibmCounts;j.ibmPending=false;cmd.ibmPending--;
+      var hFid=window.QuantumPrefixes.hellingerFidelity(localCounts,ibmCounts);
+      j.ibmFidelity=hFid;
+      var ib=hFid>0.9?0.2:hFid>0.7?0.05:-0.05;
+      if(riders[ri])riders[ri].vx*=(1+ib);
+      tc('  └ IBM VERIFIED gate '+sectorIdx+' │ '+rider.eng.name+' │ H:'+(hFid*100).toFixed(1)+'% │ boost:'+(ib>0?'+':'')+(ib*100).toFixed(0)+'%',hFid>0.9?'g':hFid>0.7?'y':'r');
+      try{var gbc=new BroadcastChannel('iron-line');
+      gbc.postMessage({type:'gate-result',source:'ugrad-photonic-park',gate:sectorIdx,rider:ri,
+        riderName:rider.eng.name,ibmCounts:ibmCounts,hellingerFidelity:hFid,ibmBoost:ib,t:performance.now()});
+      gbc.close()}catch(e){}
+    }).catch(function(err){j.ibmPending=false;cmd.ibmPending--;tc('  └ IBM error: '+err.message,'r')});
+  }
+}
+
+// Listen for globe responses (IBM results relayed through globe)
+try{var globeBC=new BroadcastChannel('iron-line');
+globeBC.addEventListener('message',function(e){
+  if(e.data.source==='ugrad-photonic-park')return;
+  if(e.data.type==='gate-globe-ack'){
+    tc('  └ globe: packet ascending (gate '+e.data.gate+')','d');
+  }
+  if(e.data.type==='studio-chip-design'&&e.data.source==='qbit-studio'){
+    var g=e.data.genome;
+    if(!g||!g.sectors||!g.sectors.length)return;
+    tc('','');
+    tc('═══ CHIP DESIGN FROM STUDIO ═══','m');
+    tc('genome #'+g.id+' · '+g.sectors.length+' sectors · '+g.modes+' modes','c');
+    g.sectors.forEach(function(s,i){tc('  ['+i+'] '+s.type.padEnd(10)+' err:'+(s.gateErr*1000).toFixed(1)+'‰','d')});
+    normalizeGenome(g);
+    applyGenome(g);buildTerrain();initRiders();initCommanders();gateLog=[];
+    racing=false;raceTime=0;raceResults=[];
+    tc('terrain applied — type race to test · evolve to optimize','g');
+    try{var ack=new BroadcastChannel('iron-line');
+    ack.postMessage({type:'studio-design-ack',source:'ugrad-photonic-park',genomeId:g.id,sectors:g.sectors.length,t:performance.now()});
+    ack.close()}catch(ex){}
+  }
+})}catch(e){}
+
+// ═══ EVOLUTIONARY CHIP DESIGN ═══
+// Genomes parameterize the terrain. Race = fitness function.
+// sketch → test → race → benchmark → evolve → iterate
+
+var CHIP_TYPES=['source','fiber','detector','refinery','routing','qpu','decoder','ft'];
+var CHIP_COLORS=['#a78bfa','#484f58','#58a6ff','#3fb950','#484f58','#f0883e','#f85149','#d2a8ff'];
+var activeGenome=null;
+var evoHistory=[];
+var evoPop=[];
+var evoGen=0;
+var evoRunning=false;
+
+function randomSector(typeIdx){
+  var ti=typeIdx!==undefined?typeIdx:floor(rng()*CHIP_TYPES.length);
+  return{
+    type:CHIP_TYPES[ti],color:CHIP_COLORS[ti],
+    width:0.06+rng()*0.18,
+    gateErr:0.0005+rng()*0.015,
+    hBase:0.15+rng()*0.5,
+    hAmp:0.05+rng()*0.3,
+    hFreq:2+floor(rng()*12),
+    hShape:floor(rng()*4),
+    temp:ti===2?0.012:300
+  };
+}
+
+function randomGenome(){
+  var nSec=5+floor(rng()*4);
+  var sectors=[];
+  for(var i=0;i<nSec;i++)sectors.push(randomSector(i%CHIP_TYPES.length));
+  var g={sectors:sectors,modes:8+floor(rng()*8),coupling:0.02+rng()*0.08,noise:0.02+rng()*0.06,gen:evoGen,fitness:null,id:floor(rng()*1e6)};
+  normalizeGenome(g);
+  return g;
+}
+
+function normalizeGenome(g){
+  var tw=0;g.sectors.forEach(function(s){tw+=s.width});
+  var cx=0;
+  g.sectors.forEach(function(s){
+    s.width/=tw;s.x0=cx;s.x1=cx+s.width;cx+=s.width;
+    s.gateErr=max(0.0001,min(0.03,s.gateErr));
+    s.hBase=max(0.1,min(0.7,s.hBase));
+    s.hAmp=max(0.02,min(0.4,s.hAmp));
+    s.hFreq=max(1,min(15,s.hFreq));
+    s.name=s.type.charAt(0).toUpperCase()+s.type.slice(1);
+  });
+}
+
+function applyGenome(g){
+  activeGenome=g;
+  SECTORS=g.sectors.map(function(s){
+    return{name:s.name,x0:s.x0,x1:s.x1,color:s.color,gateErr:s.gateErr,temp:s.temp,
+      desc:'evolved G'+g.gen+' · '+s.type+' · err:'+(s.gateErr*1000).toFixed(1)+'‰'};
+  });
+  PLATEAU_OFFSET=[];
+  var ph=0;
+  for(var i=0;i<SECTORS.length+1;i++){PLATEAU_OFFSET.push(ph);ph+=0.04+rng()*0.06}
+}
+
+function genomeHeightAt(u,v,g){
+  var sec=null;
+  for(var s=0;s<g.sectors.length;s++)if(u>=g.sectors[s].x0&&u<g.sectors[s].x1){sec=g.sectors[s];break}
+  if(!sec)sec=g.sectors[g.sectors.length-1];
+  var lu=(u-sec.x0)/(sec.x1-sec.x0);
+  var h=sec.hBase;
+  if(sec.hShape===0)h+=sec.hAmp*sin(lu*PI*sec.hFreq);
+  else if(sec.hShape===1)h+=sec.hAmp*abs(sin(lu*PI*sec.hFreq));
+  else if(sec.hShape===2){var p=sin(lu*PI*2);h+=sec.hAmp*p*p+0.1*sin(lu*PI*sec.hFreq)}
+  else h+=sec.hAmp*cos(lu*PI*sec.hFreq)+0.06*sin(lu*PI*sec.hFreq*2);
+  h+=sin(v*PI*4)*g.coupling+cos(v*PI*7+u*12)*g.noise;
+  h+=sec.gateErr*25*(sin(u*47)*sin(v*31));
+  return max(0.02,min(0.98,h));
+}
+
+var _origHeightAt=heightAt;
+heightAt=function(u,v){
+  if(activeGenome)return genomeHeightAt(u,v,activeGenome);
+  return _origHeightAt(u,v);
+};
+
+function crossover(a,b){
+  var child={sectors:[],modes:rng()>0.5?a.modes:b.modes,coupling:(a.coupling+b.coupling)/2+((rng()-0.5)*0.01),noise:(a.noise+b.noise)/2+((rng()-0.5)*0.01),gen:evoGen,fitness:null,id:floor(rng()*1e6)};
+  var nSec=min(a.sectors.length,b.sectors.length);
+  for(var i=0;i<nSec;i++){
+    var src=(i%2===0)?a:b;
+    if(i<src.sectors.length){
+      var s=src.sectors[i];
+      child.sectors.push({type:s.type,color:s.color,width:s.width,gateErr:s.gateErr,hBase:s.hBase,hAmp:s.hAmp,hFreq:s.hFreq,hShape:s.hShape,temp:s.temp});
+    }
+  }
+  if(child.sectors.length<4)child.sectors.push(randomSector());
+  normalizeGenome(child);
+  return child;
+}
+
+function mutate(g,rate){
+  rate=rate||0.15;
+  g.sectors.forEach(function(s){
+    if(rng()<rate)s.gateErr*=(0.5+rng());
+    if(rng()<rate)s.hBase+=(rng()-0.5)*0.15;
+    if(rng()<rate)s.hAmp+=(rng()-0.5)*0.12;
+    if(rng()<rate)s.hFreq+=floor((rng()-0.5)*4);
+    if(rng()<rate*0.3)s.hShape=floor(rng()*4);
+    if(rng()<rate*0.2)s.width*=(0.6+rng()*0.8);
+  });
+  if(rng()<rate*0.15&&g.sectors.length<10)g.sectors.push(randomSector());
+  if(rng()<rate*0.1&&g.sectors.length>4)g.sectors.splice(floor(rng()*g.sectors.length),1);
+  if(rng()<rate*0.3)g.coupling+=(rng()-0.5)*0.02;
+  if(rng()<rate*0.3)g.noise+=(rng()-0.5)*0.02;
+  normalizeGenome(g);
+}
+
+function fastRace(g){
+  applyGenome(g);buildTerrain();
+  var fRiders=ENGINES.map(function(eng){
+    return{eng:eng,x:0.01,y:0,vx:0,speed:0,maxSpeed:0,sector:0,fidelity:1,model:null,trainLoss:1,trainAcc:0,trainMs:0,fwdCount:0,bwCount:0,finished:false,finishTime:0,trail:[]};
+  });
+  var dt=0.016,maxSteps=5000,step=0,fRaceTime=0;
+  while(step<maxSteps){
+    step++;fRaceTime+=dt;
+    var allDone=true;
+    fRiders.forEach(function(r,ri){
+      if(r.finished)return;
+      allDone=false;
+      var sec=SECTORS[sectorAt(r.x)];
+      var slope=terrainSlope(r.x);
+      var drive=[0.08,0.10,0.11,0.07][ri]*(1+dispersion(r.x*PI*4,sec.gateErr)*0.3);
+      var friction=sec.gateErr*200*abs(r.vx)*0.3;
+      if(ri===3)friction*=0.6;
+      r.vx+=((drive-slope*0.15-friction*Math.sign(r.vx))*dt);
+      r.vx=max(0.001,min(0.5,r.vx));
+      r.x+=r.vx*dt;r.y=terrainAt(r.x);
+      var newSec=sectorAt(r.x);
+      if(newSec!==r.sector){
+        r.sector=newSec;
+        if(!r.model)r.model=r.eng.build([2,8,8,1]);
+        for(var e=0;e<3;e++){
+          var tl=0,cor=0;
+          for(var i=0;i<4;i++){
+            var x,p;
+            if(ri===3){x=XOR_X[i].map(function(v){return new r.eng.QV(v)});p=r.model.f(x)}
+            else if(ri===2){x=XOR_X[i].map(function(v){return r.eng.V(v)});p=r.model.f(x)}
+            else{x=XOR_X[i].map(function(v){return new r.eng.V(v)});p=r.model.f(x)}
+            var d=p.data!==undefined?p.data:p.d;
+            if((d>0)===(XOR_Y[i]>0))cor++;
+            tl+=abs(d-XOR_Y[i]);
+            r.model.zg();
+            if(ri===3)p.backward();else if(ri===2){p.g=1;r.eng.BW(p)}else if(ri===1)p.bw();else p.backward();
+            var ps=r.model.ps();for(var k=0;k<ps.length;k++){var pp=ps[k];var gg=pp.grad!==undefined?pp.grad:pp.g;var dk=pp.data!==undefined?'data':'d';pp[dk]-=0.05*gg}
+          }
+          r.trainLoss=tl/4;r.trainAcc=cor/4;
+        }
+      }
+      r.maxSpeed=max(r.maxSpeed,r.vx);
+      if(r.x>=0.99){r.finished=true;r.finishTime=fRaceTime}
+    });
+    if(allDone)break;
+  }
+  var avgTime=0,avgLoss=0,avgAcc=0,totalErr=0;
+  fRiders.forEach(function(r){avgTime+=r.finishTime||fRaceTime;avgLoss+=r.trainLoss;avgAcc+=r.trainAcc});
+  avgTime/=4;avgLoss/=4;avgAcc/=4;
+  g.sectors.forEach(function(s){totalErr+=s.gateErr});
+  g.fitness=(1/avgTime)*50+(avgAcc)*30+(1/(totalErr+0.001))*10+(1/avgLoss)*10;
+  g.raceResults={avgTime:avgTime,avgLoss:avgLoss,avgAcc:avgAcc,totalErr:totalErr,steps:step};
+  return g.fitness;
+}
+
+function runEvolution(nGens,popSize){
+  popSize=popSize||8;
+  evoRunning=true;
+  tc('\n═══ CHIP EVOLUTION ═══','m');
+  tc('population: '+popSize+' · generations: '+nGens,'c');
+  tc('genome: sectors × (gateErr, height, shape) + coupling + noise','d');
+  tc('fitness: speed(50) + accuracy(30) + low-error(10) + low-loss(10)','d');
+  tc('','');
+
+  if(evoPop.length===0){
+    evoPop=[];
+    for(var i=0;i<popSize;i++)evoPop.push(randomGenome());
+    evoPop[0]=auroraGenome();
+  }
+
+  var genIdx=0;
+  function runGen(){
+    if(genIdx>=nGens){evoRunning=false;finishEvolution();return}
+    evoGen++;genIdx++;
+    tc('GEN '+evoGen+' evaluating '+evoPop.length+' designs...','c');
+    evoPop.forEach(function(g){fastRace(g)});
+    evoPop.sort(function(a,b){return b.fitness-a.fitness});
+    var best=evoPop[0],worst=evoPop[evoPop.length-1];
+    tc('  best: #'+best.id+' fit:'+best.fitness.toFixed(1)+' t:'+best.raceResults.avgTime.toFixed(2)+'s acc:'+(best.raceResults.avgAcc*100).toFixed(0)+'% sec:'+best.sectors.length+' err:'+(best.raceResults.totalErr*1000).toFixed(1)+'‰','g');
+    tc('  worst:#'+worst.id+' fit:'+worst.fitness.toFixed(1)+' t:'+worst.raceResults.avgTime.toFixed(2)+'s','r');
+    evoHistory.push({gen:evoGen,bestFit:best.fitness,bestId:best.id,avgTime:best.raceResults.avgTime,sectors:best.sectors.length});
+
+    var next=[];
+    var elite=min(2,floor(popSize*0.25));
+    for(var i=0;i<elite;i++)next.push(evoPop[i]);
+    while(next.length<popSize){
+      var pA=evoPop[floor(rng()*elite*2)%evoPop.length];
+      var pB=evoPop[floor(rng()*elite*2)%evoPop.length];
+      var child=crossover(pA,pB);
+      mutate(child,0.15);
+      child.gen=evoGen;
+      next.push(child);
+    }
+    evoPop=next;
+    setTimeout(runGen,10);
+  }
+  setTimeout(runGen,10);
+}
+
+function finishEvolution(){
+  var best=evoPop[0];
+  tc('','');
+  tc('═══ EVOLUTION COMPLETE ═══','m');
+  tc('best design: #'+best.id+' (G'+best.gen+')','g');
+  tc('fitness: '+best.fitness.toFixed(1)+' · sectors: '+best.sectors.length,'c');
+  tc('avg race: '+best.raceResults.avgTime.toFixed(2)+'s · acc: '+(best.raceResults.avgAcc*100).toFixed(0)+'%','c');
+  tc('','');
+  tc('applying best design as active terrain...','g');
+  applyGenome(best);buildTerrain();initRiders();initCommanders();gateLog=[];
+  tc('type design to inspect · race to test · evolve to continue','d');
+  try{var bc=new BroadcastChannel('iron-line');bc.postMessage({type:'chip-evolved',source:'ugrad-photonic-park',gen:evoGen,bestId:best.id,fitness:best.fitness,sectors:best.sectors.length,t:performance.now()});bc.close()}catch(e){}
+}
+
+function auroraGenome(){
+  var g={sectors:[
+    {type:'source',color:'#a78bfa',width:0.15,gateErr:0.001,hBase:0.3,hAmp:0.25,hFreq:3,hShape:0,temp:300},
+    {type:'fiber',color:'#484f58',width:0.07,gateErr:0.0005,hBase:0.4,hAmp:0.06,hFreq:8,hShape:0,temp:300},
+    {type:'detector',color:'#58a6ff',width:0.06,gateErr:0.01,hBase:0.12,hAmp:0.35,hFreq:6,hShape:1,temp:0.012},
+    {type:'refinery',color:'#3fb950',width:0.2,gateErr:0.003,hBase:0.35,hAmp:0.3,hFreq:2,hShape:2,temp:300},
+    {type:'routing',color:'#484f58',width:0.07,gateErr:0.0005,hBase:0.4,hAmp:0.06,hFreq:8,hShape:0,temp:300},
+    {type:'qpu',color:'#f0883e',width:0.23,gateErr:0.005,hBase:0.4,hAmp:0.28,hFreq:5,hShape:3,temp:300},
+    {type:'decoder',color:'#f85149',width:0.1,gateErr:0.008,hBase:0.5,hAmp:0.22,hFreq:9,hShape:0,temp:300},
+    {type:'ft',color:'#d2a8ff',width:0.12,gateErr:0.015,hBase:0.5,hAmp:0.4,hFreq:4,hShape:0,temp:300}
+  ],modes:12,coupling:0.05,noise:0.04,gen:0,fitness:null,id:0};
+  normalizeGenome(g);
+  return g;
+}
+
+// ═══ 3D WIREFRAME TOPO RENDERER (neon aesthetic) ═══
+// Sector plateaus with jumps, gate commander badges,
+// ballistic waterdrop sweep, riders on wireframe surface
+
+var PLATEAU_OFFSET=[0,0.06,0.18,0.12,0.22,0.28,0.20,0.35,0.45];
+var scanlinePhase=0;
+
+function neonColor(h,glow){
+  glow=glow||0;
+  if(h>0.82)return'rgb('+(255)+','+(80+glow*120)+','+(200+glow*55)+')';
+  if(h>0.65)return'rgb('+(0+glow*80)+','+(229+glow*26)+','+(255)+')';
+  if(h>0.4)return'rgb('+(100+glow*60)+','+(60+glow*100)+','+(220+glow*35)+')';
+  return'rgb('+(42+glow*40)+','+(26+glow*30)+','+(110+glow*60)+')';
+}
+
+function render(now){
+  ctx.fillStyle='#06060f';ctx.fillRect(0,0,W,H);
+  var t=now/1000;
+  if(!dragging)camYaw+=0.0008;
+
+  // Scanline overlay
+  ctx.fillStyle='rgba(0,0,0,0.04)';
+  for(var sl=0;sl<H;sl+=3)ctx.fillRect(0,sl,W,1);
+
+  // Collect wireframe segments sorted by depth
+  var segs=[];
+  for(var r=0;r<GRID;r++){
+    for(var c=0;c<GRID;c++){
+      var idx=r*GRID+c;
+      var pt=meshPts[idx];
+      var si=sectorAt(pt.u);
+      var platY=pt.y+(PLATEAU_OFFSET[si]||0);
+      var p=project(pt.x,platY,pt.z);
+      pt._sx=p.sx;pt._sy=p.sy;pt._d=p.d;pt._si=si;pt._ph=platY;
+    }
+  }
+
+  // Draw grid lines (wireframe)
+  for(var r=0;r<GRID;r++){
+    for(var c=0;c<GRID-1;c++){
+      var i0=r*GRID+c,i1=r*GRID+c+1;
+      var a=meshPts[i0],b=meshPts[i1];
+      var midH=(a.h+b.h)/2;
+      var glow=max(0,1-abs(a.u-(racing?(raceTime*0.06)%1:(t*0.03)%1))*8);
+      var col=neonColor(midH,glow*0.6);
+      var alpha=max(0.08,min(0.7,1/(a._d*0.3)));
+      segs.push({x1:a._sx,y1:a._sy,x2:b._sx,y2:b._sy,d:(a._d+b._d)/2,col:col,alpha:alpha,
+        jump:a._si!==b._si});
+    }
+  }
+  for(var r=0;r<GRID-1;r++){
+    for(var c=0;c<GRID;c++){
+      var i0=r*GRID+c,i1=(r+1)*GRID+c;
+      var a=meshPts[i0],b=meshPts[i1];
+      var midH=(a.h+b.h)/2;
+      var glow=max(0,1-abs(a.u-(racing?(raceTime*0.06)%1:(t*0.03)%1))*8);
+      var col=neonColor(midH,glow*0.6);
+      var alpha=max(0.08,min(0.7,1/(a._d*0.3)));
+      segs.push({x1:a._sx,y1:a._sy,x2:b._sx,y2:b._sy,d:(a._d+b._d)/2,col:col,alpha:alpha,
+        jump:false});
+    }
+  }
+
+  // Sort back-to-front
+  segs.sort(function(a,b){return b.d-a.d});
+
+  // Draw segments
+  for(var i=0;i<segs.length;i++){
+    var s=segs[i];
+    if(s.jump){
+      ctx.strokeStyle='rgba(255,100,255,0.5)';ctx.lineWidth=2;
+    } else {
+      ctx.strokeStyle=s.col;ctx.lineWidth=0.7;
+    }
+    ctx.globalAlpha=s.alpha;
+    ctx.beginPath();ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2);ctx.stroke();
+    // Bloom pass for bright segments
+    if(s.alpha>0.3){
+      ctx.strokeStyle=s.col;ctx.lineWidth=3;ctx.globalAlpha=s.alpha*0.12;
+      ctx.beginPath();ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2);ctx.stroke();
+    }
+  }
+  ctx.globalAlpha=1;
+
+  // Gate commander badges at sector boundaries
+  for(var s=1;s<SECTORS.length;s++){
+    var gu=SECTORS[s].x0,gx=(gu-0.5)*6;
+    var midR=floor(GRID/2);
+    var gIdx=midR*GRID+floor(gu*(GRID-1));
+    if(gIdx>=0&&gIdx<meshPts.length){
+      var gpt=meshPts[gIdx];
+      var gph=gpt.y+(PLATEAU_OFFSET[s]||0)+0.3;
+      var gp=project(gx,gph,0);
+      var cmdIdx=s-1;
+      var isActive=cmdIdx<commanders.length&&commanders[cmdIdx].active&&(now-commanders[cmdIdx].glowPhase<2000);
+      var pulse=isActive?0.7+0.3*sin(t*8):0.2+0.1*sin(t*2+s);
+
+      // Gate vertical line
+      var gBot=project(gx,gpt.y+(PLATEAU_OFFSET[s]||0)-0.5,0);
+      ctx.strokeStyle=SECTORS[s].color;ctx.globalAlpha=pulse*0.4;ctx.lineWidth=1;
+      ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(gp.sx,gp.sy);ctx.lineTo(gBot.sx,gBot.sy);ctx.stroke();
+      ctx.setLineDash([]);ctx.globalAlpha=1;
+
+      // Commander badge
+      ctx.fillStyle=isActive?'#fff':SECTORS[s].color;ctx.globalAlpha=pulse;
+      ctx.beginPath();ctx.arc(gp.sx,gp.sy,isActive?6:4,0,PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.fillStyle=SECTORS[s].color+'90';ctx.font='7px monospace';
+      ctx.fillText('G'+s,gp.sx+8,gp.sy+3);
+    }
+  }
+
+  // Ballistic waterdrop sweep
+  var waveU=racing?(raceTime*0.06)%1:(t*0.03)%1;
+  for(var r=0;r<GRID;r+=2){
+    var wc=floor(waveU*(GRID-1));
+    if(wc<0||wc>=GRID)continue;
+    var wi=r*GRID+wc;
+    if(wi<meshPts.length){
+      var wp=meshPts[wi];
+      var si=sectorAt(wp.u);
+      var wpy=wp.y+(PLATEAU_OFFSET[si]||0)+0.05;
+      var wpp=project(wp.x,wpy,wp.z);
+      ctx.fillStyle='rgba(255,200,80,0.5)';
+      ctx.beginPath();ctx.arc(wpp.sx,wpp.sy,2,0,PI*2);ctx.fill();
+    }
+  }
+
+  // Riders on wireframe surface
+  riders.forEach(function(r,ri){
+    var eng=r.eng;
+    var ru=max(0,min(0.999,r.x));
+    var rv=0.3+ri*0.1;
+    var rh=heightAt(ru,rv);
+    var si=sectorAt(ru);
+    var ry=rh*2.5-1.2+(PLATEAU_OFFSET[si]||0)+0.08;
+    var rp=project((ru-0.5)*6,ry,(rv-0.5)*6);
+
+    // Trail
+    if(r.trail.length>2){
+      ctx.strokeStyle=eng.color+'30';ctx.lineWidth=1.5;
+      ctx.beginPath();
+      for(var j=max(0,r.trail.length-80);j<r.trail.length;j++){
+        var tu=max(0,min(0.999,r.trail[j].x));
+        var th=heightAt(tu,rv);
+        var tsi=sectorAt(tu);
+        var ty=th*2.5-1.2+(PLATEAU_OFFSET[tsi]||0)+0.08;
+        var tp=project((tu-0.5)*6,ty,(rv-0.5)*6);
+        if(j===max(0,r.trail.length-80))ctx.moveTo(tp.sx,tp.sy);else ctx.lineTo(tp.sx,tp.sy);
+      }
+      ctx.stroke();
+    }
+
+    // Glow
+    var gr=8+sin(t*5+ri)*2;
+    var gg=ctx.createRadialGradient(rp.sx,rp.sy,0,rp.sx,rp.sy,gr+6);
+    gg.addColorStop(0,eng.color);gg.addColorStop(0.3,eng.color+'80');gg.addColorStop(1,eng.color+'00');
+    ctx.fillStyle=gg;ctx.beginPath();ctx.arc(rp.sx,rp.sy,gr+6,0,PI*2);ctx.fill();
+
+    // Core dot
+    ctx.fillStyle=eng.color;ctx.beginPath();ctx.arc(rp.sx,rp.sy,4,0,PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(rp.sx,rp.sy,1.5,0,PI*2);ctx.fill();
+
+    // Label
+    ctx.fillStyle=eng.color;ctx.font='8px monospace';
+    ctx.fillText(eng.name,rp.sx+gr+4,rp.sy-2);
+    ctx.fillStyle=eng.color+'80';ctx.font='7px monospace';
+    ctx.fillText('L:'+r.trainLoss.toFixed(3)+' '+(r.trainAcc*100).toFixed(0)+'%',rp.sx+gr+4,rp.sy+8);
+  });
+
+  // HUD
+  ctx.fillStyle='#e040fb';ctx.font='10px monospace';
+  ctx.fillText('AURORA TOPO · IBM QUANTUM GATES',12,14);
+  ctx.fillStyle='#484f58';ctx.font='8px monospace';
+  ctx.fillText('wireframe topology · commander gates · core→crust→IBM→crust→core',12,26);
+  var pendingCount=0;commanders.forEach(function(c){pendingCount+=c.ibmPending});
+  var ibmStatus=ibmApiKey?('IBM:connected'+(pendingCount?' · '+pendingCount+' pending':'')):'IBM:offline (set key with ibm command)';
+  ctx.fillText(AURORA.squeezers+' squeezers · '+SECTORS.length+' gates · '+ibmStatus,12,36);
+
+  if(racing){ctx.fillStyle='#3fb950';ctx.font='12px monospace';ctx.fillText('RACE '+raceTime.toFixed(1)+'s',W-130,14)}
+
+  // Gate log (recent judgments)
+  if(gateLog.length>0){
+    var recent=gateLog.slice(-4);
+    for(var i=0;i<recent.length;i++){
+      var gl=recent[i];
+      ctx.fillStyle=gl.verdict==='PASS'?'#3fb950':gl.verdict==='WARN'?'#c9a84c':'#f85149';
+      ctx.font='8px monospace';
+      ctx.fillText('G'+gl.gate+' '+gl.name+' '+gl.verdict+' '+(gl.fidelity*100).toFixed(0)+'%',W-200,H-60+i*11);
+    }
+  }
+
+  if(raceResults.length>0){
+    raceResults.forEach(function(r,i){
+      var ex=ENGINES.findIndex(function(e){return e.name===r.name});
+      ctx.fillStyle=ex>=0?ENGINES[ex].color:'#fff';ctx.font='9px monospace';
+      ctx.fillText((i+1)+'. '+r.name+' '+r.time.toFixed(2)+'s',12,H-50+i*12);
+    });
+  }
+}
+
+// ═══ STANDALONE BENCHMARK (no racing, pure compute) ═══
+function runBenchmark(){
+  tc('\n═══ PHOTONIC PARK BENCHMARK ═══','m');
+  tc('4 engines × XOR (2-8-8-1) × 50 epochs','d');
+  tc('terrain: Aurora topology with gate-error friction','d');
+  tc('','');
+
+  var results=[];
+  ENGINES.forEach(function(eng,ri){
+    var t0=performance.now();
+    var m=eng.build([2,8,8,1]);
+    var buildMs=performance.now()-t0;
+    var ps=m.ps();
+
+    // Forward benchmark
+    t0=performance.now();
+    var fwdN=500;
+    for(var i=0;i<fwdN;i++){
+      if(ri===3){m.f([new eng.QV(1),new eng.QV(-1)])}
+      else if(ri===2){m.f([eng.V(1),eng.V(-1)])}
+      else{m.f([new eng.V(1),new eng.V(-1)])}
+    }
+    var fwdMs=(performance.now()-t0);
+    var fwdPer=fwdMs/fwdN;
+
+    // Backward benchmark
+    t0=performance.now();
+    var bwN=200;
+    for(var i=0;i<bwN;i++){
+      var pred;
+      if(ri===3){pred=m.f([new eng.QV(1),new eng.QV(-1)]);m.zg();pred.backward()}
+      else if(ri===2){pred=m.f([eng.V(1),eng.V(-1)]);m.zg();pred.g=1;eng.BW(pred)}
+      else if(ri===1){pred=m.f([new eng.V(1),new eng.V(-1)]);m.zg();pred.bw()}
+      else{pred=m.f([new eng.V(1),new eng.V(-1)]);m.zg();pred.backward()}
+    }
+    var bwMs=(performance.now()-t0);
+    var bwPer=bwMs/bwN;
+
+    // Train benchmark (50 epochs)
+    m=eng.build([2,8,8,1]);
+    t0=performance.now();
+    var finalLoss=1,finalAcc=0;
+    for(var e=0;e<50;e++){
+      var tl=0,cor=0;
+      for(var j=0;j<4;j++){
+        var x,p;
+        if(ri===3){x=XOR_X[j].map(function(v){return new eng.QV(v)});p=m.f(x)}
+        else if(ri===2){x=XOR_X[j].map(function(v){return eng.V(v)});p=m.f(x)}
+        else{x=XOR_X[j].map(function(v){return new eng.V(v)});p=m.f(x)}
+        var d=p.data!==undefined?p.data:p.d;
+        if((d>0)===(XOR_Y[j]>0))cor++;
+        tl+=abs(d-XOR_Y[j]);
+        m.zg();
+        if(ri===3)p.backward();
+        else if(ri===2){p.g=1;eng.BW(p)}
+        else if(ri===1)p.bw();
+        else p.backward();
+        var allP=m.ps();
+        for(var k=0;k<allP.length;k++){
+          var pp=allP[k];
+          var g=pp.grad!==undefined?pp.grad:pp.g;
+          var dk=pp.data!==undefined?'data':'d';
+          pp[dk]-=0.05*g;
+        }
+      }
+      finalLoss=tl/4;finalAcc=cor/4;
+    }
+    var trainMs=performance.now()-t0;
+
+    results.push({name:eng.name,params:ps.length,buildMs:buildMs,fwdPer:fwdPer,bwPer:bwPer,trainMs:trainMs,fwdPerSec:1000/fwdPer,loss:finalLoss,acc:finalAcc});
+  });
+
+  tc('┌──────────┬────────┬─────────┬─────────┬─────────┬─────────┬────────┬───────┐','d');
+  tc('│ Engine   │ Params │ Build   │ Fwd/ms  │ Bw/ms   │ Train50 │ Loss   │ Acc   │','c');
+  tc('├──────────┼────────┼─────────┼─────────┼─────────┼─────────┼────────┼───────┤','d');
+  results.forEach(function(r){
+    tc('│ '+r.name.padEnd(8)+' │ '+pad(r.params,6)+' │ '+r.buildMs.toFixed(2).padStart(6)+'ms│ '+r.fwdPer.toFixed(3).padStart(7)+' │ '+r.bwPer.toFixed(3).padStart(7)+' │ '+r.trainMs.toFixed(1).padStart(6)+'ms│ '+r.loss.toFixed(4)+' │ '+(r.acc*100).toFixed(0).padStart(4)+'% │');
+  });
+  tc('└──────────┴────────┴─────────┴─────────┴─────────┴─────────┴────────┴───────┘','d');
+
+  // Speedup ratios
+  var baseT=results[0].trainMs;
+  tc('','');
+  tc('speedup vs Original:','d');
+  results.forEach(function(r,i){
+    if(i===0)return;
+    var speedup=baseT/r.trainMs;
+    var bar='█'.repeat(min(30,floor(speedup*10)));
+    tc('  '+r.name.padEnd(10)+speedup.toFixed(2)+'x '+bar,speedup>1?'g':'r');
+  });
+
+  // Broadcast benchmark
+  try{var bc=new BroadcastChannel('iron-line');bc.postMessage({type:'photonic-park-bench',source:'ugrad-photonic-park',results:results,t:performance.now()});bc.close()}catch(e){}
+}
+
+// ═══ REPL COMMANDS ═══
+function exec(cmd){
+  cmd=cmd.trim();if(!cmd)return;
+  tc('μPark❯ '+cmd,'m');
+  var parts=cmd.split(/\s+/),c=parts[0].toLowerCase();
+
+  if(c==='help'){
+    tc('\n═══ μPark — photonic skate park ═══','m');
+    tc('4 AI riders race across Xanadu Aurora topology','d');
+    var cs=[
+      ['race','start the race (4 riders on Aurora terrain)'],
+      ['bench','standalone benchmark (no racing, pure compute)'],
+      ['sector [n]','show sector details (0-7 or name)'],
+      ['riders','rider status and stats'],
+      ['gate','gate judgment log (Commander verdicts)'],
+      ['ibm <key>','set IBM Quantum API key'],
+      ['ibm status','IBM connection + pending jobs'],
+      ['quantum','quantum gate system overview'],
+      ['evolve [n]','evolve chip designs (n generations, default 5)'],
+      ['design','inspect active chip genome'],
+      ['sketch','generate random chip design + apply'],
+      ['history','evolution history (fitness over generations)'],
+      ['aurora','reset to original Aurora architecture'],
+      ['terrain','terrain generation details'],
+      ['reset','reset riders to start'],
+      ['clear','clear terminal']
+    ];
+    cs.forEach(function(h){tc('  '+h[0].padEnd(14)+h[1],'d')});
+
+  } else if(c==='race'){
+    initRiders();initCommanders();gateLog=[];
+    raceResults=[];raceTime=0;racing=true;
+    tc('\n═══ RACE START ═══','g');
+    tc('terrain: Xanadu Aurora (GBS→Fiber→PNR→Refinery→QPU→Decoder→FT)','d');
+    tc('riders training at each waypoint boundary...','d');
+    tc('','');
+
+  } else if(c==='bench'){
+    runBenchmark();
+
+  } else if(c==='sector'){
+    var idx=parseInt(parts[1]);
+    if(isNaN(idx)){
+      var name=(parts.slice(1).join(' ')).toLowerCase();
+      idx=SECTORS.findIndex(function(s){return s.name.toLowerCase().indexOf(name)>=0});
+    }
+    if(idx>=0&&idx<SECTORS.length){
+      var sec=SECTORS[idx];
+      tc('\n═══ SECTOR '+idx+': '+sec.name+' ═══','m');
+      tc('range: '+(sec.x0*100).toFixed(0)+'%–'+(sec.x1*100).toFixed(0)+'%','c');
+      tc('gate error: '+(sec.gateErr*1000).toFixed(1)+'‰','c');
+      tc('temperature: '+sec.temp+'K','c');
+      tc(sec.desc,'d');
+    } else {
+      tc('\nsectors:','c');
+      SECTORS.forEach(function(s,i){
+        tc('  ['+i+'] '+s.name.padEnd(18)+' err:'+(s.gateErr*1000).toFixed(1)+'‰  '+s.temp+'K','d');
+      });
+    }
+
+  } else if(c==='riders'){
+    tc('\n═══ RIDER STATUS ═══','m');
+    riders.forEach(function(r){
+      tc(r.eng.sym+' '+r.eng.name.padEnd(10)+' pos:'+(r.x*100).toFixed(1)+'% spd:'+(r.speed*100).toFixed(0)+' loss:'+r.trainLoss.toFixed(4)+' acc:'+(r.trainAcc*100).toFixed(0)+'% fwd:'+r.fwdCount+' bw:'+r.bwCount);
+    });
+
+  } else if(c==='terrain'){
+    tc('\n═══ TERRAIN GENERATION ═══','m');
+    tc('resolution: '+TERRAIN_RES+' points','c');
+    tc('mapped from Aurora optical paths P1-P4:','d');
+    tc('  GBS → starting ramps (ring resonator sine waves)','d');
+    tc('  Fiber → smooth tunnels (low loss, phase-stabilized)','d');
+    tc('  PNR → deep cryostat valleys (12mK, sharp gates)','d');
+    tc('  Refinery → half-pipes (binary tree MUX branching)','d');
+    tc('  QPU → quarter-pipe bowls (macronode interference)','d');
+    tc('  Decoder → rough complexity terrain','d');
+    tc('  FT → 9.75dB threshold wall (final ramp)','d');
+    tc('gate errors modulate surface roughness per sector','d');
+
+  } else if(c==='ibm'){
+    var sub=parts[1]||'';
+    if(sub==='status'){
+      tc('\n═══ IBM QUANTUM STATUS ═══','m');
+      tc('key: '+(ibmApiKey?ibmApiKey.substring(0,8)+'...(set)':'NOT SET'),'c');
+      var pending=0;commanders.forEach(function(cmd){pending+=cmd.ibmPending});
+      tc('pending jobs: '+pending,'c');
+      tc('backend: ibm_brisbane (default)','d');
+      if(gateLog.length){tc('gate judgments: '+gateLog.length,'d')}
+    } else if(sub){
+      ibmApiKey=parts.slice(1).join(' ');
+      localStorage.setItem('ibm-quantum-token',ibmApiKey);
+      tc('IBM API key set ('+ibmApiKey.substring(0,8)+'...)','g');
+      tc('gate judgments will now submit to IBM Quantum','d');
+    } else {
+      tc('ibm <key>     set IBM Quantum API key','d');
+      tc('ibm status    show connection + pending jobs','d');
+    }
+
+  } else if(c==='gate'||c==='gates'){
+    tc('\n═══ GATE JUDGMENTS ═══','m');
+    if(gateLog.length===0){tc('no judgments yet — run race first','d')}
+    else{
+      tc('┌──────┬──────────┬────────┬────────┬────────┐','d');
+      tc('│ Gate │ Rider    │ Verdict│ Fid    │ Time   │','c');
+      tc('├──────┼──────────┼────────┼────────┼────────┤','d');
+      gateLog.forEach(function(g){
+        var cls=g.verdict==='PASS'?'g':g.verdict==='WARN'?'y':'r';
+        tc('│ G'+pad(g.gate,3)+' │ '+g.name.padEnd(8)+' │ '+g.verdict.padEnd(6)+' │ '+(g.fidelity*100).toFixed(1).padStart(5)+'% │ '+g.time.toFixed(2).padStart(6)+' │',cls);
+      });
+      tc('└──────┴──────────┴────────┴────────┴────────┘','d');
+    }
+
+  } else if(c==='quantum'){
+    tc('\n═══ QUANTUM GATE SYSTEM ═══','m');
+    tc('core → crust → IBM → crust → core','c');
+    tc('','');
+    tc('at each sector boundary (gate), riders:','d');
+    tc('  1. train 5 epochs on XOR (classical)','d');
+    tc('  2. weights → VQC QASM circuit','d');
+    tc('  3. local QSim → instant fidelity judgment','d');
+    tc('  4. if IBM key set → async QPU submission','d');
+    tc('  5. IBM results → Hellinger fidelity → boost/penalty','d');
+    tc('  6. broadcast to qbit-globe (core race visualization)','d');
+    tc('','');
+    tc('PASS (>70% fidelity): +15% speed boost','g');
+    tc('WARN (40-70%): no change','y');
+    tc('FAIL (<40%): -10% speed penalty','r');
+    tc('IBM VERIFIED (>90% Hellinger): +20% power boost','g');
+
+  } else if(c==='evolve'){
+    if(evoRunning){tc('evolution already running','y');return}
+    var nGens=parseInt(parts[1])||5;
+    var popSz=parseInt(parts[2])||8;
+    runEvolution(nGens,popSz);
+
+  } else if(c==='design'){
+    tc('\n═══ CHIP DESIGN ═══','m');
+    if(!activeGenome){tc('using default Aurora topology (type sketch or evolve to generate)','d');tc('');
+      SECTORS.forEach(function(s,i){tc('  ['+i+'] '+s.name.padEnd(18)+' '+((s.x1-s.x0)*100).toFixed(0).padStart(3)+'% err:'+(s.gateErr*1000).toFixed(1)+'‰ '+s.temp+'K','d')});
+    } else {
+      var g=activeGenome;
+      tc('genome #'+g.id+' · gen '+g.gen+(g.fitness?' · fit:'+g.fitness.toFixed(1):''),'c');
+      tc('modes: '+g.modes+' · coupling: '+g.coupling.toFixed(3)+' · noise: '+g.noise.toFixed(3),'d');
+      tc('','');
+      tc('┌────┬──────────┬──────┬────────┬────────┬────────┬───────┐','d');
+      tc('│ #  │ Type     │ Width│ GateErr│ hBase  │ hAmp   │ Shape │','c');
+      tc('├────┼──────────┼──────┼────────┼────────┼────────┼───────┤','d');
+      g.sectors.forEach(function(s,i){
+        var shapes=['sin','|sin|','sin²','cos+'];
+        tc('│ '+pad(i,2)+' │ '+s.type.padEnd(8)+' │ '+(s.width*100).toFixed(0).padStart(3)+'%  │ '+(s.gateErr*1000).toFixed(1).padStart(5)+'‰│ '+s.hBase.toFixed(2).padStart(5)+' │ '+s.hAmp.toFixed(2).padStart(5)+' │ '+(shapes[s.hShape]||'?').padEnd(5)+' │','d');
+      });
+      tc('└────┴──────────┴──────┴────────┴────────┴────────┴───────┘','d');
+      if(g.raceResults){
+        tc('','');tc('race: '+g.raceResults.avgTime.toFixed(2)+'s · loss:'+g.raceResults.avgLoss.toFixed(4)+' · acc:'+(g.raceResults.avgAcc*100).toFixed(0)+'%','c');
+      }
+    }
+
+  } else if(c==='sketch'){
+    var g=randomGenome();g.gen=evoGen;
+    tc('\n═══ NEW CHIP SKETCH ═══','m');
+    tc('genome #'+g.id+' · '+g.sectors.length+' sectors · '+g.modes+' modes','c');
+    g.sectors.forEach(function(s,i){
+      tc('  ['+i+'] '+s.type.padEnd(10)+' '+(s.width*100).toFixed(0)+'% err:'+(s.gateErr*1000).toFixed(1)+'‰','d');
+    });
+    tc('applying to terrain...','g');
+    applyGenome(g);buildTerrain();initRiders();initCommanders();gateLog=[];racing=false;raceTime=0;raceResults=[];
+    tc('type race to test · evolve to optimize','d');
+
+  } else if(c==='history'){
+    tc('\n═══ EVOLUTION HISTORY ═══','m');
+    if(evoHistory.length===0){tc('no evolution yet — type evolve','d')}
+    else{
+      tc('┌─────┬──────────┬────────┬────────┬──────┐','d');
+      tc('│ Gen │ Best ID  │ Fitness│ Time   │ Sec  │','c');
+      tc('├─────┼──────────┼────────┼────────┼──────┤','d');
+      evoHistory.forEach(function(h){
+        tc('│ G'+pad(h.gen,2)+' │ #'+pad(h.bestId,7)+' │ '+h.bestFit.toFixed(1).padStart(6)+' │ '+h.avgTime.toFixed(2).padStart(5)+'s │ '+pad(h.sectors,4)+' │');
+      });
+      tc('└─────┴──────────┴────────┴────────┴──────┘','d');
+      var best=evoHistory[evoHistory.length-1],first=evoHistory[0];
+      if(evoHistory.length>1)tc('improvement: '+(((best.bestFit-first.bestFit)/first.bestFit)*100).toFixed(1)+'% over '+evoHistory.length+' generations','g');
+    }
+
+  } else if(c==='aurora'){
+    tc('\n═══ XANADU AURORA ARCHITECTURE ═══','m');
+    tc('(Nature 638, 912-919, 2025)','d');
+    if(activeGenome){
+      tc('resetting to original Aurora topology...','g');
+      activeGenome=null;
+      SECTORS=[
+        {name:'GBS Sources',x0:0,x1:0.15,color:'#a78bfa',gateErr:0.001,temp:300,desc:'84 squeezers, ring resonators'},
+        {name:'Fiber Buffer',x0:0.15,x1:0.22,color:'#484f58',gateErr:0.0005,temp:300,desc:'253m delay lines'},
+        {name:'PNR Detectors',x0:0.22,x1:0.28,color:'#58a6ff',gateErr:0.01,temp:0.012,desc:'36 TES at 12mK'},
+        {name:'Refinery',x0:0.28,x1:0.48,color:'#3fb950',gateErr:0.003,temp:300,desc:'6 TFLN chips, MUX trees'},
+        {name:'Fiber Routing',x0:0.48,x1:0.55,color:'#484f58',gateErr:0.0005,temp:300,desc:'temporal delay routing'},
+        {name:'QPU Array',x0:0.55,x1:0.78,color:'#f0883e',gateErr:0.005,temp:300,desc:'5 silicon PIC chips'},
+        {name:'Decoder',x0:0.78,x1:0.88,color:'#f85149',gateErr:0.008,temp:300,desc:'FPGA decoder, 976ns'},
+        {name:'Fault Tolerance',x0:0.88,x1:1.0,color:'#d2a8ff',gateErr:0.015,temp:300,desc:'9.75dB threshold'}
+      ];
+      buildTerrain();initRiders();initCommanders();gateLog=[];
+    }
+    tc('','');
+    Object.keys(AURORA).forEach(function(k){tc('  '+k.padEnd(24)+AURORA[k],'d')});
+    tc('','');
+    tc('Pipeline: GBS → Fiber → PNR → Refinery → Fiber → QPU → Decoder → FT','c');
+
+  } else if(c==='reset'){
+    initRiders();initCommanders();gateLog=[];racing=false;raceTime=0;raceResults=[];
+    tc('riders reset to start','g');
+
+  } else if(c==='clear'){TM.innerHTML='';boot()}
+  else tc('? '+c+' — try help','r');
+}
+
+// ▶ Boot
+function boot(){
+  dpr=devicePixelRatio||1;
+  W=C.clientWidth;H=C.clientHeight;
+  C.width=W*dpr;C.height=H*dpr;
+  ctx=C.getContext('2d');
+  ctx.scale(dpr,dpr);
+  buildTerrain();
+  initRiders();
+  initCommanders();
+  initMouseControls();
+  var ms=(performance.now()-T0).toFixed(1);
+  document.getElementById('st0').textContent='boot:'+ms+'ms';
+  tc('μPark — IBM quantum gate race','m');
+  tc('core → crust → IBM Quantum → crust → core','d');
+  tc('wireframe topo · commander gates · ballistic waterdrop','d');
+  tc('terrain: Xanadu Aurora ('+AURORA.squeezers+' squeezers → '+SECTORS.length+' gates → IBM QPU)','d');
+  ibmApiKey=localStorage.getItem('ibm-quantum-token')||'';
+  tc(ibmApiKey?'IBM Quantum: connected ('+ibmApiKey.substring(0,8)+'...)':'IBM Quantum: offline — type ibm <key> to connect',ibmApiKey?'g':'y');
+  tc('drag to orbit · scroll to zoom · type help','d');
+  tc('','');
+  gameLoop();
+}
+
+var lastFrame=0,frameCount=0,fps=0,fpsTimer=0;
+function gameLoop(){
+  var now=performance.now();
+  var dt=min(33,now-lastFrame);lastFrame=now;
+  frameCount++;
+  fpsTimer+=dt;
+  if(fpsTimer>1000){fps=floor(frameCount/(fpsTimer/1000));frameCount=0;fpsTimer=0;document.getElementById('st4').textContent='·fps:'+fps}
+
+  updateRiders(dt/1000);
+  render(now);
+  requestAnimationFrame(gameLoop);
+}
+
+window.addEventListener('resize',function(){
+  dpr=devicePixelRatio||1;W=C.clientWidth;H=C.clientHeight;
+  C.width=W*dpr;C.height=H*dpr;ctx=C.getContext('2d');ctx.scale(dpr,dpr);
+});
+
+CMD.addEventListener('keydown',function(ev){if(ev.key==='Enter'){var v=CMD.value;CMD.value='';exec(v)}});
+boot();
+
+// Iron Line + Quantum Prefix
+try{var bc=new BroadcastChannel('iron-line');bc.postMessage({type:'photonic-park-boot',source:'ugrad-photonic-park',layer:'L0-L3',t:performance.now()});bc.close()}catch(e){}
+})();
+</script>
+<script defer src="quantum-prefixes.js"></script>
+<script defer src="qbit-dac.js"></script>
+<script defer src="qbit-steno.js"></script>
+<script>
+// ===== QUANTUM PREFIX LIVE SYNC =====
+if(window.QuantumPrefixes){var QP=window.QuantumPrefixes;QP.broadcastState('ugrad-photonic-park',{coverage:0,totalLines:0,role:'photonic-park',layer:'L0-L3'});QP.requestStateSync()}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body></html>

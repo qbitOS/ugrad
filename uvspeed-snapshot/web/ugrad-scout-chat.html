@@ -1,0 +1,47 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!-- Copyright (c) 2026 qbitOS / ugrad.ai. All rights reserved. -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Source: https://github.com/qbitOS/uvspeed -->
+<!-- Provenance: ai-created-control-envelope -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ugrad scout chat redirect</title>
+</head>
+<body data-ugrad-game="scout-chat">
+  <p>Redirecting to <a id="qhtml-link" href="ugrad-scout-chat.qhtml">ugrad-scout-chat.qhtml</a>...</p>
+  <script src="quantum-prefixes.js"></script>
+  <script src="qbit-dac.js"></script>
+  <script src="qbit-steno.js"></script>
+  <script src="qbit-preflight.js"></script>
+  <script src="history-search-engine.js"></script>
+  <script>
+    (function () {
+      // ===== QUANTUM PREFIX LIVE SYNC =====
+      try {
+        var QP = window.QuantumPrefixes;
+        var _ironLine = new BroadcastChannel('iron-line');
+        _ironLine.postMessage({ type: 'ugrad-scout-chat-ready', source: 'ugrad-scout-chat', ts: Date.now() });
+        _ironLine.close();
+        var _historyBus = new BroadcastChannel('history-search');
+        _historyBus.postMessage({ type: 'ugrad-scout-chat-ready', source: 'ugrad-scout-chat', ts: Date.now() });
+        _historyBus.close();
+        if (QP && QP.requestStateSync) QP.requestStateSync();
+        if (QP && QP.broadcastState) QP.broadcastState('ugrad-scout-chat', { app: 'ugrad-scout-chat', ts: Date.now() });
+      } catch (_) {}
+      try {
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+      } catch (_) {}
+      var target = 'ugrad-scout-chat.qhtml?fresh=' + Date.now();
+      var a = document.getElementById('qhtml-link');
+      if (a) a.href = target;
+      window.location.replace(target);
+    })();
+  </script>
+</body>
+</html>

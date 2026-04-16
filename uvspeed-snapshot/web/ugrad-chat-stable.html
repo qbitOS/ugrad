@@ -1,0 +1,2239 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!-- Copyright (c) 2026 qbitOS / ugrad.ai. All rights reserved. -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Source: https://github.com/qbitOS/uvspeed -->
+<!-- Provenance: ai-created-control-envelope -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ugrad chat</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --line: #e2e8f0;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --chip: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+    .app {
+      width: min(1180px, 96vw);
+      height: 92vh;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      display: grid;
+      grid-template-rows: auto auto auto auto 1fr auto auto;
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(2, 6, 23, 0.08);
+      position: relative;
+    }
+    .head {
+      grid-row: 1;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .head-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .head-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .head-thumb {
+      width: 58px;
+      height: 58px;
+      border: 1px solid #d3e2fb;
+      border-radius: 10px;
+      background: #f4f8ff;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+    }
+    .head-thumb canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .meta-label {
+      font-size: 11px;
+      line-height: 1;
+      color: #64748b;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .title {
+      font-size: 34px;
+      font-weight: 600;
+      color: #334155;
+      margin: 0;
+    }
+    .btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: #94a3b8; }
+    .chip {
+      border: 1px solid #bfdbfe;
+      background: var(--chip);
+      color: #1d4ed8;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .jump {
+      grid-row: 3;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 12px;
+      background: #f8fbff;
+      display: grid;
+      gap: 6px;
+    }
+    .jump-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .jump-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      justify-content: flex-end;
+      margin-left: auto;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .jump-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+    .jump-toggle {
+      color: #334155;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 4px;
+      border-radius: 6px;
+    }
+    .jump-toggle:hover { background: #eef2f7; }
+    .jump.collapsed .jump-log { display: none; }
+    .jump.collapsed + .metrics { display: none; }
+    .jump-log {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #1e3a8a;
+      max-height: 98px;
+      overflow: auto;
+    }
+    .jump-log li { margin: 0 0 4px 0; }
+    .metrics {
+      grid-row: 4;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 12px;
+      background: #f9fbff;
+      display: grid;
+      gap: 6px;
+    }
+    .metrics-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      font-size: 11px;
+      color: #334155;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .metrics-row span {
+      border: 1px solid #dbe7ff;
+      border-radius: 999px;
+      background: #f1f6ff;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    #reset-memory-btn {
+      padding: 5px 8px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .metrics-bar {
+      grid-row: 2;
+      height: 7px;
+      border-radius: 999px;
+      background: #dde9fb;
+      overflow: hidden;
+    }
+    .metrics-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+      transition: width .24s ease;
+    }
+    .log {
+      grid-row: 5;
+      min-height: 0;
+      overflow: auto;
+      padding: 18px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .update-flow {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0.3;
+    }
+    .update-flow-item {
+      position: absolute;
+      left: 0;
+      top: 100%;
+      font-size: 11px;
+      color: #2563eb;
+      white-space: nowrap;
+      animation: flowUp 8s linear forwards;
+    }
+    @keyframes flowUp {
+      from { top: 100%; }
+      to { top: -22px; }
+    }
+    .msg {
+      max-width: 84%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      font-size: 14px;
+      background: #fff;
+      position: relative;
+      z-index: 1;
+    }
+    .msg.user {
+      margin-left: auto;
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .msg.assistant { margin-right: auto; }
+    .meta {
+      margin-top: 9px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .feedback {
+      margin-left: 6px;
+      display: inline-flex;
+      gap: 5px;
+    }
+    .fb {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 2px 7px;
+      cursor: pointer;
+    }
+    .composer {
+      grid-row: 6;
+      border-top: 1px solid var(--line);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .composer input {
+      width: 100%;
+      height: 44px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 0 12px;
+      font-size: 15px;
+      outline: none;
+    }
+    .composer input:focus { border-color: #60a5fa; }
+    .send {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .send:hover { background: #f1f5f9; }
+    .status {
+      grid-row: 7;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 7px 14px 10px;
+      border-top: 1px dashed #e2e8f0;
+      background: #fafcff;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tester-panel {
+      position: absolute;
+      right: 10px;
+      top: 70px;
+      width: min(420px, 92vw);
+      max-height: calc(100% - 84px);
+      background: #ffffff;
+      border: 1px solid #dbeafe;
+      border-radius: 12px;
+      box-shadow: 0 14px 36px rgba(2, 6, 23, 0.14);
+      padding: 10px;
+      display: none;
+      overflow: auto;
+      z-index: 12;
+    }
+    .tester-panel.open { display: block; }
+    .tester-title {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .tester-row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .tester-row label {
+      font-size: 11px;
+      color: #334155;
+      font-weight: 600;
+    }
+    .tester-row textarea,
+    .tester-row select,
+    .tester-row input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f8fbff;
+      color: #0f172a;
+    }
+    .tester-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .tester-output {
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 8px;
+      font-size: 11px;
+      white-space: pre-wrap;
+      color: #1e293b;
+      min-height: 54px;
+    }
+    .tester-status {
+      font-size: 11px;
+      color: #475569;
+    }
+    .bridge-runtime {
+      width: 0;
+      height: 0;
+      border: 0;
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body data-ugrad-game="chat-stable">
+  <div class="app">
+    <div class="head">
+      <div class="head-left">
+        <div class="meta-label">ugrad chat v4.1.0</div>
+        <h1 class="title">ugrad</h1>
+      </div>
+      <div class="head-right">
+        <button class="btn" id="open-tester-btn" type="button">Prompt Tester</button>
+        <div class="head-thumb"><canvas id="thumb-progress" width="58" height="58"></canvas></div>
+        <div class="head-thumb"><canvas id="thumb-lanes" width="58" height="58"></canvas></div>
+        <div class="head-thumb"><canvas id="thumb-bloch" width="58" height="58"></canvas></div>
+        <div class="head-thumb"><canvas id="thumb-grid" width="58" height="58"></canvas></div>
+      </div>
+    </div>
+    <div class="metrics-bar"><div class="metrics-fill" id="metrics-fill"></div></div>
+    <div class="jump" id="jump-panel">
+      <div class="jump-head">
+        <div class="jump-title">log</div>
+        <div class="jump-controls">
+          <span class="chip" id="lane-chip">router: booting</span>
+          <span class="chip" id="jump-chip">jump: +0</span>
+          <div class="jump-toggle" id="jump-toggle" role="button" tabindex="0" aria-expanded="true">^</div>
+        </div>
+      </div>
+      <ul class="jump-log" id="jump-log"></ul>
+    </div>
+    <div class="metrics" id="metrics-panel">
+      <div class="metrics-row">
+        <button class="btn" id="reset-memory-btn" type="button">RESET MEMORY</button>
+        <span id="metric-level">level: L1 | score: 0</span>
+        <span id="metric-count">major: 0 | useful: 0 | merges: 0 | samples: 0</span>
+        <span id="metric-hurdle">hurdle: v4.2 (0%)</span>
+      </div>
+    </div>
+    <div class="log" id="log">
+      <div class="update-flow" id="update-flow" aria-hidden="true"></div>
+    </div>
+    <div class="composer">
+      <input id="prompt" type="text" placeholder="Ask anything..." autocomplete="off">
+      <button class="send" id="send-btn" title="Send">↑</button>
+      <button class="btn" id="clear-btn" type="button">CLEAR</button>
+    </div>
+    <div class="status">
+      <span id="status">brain node active | mistral + granite + ugrad</span>
+      <span id="route-stats">routes: m0(draft) g0(guard) u0(runtime) h0(blend)</span>
+    </div>
+    <aside class="tester-panel" id="tester-panel" aria-hidden="true">
+      <h2 class="tester-title">ugrad chat prompt tester</h2>
+      <div class="tester-row">
+        <label for="tester-model-id">Model id (logical)</label>
+        <select id="tester-model-id"></select>
+      </div>
+      <div class="tester-row">
+        <label for="tester-engine-tag">Engine tag</label>
+        <input id="tester-engine-tag" type="text" placeholder="ex: noBLINK-t5-v1">
+      </div>
+      <div class="tester-row">
+        <label for="tester-prompts">Prompt suite (one per line)</label>
+        <textarea id="tester-prompts" rows="7" placeholder="summarize the stack&#10;generate a test checklist&#10;start runtime training"></textarea>
+      </div>
+      <div class="tester-actions">
+        <button class="btn" id="tester-run-btn" type="button">Run Suite</button>
+        <button class="btn" id="tester-save-pair-btn" type="button">Save Last Pair</button>
+        <button class="btn" id="tester-export-jsonl-btn" type="button">Export JSONL</button>
+        <button class="btn" id="tester-export-report-btn" type="button">Export Report</button>
+        <button class="btn" id="tester-close-btn" type="button">Close</button>
+      </div>
+      <div class="tester-output" id="tester-output">tester ready</div>
+      <div class="tester-status" id="tester-status">dataset rows: 0</div>
+    </aside>
+  </div>
+  <iframe class="bridge-runtime" id="ugrad-runtime-bridge" src="about:blank" data-runtime-src="ugrad-r0.html?embedded=1&chat=1" title="ugrad runtime bridge" aria-hidden="true"></iframe>
+
+  <script src="quantum-prefixes.js"></script>
+  <script src="qbit-dac.js"></script>
+  <script src="qbit-steno.js"></script>
+  <script src="qbit-preflight.js"></script>
+  <script src="history-search-engine.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    // ===== QUANTUM PREFIX LIVE SYNC =====
+    try {
+      if (window.QuantumPrefixes && window.QuantumPrefixes.requestStateSync) window.QuantumPrefixes.requestStateSync();
+      if (window.QuantumPrefixes && window.QuantumPrefixes.broadcastState) {
+        window.QuantumPrefixes.broadcastState('ugrad-chat-stable', { app: 'ugrad-chat-stable', ts: Date.now() });
+      }
+    } catch (_) {}
+    try {
+      var _historyBus = new BroadcastChannel('history-search');
+      _historyBus.postMessage({ type: 'ugrad-chat-ready', source: 'ugrad-chat-stable', ts: Date.now() });
+      _historyBus.close();
+    } catch (_) {}
+
+    var LS_BRAIN = 'ugrad-chat-brain-state-v1';
+    var LS_SESSION = 'ugrad-chat-session-v1';
+    var LS_BG_LEARNED = 'ugrad-chat-bg-learned-v1';
+    var LS_TESTER_DATA = 'ugrad-chat-tester-data-v1';
+    var LS_TESTER_REPORT = 'ugrad-chat-tester-report-v1';
+    var DEFAULT_STATE = {
+      version: 1,
+      sessions: 0,
+      autoMode: 'safe',
+      laneBias: { mistral: 0, granite: 0, ugrad: 0 },
+      routeStats: { mistral: 0, granite: 0, ugrad: 0, hybrid: 0 },
+      tokenBias: {},
+      synonyms: {},
+      nextActions: [],
+      capsuleWeights: {},
+      metrics: {
+        majorPrompts: 0,
+        feedbackUseful: 0,
+        feedbackMiss: 0,
+        backgroundMerges: 0,
+        trainerSamples: 0,
+        lastWorkerSamples: 0,
+        evolveCycles: 0,
+        evolveMerges: 0,
+        evolveAutoRuns: 0
+      },
+      improvements: [],
+      lastDeltaId: null,
+      lastBootAt: 0
+    };
+
+    function $(id) { return document.getElementById(id); }
+    var log = $('log');
+    var updateFlow = $('update-flow');
+    var prompt = $('prompt');
+    var send = $('send-btn');
+    var clear = $('clear-btn');
+    var resetMemory = $('reset-memory-btn');
+    var status = $('status');
+    var routeStatsEl = $('route-stats');
+    var openTesterBtn = $('open-tester-btn');
+    var testerPanel = $('tester-panel');
+    var testerModelId = $('tester-model-id');
+    var testerEngineTag = $('tester-engine-tag');
+    var testerPrompts = $('tester-prompts');
+    var testerRunBtn = $('tester-run-btn');
+    var testerSavePairBtn = $('tester-save-pair-btn');
+    var testerExportJsonlBtn = $('tester-export-jsonl-btn');
+    var testerExportReportBtn = $('tester-export-report-btn');
+    var testerCloseBtn = $('tester-close-btn');
+    var testerOutput = $('tester-output');
+    var testerStatus = $('tester-status');
+    var laneChip = $('lane-chip');
+    var jumpChip = $('jump-chip');
+    var jumpPanel = $('jump-panel');
+    var jumpToggle = $('jump-toggle');
+    var jumpLog = $('jump-log');
+    var metricLevel = $('metric-level');
+    var metricCount = $('metric-count');
+    var metricHurdle = $('metric-hurdle');
+    var metricsFill = $('metrics-fill');
+    var progressThumb = $('thumb-progress');
+    var lanesThumb = $('thumb-lanes');
+    var blochThumb = $('thumb-bloch');
+    var gridThumb = $('thumb-grid');
+    var runtimeBridge = $('ugrad-runtime-bridge');
+
+    var brain = loadState();
+    var session = loadSession();
+    var trainerWorker = null;
+    var trainerReqId = 0;
+    var trainerPending = Object.create(null);
+    var trainerTick = null;
+    var thumbAnimId = null;
+    var flowTick = null;
+    var ugradTrainCh = null;
+    var blochStateCh = null;
+    var idleLoop = null;
+    var idleTraining = false;
+    var statusNote = 'brain node active';
+    var lastUiActivityAt = Date.now();
+    var runtimeBridgeLoaded = false;
+    var runtimeBridgeCooldown = null;
+    var ugradLive = {
+      active: false,
+      bg: false,
+      gen: 0,
+      acc: 0,
+      loss: 0,
+      ms: 0,
+      qubits: [],
+      history: [],
+      lastTs: 0
+    };
+    var LIVE_MODEL_MATRIX = [
+      { id: 'mistral-medium-2508', lane: 'mistral', status: 'live' },
+      { id: 'magistral-medium-2509', lane: 'granite', status: 'live' },
+      { id: 'devstral-2512', lane: 'ugrad', status: 'live' },
+      { id: 'codestral-2508', lane: 'ugrad', status: 'fallback' },
+      { id: 'mistral-large-2512', lane: 'mistral', status: 'fallback' },
+      { id: 'mistral-small-2506', lane: 'mistral', status: 'fallback' },
+      { id: 'ministral-8b-2512', lane: 'blend', status: 'fallback' },
+      { id: 'voxtral-mini-transcribe-2602', lane: 'voice', status: 'live' },
+      { id: 'mistral-ocr-2512', lane: 'doc', status: 'live' },
+      { id: 'mistral-moderation-2411', lane: 'granite', status: 'live' }
+    ];
+    var ORCHESTRATOR_STACK = null;
+    var testerData = loadTesterData();
+    var testerReport = loadTesterReport();
+    var lastPromptText = '';
+    var lastPacket = null;
+    brain.sessions += 1;
+    brain.lastBootAt = Date.now();
+    saveState();
+
+    function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+    function saveState() { try { localStorage.setItem(LS_BRAIN, JSON.stringify(brain)); } catch (_) {} }
+    function saveSession() { try { localStorage.setItem(LS_SESSION, JSON.stringify(session.slice(-80))); } catch (_) {} }
+
+    function mergeState(src) {
+      var dst = clone(DEFAULT_STATE);
+      dst.version = src.version || dst.version;
+      dst.sessions = Number(src.sessions || 0);
+      dst.autoMode = (src.autoMode === 'off' || src.autoMode === 'full') ? src.autoMode : 'safe';
+      dst.laneBias = Object.assign(dst.laneBias, src.laneBias || {});
+      dst.routeStats = Object.assign(dst.routeStats, src.routeStats || {});
+      dst.tokenBias = Object.assign({}, src.tokenBias || {});
+      dst.synonyms = Object.assign({}, src.synonyms || {});
+      dst.nextActions = Array.isArray(src.nextActions) ? src.nextActions.slice(0, 40) : [];
+      dst.capsuleWeights = Object.assign({}, src.capsuleWeights || {});
+      dst.metrics = Object.assign(dst.metrics, src.metrics || {});
+      dst.improvements = Array.isArray(src.improvements) ? src.improvements.slice(-12) : [];
+      dst.lastDeltaId = src.lastDeltaId || null;
+      dst.lastBootAt = Number(src.lastBootAt || 0);
+      return dst;
+    }
+
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(LS_BRAIN);
+        if (!raw) return clone(DEFAULT_STATE);
+        return mergeState(JSON.parse(raw));
+      } catch (_) {
+        return clone(DEFAULT_STATE);
+      }
+    }
+
+    function loadSession() {
+      try {
+        var raw = localStorage.getItem(LS_SESSION);
+        if (!raw) return [];
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function loadTesterData() {
+      try {
+        var raw = localStorage.getItem(LS_TESTER_DATA);
+        if (!raw) return [];
+        var parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function saveTesterData() {
+      try {
+        localStorage.setItem(LS_TESTER_DATA, JSON.stringify(testerData.slice(-800)));
+      } catch (_) {}
+    }
+
+    function loadTesterReport() {
+      try {
+        var raw = localStorage.getItem(LS_TESTER_REPORT);
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function saveTesterReport(report) {
+      testerReport = report || null;
+      try {
+        localStorage.setItem(LS_TESTER_REPORT, JSON.stringify(testerReport || {}));
+      } catch (_) {}
+    }
+
+    function downloadTextFile(filename, content) {
+      try {
+        var blob = new Blob([String(content || '')], { type: 'text/plain;charset=utf-8' });
+        var href = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = href;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(href); }, 3000);
+      } catch (_) {}
+    }
+
+    function escapeRegExp(s) {
+      return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function unique(arr) {
+      var seen = Object.create(null);
+      return arr.filter(function (v) {
+        var k = String(v);
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+      });
+    }
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function pushImprovement(text) {
+      if (!text) return;
+      brain.improvements.push(String(text));
+      brain.improvements = brain.improvements.slice(-12);
+    }
+
+    function createBackgroundTrainer() {
+      if (typeof Worker === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') return null;
+      var code = [
+        "'use strict';",
+        "var S={count:0,laneCounts:{mistral:0,granite:0,ugrad:0,hybrid:0},tokenLane:Object.create(null),lastAt:Date.now()};",
+        "function tok(t){return String(t||'').toLowerCase().replace(/[^a-z0-9\\s]/g,' ').split(/\\s+/).filter(function(x){return x.length>=4 && x.length<=24;}).slice(0,24);}",
+        "function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}",
+        "function ingest(p){if(!p)return;S.count++;var lane=String(p.route||'hybrid');S.laneCounts[lane]=(S.laneCounts[lane]||0)+1;var words=tok(p.text);for(var i=0;i<words.length;i++){var w=words[i];if(!S.tokenLane[w])S.tokenLane[w]={mistral:0,granite:0,ugrad:0};if(lane==='hybrid'){S.tokenLane[w].mistral+=0.5;S.tokenLane[w].ugrad+=0.5;}else if(S.tokenLane[w][lane]!==undefined){S.tokenLane[w][lane]+=1;}}S.lastAt=Date.now();}",
+        "function snapshot(reason){var adj={mistral:0,granite:0,ugrad:0};adj.mistral=clamp(Math.floor((S.laneCounts.mistral||0)/8),0,1);adj.granite=clamp(Math.floor((S.laneCounts.granite||0)/8),0,1);adj.ugrad=clamp(Math.floor((S.laneCounts.ugrad||0)/8),0,2);var actions=[];if((S.laneCounts.ugrad||0)>0)actions.push('run runtime lane first for build/train prompts');if((S.laneCounts.granite||0)>0)actions.push('append verification and risk notes to operational replies');if((S.laneCounts.mistral||0)>0)actions.push('offer short draft + one executable next step');var imp=['background trainer active: '+S.count+' samples'];return {id:'bg-'+Date.now(),source:'bg-trainer',reason:String(reason||'manual'),laneBiasAdjust:adj,nextActions:actions,improvements:imp,samples:S.count,ts:Date.now()};}",
+        "onmessage=function(ev){var d=ev.data||{};if(d.type==='ingest'){ingest(d.payload||{});return;}if(d.type==='train'){return;}if(d.type==='reset'){S={count:0,laneCounts:{mistral:0,granite:0,ugrad:0,hybrid:0},tokenLane:Object.create(null),lastAt:Date.now()};return;}if(d.type==='snapshot'){postMessage({type:'snapshot',reqId:d.reqId,payload:snapshot(d.reason)});}};"
+      ].join('');
+      try {
+        var blob = new Blob([code], { type: 'application/javascript' });
+        var url = URL.createObjectURL(blob);
+        var worker = new Worker(url);
+        URL.revokeObjectURL(url);
+        worker.onmessage = function (ev) {
+          var d = ev.data || {};
+          if (d.type !== 'snapshot') return;
+          var cb = trainerPending[d.reqId];
+          if (!cb) return;
+          delete trainerPending[d.reqId];
+          cb(d.payload || null);
+        };
+        return worker;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function trainerIngest(payload) {
+      if (!trainerWorker) return;
+      try {
+        trainerWorker.postMessage({ type: 'ingest', payload: payload || {} });
+      } catch (_) {}
+    }
+
+    function requestTrainerSnapshot(reason) {
+      return new Promise(function (resolve) {
+        if (!trainerWorker) return resolve(null);
+        trainerReqId += 1;
+        var reqId = 'req-' + trainerReqId + '-' + Date.now();
+        trainerPending[reqId] = resolve;
+        try {
+          trainerWorker.postMessage({ type: 'snapshot', reqId: reqId, reason: reason || 'manual' });
+        } catch (_) {
+          delete trainerPending[reqId];
+          resolve(null);
+        }
+      });
+    }
+
+    function mergeTrainerSnapshot(snapshot) {
+      if (!snapshot || typeof snapshot !== 'object') return false;
+      var changed = false;
+      var adj = snapshot.laneBiasAdjust || {};
+      ['mistral', 'granite', 'ugrad'].forEach(function (lane) {
+        if (typeof adj[lane] !== 'number' || !adj[lane]) return;
+        brain.laneBias[lane] = clamp((brain.laneBias[lane] || 0) + adj[lane], -6, 6);
+        changed = true;
+      });
+      var actions = Array.isArray(snapshot.nextActions) ? snapshot.nextActions : [];
+      actions.forEach(function (line) {
+        brain.nextActions.unshift(String(line));
+        changed = true;
+      });
+      brain.nextActions = unique(brain.nextActions).slice(0, 40);
+      if (Array.isArray(snapshot.improvements)) {
+        snapshot.improvements.forEach(function (line) { pushImprovement(String(line)); });
+        changed = true;
+      }
+      var m = brain.metrics;
+      var workerSamples = Math.max(0, Number(snapshot.samples || 0));
+      var deltaSamples = Math.max(0, workerSamples - Number(m.lastWorkerSamples || 0));
+      m.lastWorkerSamples = workerSamples;
+      m.trainerSamples += deltaSamples;
+      m.backgroundMerges += 1;
+      changed = true;
+      if (!changed) return false;
+      saveState();
+      renderJumpLog();
+      renderRouteStats();
+      renderMetrics();
+      return true;
+    }
+
+    function isMajorPrompt(raw, packet) {
+      var t = String(raw || '').toLowerCase();
+      if (t.length >= 64) return true;
+      if (packet && packet.route === 'hybrid') return true;
+      var majorTerms = ['train', 'runtime', 'capsule', 'build', 'deploy', 'governance', 'architecture', 'pipeline', 'benchmark'];
+      for (var i = 0; i < majorTerms.length; i++) {
+        if (t.indexOf(majorTerms[i]) !== -1) return true;
+      }
+      return false;
+    }
+
+    async function offloadLearnedData(reason) {
+      var snap = await requestTrainerSnapshot(reason);
+      if (!snap) return false;
+      try {
+        localStorage.setItem(LS_BG_LEARNED, JSON.stringify({
+          type: 'ugrad-chat-learned',
+          reason: reason || 'major-response',
+          snapshot: snap,
+          ts: Date.now()
+        }));
+      } catch (_) {}
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          var ch = new BroadcastChannel('ugrad-training');
+          ch.postMessage({
+            type: 'ugrad-chat-learned',
+            source: 'ugrad-chat-stable',
+            reason: reason || 'major-response',
+            snapshot: snap,
+            ts: Date.now()
+          });
+          ch.close();
+        }
+      } catch (_) {}
+      if (mergeTrainerSnapshot(snap)) {
+        refreshStatus('background trainer merged @ major response');
+      }
+      return true;
+    }
+
+    function renderJumpLog() {
+      jumpLog.innerHTML = '';
+      var items = brain.improvements.slice(-6);
+      if (!items.length) items = ['base profile loaded'];
+      items.forEach(function (line) {
+        var row = document.createElement('li');
+        row.textContent = line;
+        jumpLog.appendChild(row);
+      });
+      jumpChip.textContent = 'jump: +' + items.length;
+    }
+
+    function setJumpCollapsed(nextCollapsed) {
+      if (!jumpPanel || !jumpToggle) return;
+      var collapsed = !!nextCollapsed;
+      jumpPanel.classList.toggle('collapsed', collapsed);
+      jumpToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      jumpToggle.textContent = collapsed ? 'v' : '^';
+    }
+
+    function renderRouteStats() {
+      routeStatsEl.textContent =
+        'routes: m' + brain.routeStats.mistral + '(draft)' +
+        ' g' + brain.routeStats.granite + '(guard)' +
+        ' u' + brain.routeStats.ugrad + '(runtime)' +
+        ' h' + brain.routeStats.hybrid + '(blend)';
+    }
+
+    function computeMajorScore() {
+      var m = brain.metrics || DEFAULT_STATE.metrics;
+      return (m.majorPrompts * 3) + (m.feedbackUseful * 2) + (m.backgroundMerges * 4);
+    }
+
+    function currentHurdle(score) {
+      var hurdles = [
+        { version: 'v4.2', target: 60, prev: 0 },
+        { version: 'v4.3', target: 120, prev: 60 },
+        { version: 'v4.4', target: 200, prev: 120 },
+        { version: 'v5.0', target: 320, prev: 200 }
+      ];
+      for (var i = 0; i < hurdles.length; i++) {
+        if (score < hurdles[i].target) return hurdles[i];
+      }
+      return hurdles[hurdles.length - 1];
+    }
+
+    function renderMetrics() {
+      if (!metricLevel || !metricCount || !metricHurdle || !metricsFill) return;
+      var m = brain.metrics || DEFAULT_STATE.metrics;
+      var score = computeMajorScore();
+      var hurdle = currentHurdle(score);
+      var span = Math.max(1, hurdle.target - hurdle.prev);
+      var pct = Math.max(0, Math.min(100, Math.round(((score - hurdle.prev) / span) * 100)));
+      var level = 'L' + Math.max(1, Math.min(7, 1 + Math.floor(score / 45)));
+      metricLevel.textContent = 'level: ' + level + ' | score: ' + score;
+      metricCount.textContent = 'major: ' + m.majorPrompts + ' | useful: ' + m.feedbackUseful + ' | merges: ' + m.backgroundMerges + ' | samples: ' + m.trainerSamples;
+      metricHurdle.textContent = 'hurdle: ' + hurdle.version + ' (' + pct + '%)';
+      metricsFill.style.width = pct + '%';
+    }
+
+    function computeRebootPct() {
+      var score = computeMajorScore();
+      var hurdle = currentHurdle(score);
+      var span = Math.max(1, hurdle.target - hurdle.prev);
+      return Math.max(0, Math.min(100, Math.round(((score - hurdle.prev) / span) * 100)));
+    }
+
+    function computeTrainingPct() {
+      if (!ugradLive || !ugradLive.gen) return 0;
+      var pct = Number(ugradLive.gen || 0) % 100;
+      return Math.max(0, Math.min(100, pct));
+    }
+
+    function currentTrainingState() {
+      var bridgeLive = !!(ugradLive && ugradLive.lastTs && ((Date.now() - ugradLive.lastTs) < 12000));
+      if (idleTraining && bridgeLive) return 'running (idle)';
+      if (!bridgeLive) return 'paused (bridge waiting)';
+      if (!idleTraining) return 'paused (user active)';
+      return 'paused';
+    }
+
+    function refreshStatus(msg) {
+      if (msg) statusNote = String(msg);
+      var rebootPct = computeRebootPct();
+      var trainPct = computeTrainingPct();
+      var trainState = currentTrainingState();
+      var mode = String(brain.autoMode || 'safe');
+      status.textContent = statusNote + ' | reboot sync ' + rebootPct + '% | training ' + trainPct + '% (' + trainState + ')' + ' | auto ' + mode;
+    }
+
+    function flowLineText() {
+      var train = ugradTrainingSnapshot();
+      var rs = 'm' + brain.routeStats.mistral + ' g' + brain.routeStats.granite + ' u' + brain.routeStats.ugrad + ' h' + brain.routeStats.hybrid;
+      var imp = brain.improvements && brain.improvements.length ? brain.improvements[brain.improvements.length - 1] : 'runtime active';
+      return train + ' | routes ' + rs + ' | ' + imp;
+    }
+
+    function emitFlowLine(text) {
+      if (!updateFlow) return;
+      var line = document.createElement('div');
+      line.className = 'update-flow-item';
+      line.textContent = String(text || flowLineText());
+      var x = 8 + Math.floor(Math.random() * 220);
+      var dur = 7 + Math.random() * 4;
+      line.style.left = x + 'px';
+      line.style.animationDuration = dur.toFixed(2) + 's';
+      updateFlow.appendChild(line);
+      setTimeout(function () {
+        try { if (line.parentNode) line.parentNode.removeChild(line); } catch (_) {}
+      }, Math.round((dur + 0.5) * 1000));
+    }
+
+    function normalizePrompt(input) {
+      var text = String(input || '').trim();
+      if (!text) return text;
+      Object.keys(brain.synonyms).forEach(function (k) {
+        var mapped = brain.synonyms[k];
+        if (!mapped) return;
+        var re = new RegExp('\\b' + escapeRegExp(k) + '\\b', 'ig');
+        text = text.replace(re, mapped);
+      });
+      return text;
+    }
+
+    function matchAdd(text, words, scores, lane, points) {
+      words.forEach(function (word) {
+        if (text.indexOf(word) !== -1) scores[lane] += points;
+      });
+    }
+
+    function tokenizePrompt(text) {
+      var t = String(text || '').toLowerCase();
+      var parts = t.split(/[^a-z0-9_]+/).filter(Boolean);
+      return parts.filter(function (p) { return p.length >= 3; }).slice(0, 42);
+    }
+
+    function applyTokenBias(text, scores) {
+      var tokens = tokenizePrompt(text);
+      tokens.forEach(function (tok) {
+        var rec = brain.tokenBias[tok];
+        if (!rec || typeof rec !== 'object') return;
+        scores.mistral += Number(rec.mistral || 0);
+        scores.granite += Number(rec.granite || 0);
+        scores.ugrad += Number(rec.ugrad || 0);
+      });
+    }
+
+    function learnPromptBias(text, lane, weight) {
+      var key = String(lane || '');
+      if (!key || ['mistral', 'granite', 'ugrad'].indexOf(key) === -1) return;
+      var tokens = tokenizePrompt(text);
+      var w = Number(weight || 0);
+      if (!isFinite(w) || !w) return;
+      tokens.forEach(function (tok) {
+        if (!brain.tokenBias[tok]) brain.tokenBias[tok] = { mistral: 0, granite: 0, ugrad: 0 };
+        ['mistral', 'granite', 'ugrad'].forEach(function (ln) {
+          if (ln === key) brain.tokenBias[tok][ln] = clamp(Number(brain.tokenBias[tok][ln] || 0) + w, -4, 4);
+          else brain.tokenBias[tok][ln] = clamp(Number(brain.tokenBias[tok][ln] || 0) - (w * 0.22), -4, 4);
+        });
+      });
+      var keys = Object.keys(brain.tokenBias);
+      if (keys.length > 220) {
+        keys.slice(0, keys.length - 220).forEach(function (k) { delete brain.tokenBias[k]; });
+      }
+    }
+
+    function buildLaneDraft(lane, text) {
+      var next = suggestAction(text, lane);
+      var conf = 1;
+      if (lane === 'ugrad') conf += 2;
+      if (lane === 'granite') conf += 1.5;
+      if (lane === 'mistral') conf += 1;
+      if (/capsule|font|blockize|train|runtime|build|fix|command/.test(String(text || '').toLowerCase()) && lane === 'ugrad') conf += 2;
+      if (/risk|verify|audit|safe|policy|governance/.test(String(text || '').toLowerCase()) && lane === 'granite') conf += 2;
+      if (/idea|rewrite|summarize|draft|explain/.test(String(text || '').toLowerCase()) && lane === 'mistral') conf += 2;
+      return {
+        lane: lane,
+        nextAction: next,
+        confidence: Number(conf.toFixed(2)),
+        commandLike: /`[^`]+`|run |open |compile |export |start |stop |search /.test(String(next).toLowerCase())
+      };
+    }
+
+    function graniteRankDrafts(drafts, text) {
+      var t = String(text || '').toLowerCase();
+      return drafts.map(function (d) {
+        var score = Number(d.confidence || 0);
+        if (d.commandLike) score += 1.2;
+        if (d.lane === 'granite') score += 0.4;
+        if (d.lane === 'ugrad' && /train|build|run|capsule|font|blockize|runtime|fix/.test(t)) score += 1.3;
+        if (d.lane === 'granite' && /risk|policy|verify|audit|safe|compliance/.test(t)) score += 1.1;
+        if (d.lane === 'mistral' && /idea|rewrite|summarize|plan|copy/.test(t)) score += 1.1;
+        return {
+          lane: d.lane,
+          nextAction: d.nextAction,
+          score: Number(score.toFixed(2)),
+          confidence: d.confidence
+        };
+      }).sort(function (a, b) { return b.score - a.score; });
+    }
+
+    function evolveRouteAndAction(text, route) {
+      var lanes = unique((route && route.lanes ? route.lanes : []).concat(['mistral', 'granite', 'ugrad'])).slice(0, 3);
+      var drafts = lanes.map(function (lane) { return buildLaneDraft(lane, text); });
+      var ranked = graniteRankDrafts(drafts, text);
+      var lead = ranked[0] || { lane: (route && route.label) || 'ugrad', nextAction: suggestAction(text, 'ugrad'), score: 0 };
+      var second = ranked[1] || lead;
+      var useHybrid = Math.abs(Number(lead.score || 0) - Number(second.score || 0)) <= 0.7 && lead.lane !== second.lane;
+      return {
+        label: useHybrid ? 'hybrid' : lead.lane,
+        lanes: useHybrid ? [lead.lane, second.lane] : [lead.lane],
+        nextAction: lead.nextAction,
+        evolve: {
+          mode: 'hybrid+',
+          ranked: ranked.slice(0, 3),
+          chosen: lead.lane
+        }
+      };
+    }
+
+    function parseCapsuleIntent(text) {
+      var t = String(text || '').trim();
+      var mOpen = t.match(/\bcapsule\s+(open\s+)?([a-z0-9._:-]{3,})/i);
+      if (!mOpen) return null;
+      return { type: 'capsule', id: String(mOpen[2] || '').toLowerCase() };
+    }
+
+    function buildAutoDispatchPlan(text, packet) {
+      var t = String(text || '').toLowerCase();
+      var mode = String(brain.autoMode || 'safe');
+      if (mode === 'off') return null;
+      var top = packet && packet.evolve && packet.evolve.ranked && packet.evolve.ranked[0] ? packet.evolve.ranked[0] : null;
+      var topScore = Number(top && top.score || 0);
+      var topLane = String(top && top.lane || (packet && packet.lanes && packet.lanes[0]) || 'ugrad');
+      if (topScore < 4.2 || topLane !== 'ugrad') return null;
+      if (/(start|resume|run).*(train|training)|\btrain\b/.test(t)) return { kind: 'train-start', confidence: topScore, mode: mode };
+      if (/\bfont\b.*\bcompile\b|\bcompile\b.*\bfont\b/.test(t)) return mode === 'full' ? { kind: 'font-compile', confidence: topScore, mode: mode } : null;
+      if (/\bblockize\b|\bmulticast\b/.test(t)) return mode === 'full' ? { kind: 'blockize', confidence: topScore, mode: mode } : null;
+      if (/\bcapsule\b/.test(t)) {
+        var cap = parseCapsuleIntent(text);
+        if (cap && cap.id) return mode === 'full' ? { kind: 'capsule-open', confidence: topScore, capsule: cap, mode: mode } : null;
+        return { kind: 'capsule-search', confidence: topScore, capsule: cap, mode: mode };
+      }
+      return null;
+    }
+
+    function runAutoDispatch(plan, text, packet) {
+      if (!plan || !plan.kind) return null;
+      try {
+        if (plan.kind === 'train-start') {
+          ensureRuntimeBridgeLoaded();
+          sendUgradCommand('start');
+          idleTraining = true;
+          return { ok: true, detail: 'auto start training' };
+        }
+        if (plan.kind === 'font-compile') {
+          var codec = window.qbitCodec;
+          if (!codec || typeof codec.compileFontPack !== 'function') return { ok: false, detail: 'font compile unavailable' };
+          var seed = String(text || '').trim().slice(0, 240);
+          var pack = codec.compileFontPack(
+            { text: seed || 'ugrad chat auto compile', language: 'text', name: 'ugrad-chat-auto-font-' + Date.now() },
+            { source: 'ugrad-chat-stable', broadcast: true, channels: ['iron-line', 'quantum-prefixes', 'kbatch-training'] }
+          );
+          var glyphs = pack && pack.glyphs ? pack.glyphs.length : 0;
+          return { ok: true, detail: 'auto font compile (' + glyphs + ' glyphs)' };
+        }
+        if (plan.kind === 'blockize') {
+          var codec2 = window.qbitCodec;
+          if (!codec2 || typeof codec2.blockizeMulticast !== 'function') return { ok: false, detail: 'blockize unavailable' };
+          var blk = codec2.blockizeMulticast(
+            String(text || '').slice(0, 320),
+            { source: 'ugrad-chat-stable', language: 'text', channels: ['iron-line', 'quantum-prefixes', 'kbatch-training', 'hexterm'], broadcast: true }
+          );
+          var routed = blk && blk.routed ? blk.routed.length : 0;
+          return { ok: true, detail: 'auto blockize multicast (' + routed + ' routes)' };
+        }
+        if (plan.kind === 'capsule-open') {
+          var capId = plan.capsule && plan.capsule.id ? plan.capsule.id : '';
+          if (!capId) return { ok: false, detail: 'capsule id missing' };
+          var hx = new BroadcastChannel('hexterm');
+          hx.postMessage({ type: 'kbatch-open-capsule', capsuleId: capId, source: 'ugrad-chat-stable', ts: Date.now() });
+          hx.close();
+          return { ok: true, detail: 'auto capsule open ' + capId };
+        }
+        if (plan.kind === 'capsule-search') {
+          var kb = new BroadcastChannel('kbatch-training');
+          kb.postMessage({ type: 'ugrad-capsule-search', query: String(text || '').slice(0, 96), source: 'ugrad-chat-stable', ts: Date.now() });
+          kb.close();
+          return { ok: true, detail: 'auto capsule search' };
+        }
+      } catch (_) {
+        return { ok: false, detail: 'auto dispatch error' };
+      }
+      return null;
+    }
+
+    function routePrompt(text) {
+      var t = String(text || '').toLowerCase();
+      var scores = {
+        mistral: 1 + (brain.laneBias.mistral || 0),
+        granite: 1 + (brain.laneBias.granite || 0),
+        ugrad: 1 + (brain.laneBias.ugrad || 0)
+      };
+
+      matchAdd(t, ['explain', 'why', 'rewrite', 'summarize', 'idea', 'brainstorm'], scores, 'mistral', 2);
+      matchAdd(t, ['policy', 'secure', 'risk', 'compliance', 'enterprise', 'guardrail', 'governance'], scores, 'granite', 3);
+      matchAdd(t, ['build', 'run', 'fix', 'capsule', 'dataset', 'train', 'benchmark', 'qasm', 'cli', 'runtime'], scores, 'ugrad', 3);
+      applyTokenBias(t, scores);
+
+      var ranked = [
+        { lane: 'mistral', score: scores.mistral },
+        { lane: 'granite', score: scores.granite },
+        { lane: 'ugrad', score: scores.ugrad }
+      ].sort(function (a, b) { return b.score - a.score; });
+
+      if ((ranked[0].score - ranked[1].score) <= 1) {
+        return { label: 'hybrid', lanes: [ranked[0].lane, ranked[1].lane], scores: scores };
+      }
+      return { label: ranked[0].lane, lanes: [ranked[0].lane], scores: scores };
+    }
+
+    function suggestAction(text, lane) {
+      var t = String(text || '').toLowerCase();
+      if (t.indexOf('capsule') !== -1) return 'open capsule drill: `kb capsule <id>`';
+      if (t.indexOf('font') !== -1) return 'compile font pack from live sample';
+      if (t.indexOf('launch') !== -1) return 'run launch smoke pass on critical routes';
+      if (lane === 'granite') return 'generate checklists + acceptance tests';
+      if (lane === 'mistral') return 'refine this into a 3-step plan';
+      return 'run build/verify loop and store outcome delta';
+    }
+
+    function summarizeIntent(text) {
+      var t = String(text || '').trim();
+      if (!t) return 'idle';
+      if (t.length <= 72) return t;
+      return t.slice(0, 69) + '...';
+    }
+
+    function modelMatrixSummary() {
+      var live = LIVE_MODEL_MATRIX.filter(function (m) { return m.status === 'live'; }).length;
+      var fb = LIVE_MODEL_MATRIX.filter(function (m) { return m.status !== 'live'; }).length;
+      var lanes = unique(LIVE_MODEL_MATRIX.map(function (m) { return m.lane; }));
+      return 'models live=' + live + ' fallback=' + fb + ' lanes=' + lanes.join(',');
+    }
+
+    function localRuntimeSummaryLine() {
+      var rt = ORCHESTRATOR_STACK && ORCHESTRATOR_STACK.local_runtime;
+      if (!rt) return 'local runtime map: loading';
+      var mode = String(rt.orchestrator_mode || 'unknown');
+      var order = Array.isArray(rt.active_provider_order) ? rt.active_provider_order.join('>') : 'unknown';
+      var path = rt.ollama && rt.ollama.models_path ? rt.ollama.models_path : 'unknown';
+      return 'local runtime mode=' + mode + ' providers=' + order + ' path=' + path;
+    }
+
+    function localResolutionLines(limit) {
+      var rt = ORCHESTRATOR_STACK && ORCHESTRATOR_STACK.local_runtime;
+      var map = rt && rt.model_resolution ? rt.model_resolution : null;
+      if (!map || typeof map !== 'object') return ['- local resolution unavailable'];
+      var ids = Object.keys(map);
+      var out = [];
+      var max = Math.max(1, Number(limit || 10));
+      for (var i = 0; i < ids.length && out.length < max; i++) {
+        var id = ids[i];
+        var chain = Array.isArray(map[id]) ? map[id] : [];
+        out.push('- ' + id + ' -> ' + (chain.length ? chain.join(' -> ') : 'api-only'));
+      }
+      return out;
+    }
+
+    function modelStatusReport() {
+      return [
+        ugradTrainingSnapshot(),
+        modelMatrixSummary(),
+        localRuntimeSummaryLine()
+      ].concat(localResolutionLines(10)).join('\n');
+    }
+
+    function initTesterModelSelect() {
+      if (!testerModelId) return;
+      testerModelId.innerHTML = '';
+      var ids = LIVE_MODEL_MATRIX.map(function (m) { return m.id; });
+      ids = unique(ids);
+      ids.forEach(function (id) {
+        var opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id;
+        testerModelId.appendChild(opt);
+      });
+      if (ids.indexOf('devstral-2512') !== -1) testerModelId.value = 'devstral-2512';
+    }
+
+    function setTesterOpen(open) {
+      if (!testerPanel) return;
+      var on = !!open;
+      testerPanel.classList.toggle('open', on);
+      testerPanel.setAttribute('aria-hidden', on ? 'false' : 'true');
+      if (on && testerPrompts) testerPrompts.focus();
+    }
+
+    function scorePacket(packet, promptText) {
+      var text = String((packet && packet.text) || '');
+      var prompt = String(promptText || '');
+      var score = 0;
+      if (text.length >= 24) score += 25;
+      if (text.length <= 480) score += 15;
+      if (packet && packet.nextAction) score += 20;
+      if (packet && packet.route === 'hybrid') score += 10;
+      if (/(next|run|build|train|verify|status)/i.test(text)) score += 15;
+      if (/(error|failed|missing)/i.test(text)) score -= 8;
+      if (prompt && text.toLowerCase().indexOf(prompt.toLowerCase().slice(0, 8)) !== -1) score += 8;
+      return Math.max(0, Math.min(100, score));
+    }
+
+    function formatSuiteSummary(report) {
+      if (!report) return 'no report';
+      return [
+        'suite: ' + report.count + ' prompts',
+        'model: ' + report.modelId,
+        'engine: ' + report.engineTag,
+        'avg latency: ' + report.avgLatencyMs + 'ms',
+        'avg score: ' + report.avgScore + '/100',
+        'routes: ' + JSON.stringify(report.routeCounts)
+      ].join('\n');
+    }
+
+    function renderTesterStatus() {
+      if (!testerStatus) return;
+      var reportPart = testerReport ? (' | last avg score: ' + testerReport.avgScore) : '';
+      testerStatus.textContent = 'dataset rows: ' + testerData.length + reportPart;
+    }
+
+    function captureFineTunePair(row) {
+      if (!row || typeof row !== 'object') return;
+      testerData.push(row);
+      if (testerData.length > 800) testerData = testerData.slice(-800);
+      saveTesterData();
+      renderTesterStatus();
+    }
+
+    function buildFineTuneRow(promptText, packet, opts) {
+      var cfg = opts || {};
+      var modelId = String(cfg.modelId || (testerModelId && testerModelId.value) || 'devstral-2512');
+      var engineTag = String(cfg.engineTag || (testerEngineTag && testerEngineTag.value) || 'ugrad-default');
+      return {
+        ts: Date.now(),
+        model_id: modelId,
+        engine_tag: engineTag,
+        prompt: String(promptText || ''),
+        response: String((packet && packet.text) || ''),
+        route: String((packet && packet.route) || ''),
+        lanes: packet && Array.isArray(packet.lanes) ? packet.lanes.slice(0, 3) : [],
+        next_action: String((packet && packet.nextAction) || ''),
+        latency_ms: Number((packet && packet.latencyMs) || 0),
+        score: scorePacket(packet, promptText)
+      };
+    }
+
+    function runPromptSuite() {
+      if (!testerPrompts) return;
+      var raw = String(testerPrompts.value || '');
+      var lines = raw.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+      if (!lines.length) {
+        if (testerOutput) testerOutput.textContent = 'add at least one prompt line';
+        return;
+      }
+      var modelId = (testerModelId && testerModelId.value) ? testerModelId.value : 'devstral-2512';
+      var engineTag = (testerEngineTag && testerEngineTag.value) ? testerEngineTag.value.trim() : 'ugrad-default';
+      var rows = [];
+      var routeCounts = { mistral: 0, granite: 0, ugrad: 0, hybrid: 0 };
+      var latencyTotal = 0;
+      var scoreTotal = 0;
+      lines.forEach(function (line) {
+        var normalized = normalizePrompt(line);
+        var route = routePrompt(normalized);
+        var packet = buildResponse(normalized, route);
+        packet.promptText = normalized;
+        var row = buildFineTuneRow(line, packet, { modelId: modelId, engineTag: engineTag });
+        rows.push(row);
+        captureFineTunePair(row);
+        routeCounts[row.route] = (routeCounts[row.route] || 0) + 1;
+        latencyTotal += row.latency_ms;
+        scoreTotal += row.score;
+      });
+      var report = {
+        ts: Date.now(),
+        modelId: modelId,
+        engineTag: engineTag,
+        count: rows.length,
+        avgLatencyMs: Number((latencyTotal / Math.max(1, rows.length)).toFixed(2)),
+        avgScore: Number((scoreTotal / Math.max(1, rows.length)).toFixed(2)),
+        routeCounts: routeCounts,
+        rows: rows
+      };
+      saveTesterReport(report);
+      if (testerOutput) testerOutput.textContent = formatSuiteSummary(report);
+      renderTesterStatus();
+      pushImprovement('prompt tester suite run: ' + rows.length + ' prompts');
+      renderJumpLog();
+    }
+
+    function loadOrchestratorStack() {
+      var stamp = Date.now();
+      return fetch('config/ugrad-orchestrator-stack.json?fresh=' + stamp, { cache: 'no-store' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('stack config http ' + res.status);
+          return res.json();
+        })
+        .then(function (cfg) {
+          if (!cfg || typeof cfg !== 'object') return;
+          ORCHESTRATOR_STACK = cfg;
+        })
+        .catch(function (_) {});
+    }
+
+    function ugradTrainingSnapshot() {
+      var pct = computeTrainingPct();
+      var gen = Number(ugradLive.gen || 0);
+      var acc = Math.round(Math.max(0, Math.min(1, Number(ugradLive.acc || 0))) * 100);
+      var loss = Number(ugradLive.loss || 0);
+      var speedMs = Number(ugradLive.ms || 0);
+      var speedText = (isFinite(speedMs) && speedMs > 0) ? speedMs.toFixed(1) + 'ms/gen' : 'n/a';
+      return 'runtime: training ' + pct + '% | gen ' + gen + ' | acc ' + acc + '% | loss ' + (isFinite(loss) ? loss.toFixed(4) : 'n/a') + ' | speed ' + speedText;
+    }
+
+    function directCommandPacket(text) {
+      var t = String(text || '').toLowerCase().trim();
+      if (!t) return null;
+
+      if (/^(hi|hello|hey|yo)\b/.test(t) || /\bwhat'?s up\b|\bwhats up\b|\bsup\b/.test(t)) {
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'mistral',
+          lanes: ['mistral'],
+          latencyMs: 0,
+          nextAction: 'ask for a task, or say "start training"'
+        };
+      }
+
+      if (/(does it talk|can you talk|talk now|are you working)/.test(t)) {
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'hybrid',
+          lanes: ['mistral', 'ugrad'],
+          latencyMs: 0,
+          nextAction: 'try "start training", "stop training", or "status"'
+        };
+      }
+
+      if (/(start|resume|enable).*(train|training)|^(train on|start train)$/.test(t)) {
+        ensureRuntimeBridgeLoaded();
+        sendUgradCommand('start');
+        idleTraining = true;
+        refreshStatus('training command sent: start');
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'ugrad',
+          lanes: ['ugrad'],
+          latencyMs: 0,
+          nextAction: 'wait 5-10s then ask "status"'
+        };
+      }
+
+      if (/(stop|pause|disable).*(train|training)|^(stop train|pause train)$/.test(t)) {
+        sendUgradCommand('stop');
+        idleTraining = false;
+        refreshStatus('training command sent: stop');
+        if (runtimeBridgeCooldown) clearTimeout(runtimeBridgeCooldown);
+        runtimeBridgeCooldown = setTimeout(suspendRuntimeBridge, 1200);
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'ugrad',
+          lanes: ['ugrad'],
+          latencyMs: 0,
+          nextAction: 'say "start training" when ready'
+        };
+      }
+
+      if (/^(status|runtime status|training status|health)$/.test(t)) {
+        try {
+          if (ugradTrainCh) {
+            ugradTrainCh.postMessage({ type: 'training-query', source: 'ugrad-chat-stable', ts: Date.now() });
+          }
+        } catch (_) {}
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'ugrad',
+          lanes: ['ugrad'],
+          latencyMs: 0,
+          nextAction: 'continue conversation or run a training command'
+        };
+      }
+
+      if (/^(models|model status|mistral models|stack models)$/.test(t)) {
+        return {
+          text: modelStatusReport(),
+          route: 'granite',
+          lanes: ['granite'],
+          latencyMs: 0,
+          nextAction: 'run `model status` to refresh runtime map'
+        };
+      }
+
+      if (/^(auto|auto status|safety status)$/.test(t)) {
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'granite',
+          lanes: ['granite'],
+          latencyMs: 0,
+          nextAction: 'auto mode=' + String(brain.autoMode || 'safe') + ' (off|safe|full)'
+        };
+      }
+
+      var modeMatch = t.match(/^(auto|safety)\s+(off|safe|full)$/);
+      if (modeMatch) {
+        brain.autoMode = modeMatch[2];
+        saveState();
+        refreshStatus('auto mode set: ' + brain.autoMode);
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'granite',
+          lanes: ['granite'],
+          latencyMs: 0,
+          nextAction: 'auto mode=' + brain.autoMode + ' (off|safe|full)'
+        };
+      }
+
+      if (/^(help|commands|\?)$/.test(t)) {
+        return {
+          text: [
+            'Supported commands:',
+            '- `help` -> show this command list',
+            '- `status` -> runtime + training snapshot',
+            '- `start training` -> start ugrad background training',
+            '- `stop training` -> pause ugrad background training',
+            '- `resume training` -> resume training',
+            '- `evolve status` -> show evolve loop counters',
+            '- `models` -> show live matrix + local model resolution map',
+            '- `auto off|safe|full` -> set auto-execution safety',
+            '- `auto status` -> show current safety mode',
+            '',
+            'You can also ask normal questions; routing stays automatic.'
+          ].join('\n'),
+          route: 'mistral',
+          lanes: ['mistral'],
+          latencyMs: 0,
+          nextAction: 'run `status` or `start training`'
+        };
+      }
+
+      if (/^(evolve|evolve status|evolution)$/.test(t)) {
+        var cycles = Number(brain.metrics.evolveCycles || 0);
+        var merges = Number(brain.metrics.evolveMerges || 0);
+        var autos = Number(brain.metrics.evolveAutoRuns || 0);
+        var mode = String(brain.autoMode || 'safe');
+        return {
+          text: ugradTrainingSnapshot(),
+          route: 'hybrid',
+          lanes: ['granite', 'ugrad'],
+          latencyMs: 0,
+          nextAction: 'evolve cycles=' + cycles + ' merges=' + merges + ' auto=' + autos + ' mode=' + mode
+        };
+      }
+      return null;
+    }
+
+    function laneRespond(lane, text) {
+      var summary = summarizeIntent(text);
+      var next = suggestAction(text, lane);
+      if (lane === 'mistral') {
+        return 'I read your intent as: "' + summary + '".\nA clean next step is: ' + next + '.';
+      }
+      if (lane === 'granite') {
+        return 'I will keep this reliable and auditable.\nPlan: ' + next + '.';
+      }
+      return 'I will route this through runtime execution.\nNext move: ' + next + '.';
+    }
+
+    function buildResponse(text, route) {
+      var t0 = performance.now();
+      var evolved = evolveRouteAndAction(text, route);
+      var autoPlan = buildAutoDispatchPlan(text, { evolve: evolved.evolve, lanes: evolved.lanes });
+      var output = ugradTrainingSnapshot();
+      brain.metrics.evolveCycles = Number(brain.metrics.evolveCycles || 0) + 1;
+      if (evolved && evolved.label === 'hybrid') {
+        brain.metrics.evolveMerges = Number(brain.metrics.evolveMerges || 0) + 1;
+      }
+      var top = evolved && evolved.evolve && evolved.evolve.ranked && evolved.evolve.ranked[0] ? evolved.evolve.ranked[0] : null;
+      if (top) pushImprovement('evolve chose ' + top.lane + ' (' + top.score + ')');
+      return {
+        text: output,
+        route: evolved.label,
+        lanes: evolved.lanes.slice(),
+        latencyMs: Number((performance.now() - t0).toFixed(2)),
+        nextAction: evolved.nextAction,
+        evolve: evolved.evolve,
+        autoPlan: autoPlan
+      };
+    }
+
+    function reassessRoute(meta) {
+      var primary = (meta && meta.lanes && meta.lanes[0]) ? meta.lanes[0] : (meta && meta.route ? meta.route : 'mistral');
+      if (primary === 'mistral') return { label: 'ugrad', lanes: ['ugrad'], scores: {} };
+      if (primary === 'ugrad') return { label: 'granite', lanes: ['granite'], scores: {} };
+      if (primary === 'granite') return { label: 'mistral', lanes: ['mistral'], scores: {} };
+      return { label: 'ugrad', lanes: ['ugrad'], scores: {} };
+    }
+
+    function reassessAfterMiss(meta, node) {
+      if (!meta) return;
+      var text = String(meta.promptText || '').trim();
+      if (node && node.parentNode) node.parentNode.removeChild(node);
+      if (!text) return;
+      var altRoute = reassessRoute(meta);
+      var packet = buildResponse(text, altRoute);
+      packet.promptText = text;
+      packet.reassessed = true;
+      brain.routeStats[packet.route] = (brain.routeStats[packet.route] || 0) + 1;
+      saveState();
+      renderRouteStats();
+      emitRouteTelemetry(packet);
+      add('assistant', packet.text, packet);
+      emitFlowLine('reassessed after miss | ' + ugradTrainingSnapshot());
+    }
+
+    function emitRouteTelemetry(packet) {
+      try {
+        if (typeof BroadcastChannel === 'undefined') return;
+        var ch = new BroadcastChannel('iron-line');
+        ch.postMessage({
+          type: 'ugrad-chat-route',
+          source: 'ugrad-chat-stable',
+          route: packet.route,
+          lanes: packet.lanes,
+          latencyMs: packet.latencyMs,
+          ts: Date.now()
+        });
+        ch.close();
+      } catch (_) {}
+    }
+
+    function recordOutcome(meta, ok) {
+      if (!meta || !meta.lanes || !meta.lanes.length) return;
+      var lane = meta.lanes[0];
+      var delta = ok ? 1 : -1;
+      brain.laneBias[lane] = clamp((brain.laneBias[lane] || 0) + delta, -6, 6);
+      learnPromptBias(String(meta.promptText || ''), lane, ok ? 0.2 : -0.25);
+      if (ok) brain.metrics.feedbackUseful += 1;
+      else brain.metrics.feedbackMiss += 1;
+      pushImprovement((ok ? 'accepted ' : 'corrected ') + lane + ' route');
+      brain.nextActions.unshift(meta.nextAction);
+      brain.nextActions = unique(brain.nextActions).slice(0, 40);
+      saveState();
+      renderJumpLog();
+      renderMetrics();
+      refreshStatus('learning update: ' + lane + ' bias=' + brain.laneBias[lane]);
+      emitFlowLine((ok ? 'accepted' : 'corrected') + ' route ' + lane + ' | ' + ugradTrainingSnapshot());
+      trainerIngest({
+        text: String(meta.nextAction || ''),
+        route: String(meta.route || lane),
+        lanes: meta.lanes || [],
+        ok: !!ok,
+        ts: Date.now()
+      });
+    }
+
+    function add(role, text, meta) {
+      var d = document.createElement('div');
+      d.className = 'msg ' + role;
+      d.textContent = String(text || '');
+
+      if (role === 'assistant' && meta && meta.route) {
+        var m = document.createElement('div');
+        m.className = 'meta';
+        var routeTag = document.createElement('span');
+        routeTag.textContent = 'route: ' + meta.route + ' [' + meta.lanes.join('+') + ']' + (meta.reassessed ? ' reassessed' : '');
+        var latencyTag = document.createElement('span');
+        latencyTag.textContent = 'latency: ' + meta.latencyMs + 'ms';
+        var nextTag = document.createElement('span');
+        nextTag.textContent = 'next: ' + meta.nextAction;
+        m.appendChild(routeTag);
+        m.appendChild(latencyTag);
+        m.appendChild(nextTag);
+        if (meta.evolve && meta.evolve.mode) {
+          var evolveTag = document.createElement('span');
+          evolveTag.textContent = 'evolve: ' + meta.evolve.mode;
+          m.appendChild(evolveTag);
+        }
+        if (meta.autoExec && meta.autoExec.detail) {
+          var autoTag = document.createElement('span');
+          autoTag.textContent = 'auto: ' + meta.autoExec.detail;
+          m.appendChild(autoTag);
+        }
+
+        var feedback = document.createElement('span');
+        feedback.className = 'feedback';
+        var yes = document.createElement('button');
+        yes.className = 'fb';
+        yes.type = 'button';
+        yes.textContent = 'useful';
+        var no = document.createElement('button');
+        no.className = 'fb';
+        no.type = 'button';
+        no.textContent = 'miss';
+        feedback.appendChild(yes);
+        feedback.appendChild(no);
+        m.appendChild(feedback);
+        d.appendChild(m);
+
+        yes.addEventListener('click', function () {
+          recordOutcome(meta, true);
+          yes.disabled = true;
+          no.disabled = true;
+        });
+        no.addEventListener('click', function () {
+          recordOutcome(meta, false);
+          yes.disabled = true;
+          no.disabled = true;
+          reassessAfterMiss(meta, d);
+        });
+      }
+
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+      return d;
+    }
+
+    function applyDelta(delta) {
+      if (!delta || typeof delta !== 'object') return;
+      if (delta.id && brain.lastDeltaId === delta.id) return;
+
+      var adj = delta.laneBiasAdjust || {};
+      ['mistral', 'granite', 'ugrad'].forEach(function (lane) {
+        if (typeof adj[lane] === 'number') {
+          brain.laneBias[lane] = clamp((brain.laneBias[lane] || 0) + adj[lane], -6, 6);
+        }
+      });
+
+      var syn = delta.synonyms || {};
+      Object.keys(syn).forEach(function (k) { brain.synonyms[k] = String(syn[k]); });
+
+      var actions = Array.isArray(delta.nextActions) ? delta.nextActions : [];
+      actions.forEach(function (line) { brain.nextActions.unshift(String(line)); });
+      brain.nextActions = unique(brain.nextActions).slice(0, 40);
+
+      var caps = Array.isArray(delta.capsuleBoost) ? delta.capsuleBoost : [];
+      caps.forEach(function (entry) {
+        var id = entry && entry.id ? String(entry.id) : '';
+        var weight = Number(entry && entry.weight || 0);
+        if (!id) return;
+        brain.capsuleWeights[id] = (brain.capsuleWeights[id] || 0) + weight;
+      });
+
+      if (delta.message) pushImprovement(String(delta.message));
+      if (Array.isArray(delta.improvements)) delta.improvements.forEach(function (line) { pushImprovement(String(line)); });
+
+      brain.lastDeltaId = delta.id || brain.lastDeltaId;
+      saveState();
+    }
+
+    async function loadDeltaPack() {
+      var stamp = Date.now();
+      try {
+        var latestRes = await fetch('ugrad-bootstrap-latest.json?fresh=' + stamp, { cache: 'no-store' });
+        if (!latestRes.ok) return false;
+        var latest = await latestRes.json();
+        var target = latest && latest.latest ? String(latest.latest) : '';
+        if (!target) return false;
+        var deltaRes = await fetch(target + '?fresh=' + stamp, { cache: 'no-store' });
+        if (!deltaRes.ok) return false;
+        var delta = await deltaRes.json();
+        applyDelta(delta);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function initPrefixSync() {
+      try {
+        var QP = window.QuantumPrefixes;
+        if (!QP) return;
+        if (QP.requestStateSync) QP.requestStateSync();
+        if (QP.broadcastState) {
+          QP.broadcastState('ugrad-chat-stable', {
+            app: 'ugrad-chat-stable',
+            sessions: brain.sessions,
+            ts: Date.now()
+          });
+        }
+      } catch (_) {}
+    }
+
+    function initServiceWorker() {
+      try {
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+      } catch (_) {}
+    }
+
+    function markUiActivity() {
+      lastUiActivityAt = Date.now();
+    }
+
+    function ensureRuntimeBridgeLoaded() {
+      if (!runtimeBridge) return false;
+      if (runtimeBridgeLoaded) return true;
+      var src = runtimeBridge.getAttribute('data-runtime-src') || 'ugrad-r0.html?embedded=1&chat=1';
+      runtimeBridge.setAttribute('src', src);
+      runtimeBridgeLoaded = true;
+      return true;
+    }
+
+    function suspendRuntimeBridge() {
+      if (!runtimeBridge || !runtimeBridgeLoaded) return;
+      runtimeBridge.setAttribute('src', 'about:blank');
+      runtimeBridgeLoaded = false;
+      ugradLive.active = false;
+      ugradLive.bg = false;
+      ugradLive.lastTs = 0;
+      refreshStatus('active input: runtime bridge suspended');
+    }
+
+    function sendUgradCommand(command) {
+      if (!ugradTrainCh) return;
+      try {
+        ugradTrainCh.postMessage({
+          type: 'training-command',
+          source: 'ugrad-chat-stable',
+          command: String(command || ''),
+          ts: Date.now()
+        });
+      } catch (_) {}
+    }
+
+    function initUgradBridge() {
+      if (typeof BroadcastChannel === 'undefined') return;
+      try {
+        ugradTrainCh = new BroadcastChannel('ugrad-training');
+        ugradTrainCh.onmessage = function (e) {
+          var d = e.data || {};
+          if (!d || d.source === 'ugrad-chat-stable') return;
+          if (d.type === 'bg-generation' && d.record) {
+            var r = d.record;
+            ugradLive.gen = Number(r.gen || ugradLive.gen || 0);
+            ugradLive.acc = Number(r.acc || ugradLive.acc || 0);
+            ugradLive.loss = Number(r.loss || ugradLive.loss || 0);
+            ugradLive.ms = Number(r.ms || ugradLive.ms || 0);
+            ugradLive.bg = true;
+            ugradLive.active = true;
+            ugradLive.lastTs = Date.now();
+            if (Array.isArray(r.qPreview)) ugradLive.qubits = r.qPreview.slice(0, 12);
+            ugradLive.history.push({
+              ts: Date.now(),
+              gen: ugradLive.gen,
+              loss: ugradLive.loss,
+              acc: ugradLive.acc,
+              ms: ugradLive.ms
+            });
+            if (ugradLive.history.length > 24) ugradLive.history = ugradLive.history.slice(-24);
+          }
+          if (d.type === 'training-status') {
+            ugradLive.active = !!d.active;
+            ugradLive.bg = !!d.bg;
+            if (typeof d.gen === 'number') ugradLive.gen = d.gen;
+            ugradLive.lastTs = Date.now();
+          }
+          refreshStatus();
+        };
+      } catch (_) {}
+
+      try {
+        blochStateCh = new BroadcastChannel('bloch-state');
+        blochStateCh.onmessage = function (e) {
+          var d = e.data || {};
+          if (!d || d.type !== 'bloch-state' || !Array.isArray(d.qubits)) return;
+          ugradLive.qubits = d.qubits.slice(0, 12);
+          ugradLive.lastTs = Date.now();
+          refreshStatus();
+        };
+      } catch (_) {}
+    }
+
+    function startIdleTrainingLoop() {
+      if (idleLoop) clearInterval(idleLoop);
+      idleLoop = setInterval(function () {
+        if (!ugradTrainCh) return;
+        var idleMs = Date.now() - lastUiActivityAt;
+        var shouldTrain = idleMs > 9000;
+        if (shouldTrain && !idleTraining) {
+          ensureRuntimeBridgeLoaded();
+          sendUgradCommand('start');
+          idleTraining = true;
+          refreshStatus('idle mode: ugrad training started');
+        } else if (!shouldTrain && idleTraining) {
+          sendUgradCommand('stop');
+          idleTraining = false;
+          refreshStatus('active input: ugrad training paused');
+          if (runtimeBridgeCooldown) clearTimeout(runtimeBridgeCooldown);
+          runtimeBridgeCooldown = setTimeout(suspendRuntimeBridge, 1200);
+        }
+        try {
+          ugradTrainCh.postMessage({
+            type: 'training-query',
+            source: 'ugrad-chat-stable',
+            ts: Date.now()
+          });
+        } catch (_) {}
+      }, 4000);
+    }
+
+    function initHeaderThumbs() {
+      if (!blochThumb || !gridThumb || !progressThumb || !lanesThumb) return;
+      var pctx = progressThumb.getContext('2d');
+      var lctx = lanesThumb.getContext('2d');
+      var bctx = blochThumb.getContext('2d');
+      var gctx = gridThumb.getContext('2d');
+      if (!pctx || !lctx || !bctx || !gctx) return;
+      var pw = progressThumb.width;
+      var ph = progressThumb.height;
+      var lw = lanesThumb.width;
+      var lh = lanesThumb.height;
+      var bw = blochThumb.width;
+      var bh = blochThumb.height;
+      var gw = gridThumb.width;
+      var gh = gridThumb.height;
+      var cx = bw / 2;
+      var cy = bh / 2;
+      var radius = 19;
+
+      function frame(ts) {
+        var rs = brain.routeStats || DEFAULT_STATE.routeStats;
+        var u = ugradLive;
+        var hasUgrad = !!(u && u.lastTs && ((Date.now() - u.lastTs) < 30000));
+
+        pctx.clearRect(0, 0, pw, ph);
+        pctx.fillStyle = '#eef5ff';
+        pctx.fillRect(0, 0, pw, ph);
+        pctx.fillStyle = '#c7dbff';
+        pctx.fillRect(8, ph - 16, pw - 16, 6);
+        var progressPct = 0;
+        if (hasUgrad) progressPct = Math.max(0, Math.min(1, ((u.gen || 0) % 100) / 100));
+        pctx.fillStyle = hasUgrad ? '#2563eb' : '#9aa9c4';
+        pctx.fillRect(8, ph - 16, (pw - 16) * progressPct, 6);
+        pctx.strokeStyle = '#9bbcf6';
+        pctx.lineWidth = 1;
+        pctx.beginPath();
+        var lossHist = hasUgrad && u.history && u.history.length ? u.history.slice(-6) : null;
+        var maxLoss = 1;
+        if (lossHist) {
+          for (var li = 0; li < lossHist.length; li++) maxLoss = Math.max(maxLoss, Number(lossHist[li].loss || 0));
+        }
+        pctx.moveTo(8, 14);
+        for (var sx = 0; sx <= 5; sx++) {
+          var x = 8 + sx * ((pw - 16) / 5);
+          var y;
+          if (lossHist && lossHist[sx]) {
+            var lv = Number(lossHist[sx].loss || 0);
+            y = 9 + (Math.max(0, Math.min(1, lv / maxLoss))) * 12;
+          } else {
+            y = 14;
+          }
+          pctx.lineTo(x, y);
+        }
+        pctx.stroke();
+        pctx.fillStyle = hasUgrad ? '#1e40af' : '#64748b';
+        pctx.font = '8px sans-serif';
+        pctx.fillText(hasUgrad ? ('G' + (u.gen || 0)) : 'idle', 8, ph - 22);
+
+        lctx.clearRect(0, 0, lw, lh);
+        lctx.fillStyle = '#f3f8ff';
+        lctx.fillRect(0, 0, lw, lh);
+        var bars;
+        var totalRoutes;
+        if (hasUgrad) {
+          bars = [
+            { key: 'acc', color: '#1d4ed8', val: Math.max(0, Math.min(1, Number(u.acc || 0))) * 100 },
+            { key: 'speed', color: '#0ea5e9', val: Math.max(0, Math.min(100, (220 / Math.max(1, Number(u.ms || 220))) * 100)) },
+            { key: 'active', color: '#16a34a', val: u.active ? 100 : 15 },
+            { key: 'bg', color: '#7c3aed', val: u.bg ? 100 : 15 }
+          ];
+          totalRoutes = 100;
+        } else {
+          totalRoutes = 100;
+          bars = [
+            { key: 'acc', color: '#a6b5cc', val: 8 },
+            { key: 'speed', color: '#a6b5cc', val: 8 },
+            { key: 'active', color: '#a6b5cc', val: 8 },
+            { key: 'bg', color: '#a6b5cc', val: 8 }
+          ];
+        }
+        for (var bi = 0; bi < bars.length; bi++) {
+          var barX = 8 + bi * 11.5;
+          var ratio = bars[bi].val / totalRoutes;
+          var h = 8 + ratio * 30;
+          lctx.fillStyle = bars[bi].color;
+          lctx.fillRect(barX, lh - 10 - h, 8, h);
+        }
+        var samplePulse = hasUgrad ? 0.9 : 0.2;
+        lctx.fillStyle = 'rgba(29,78,216,' + samplePulse.toFixed(3) + ')';
+        lctx.beginPath();
+        lctx.arc(lw - 9, 9, 3.2, 0, Math.PI * 2);
+        lctx.fill();
+
+        bctx.clearRect(0, 0, bw, bh);
+        bctx.fillStyle = '#eef5ff';
+        bctx.fillRect(0, 0, bw, bh);
+        bctx.strokeStyle = '#bed1f6';
+        bctx.lineWidth = 1;
+        bctx.beginPath();
+        bctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        bctx.stroke();
+        bctx.strokeStyle = '#d8e5fb';
+        bctx.beginPath();
+        bctx.ellipse(cx, cy, radius, radius * 0.34, 0, 0, Math.PI * 2);
+        bctx.stroke();
+        var pointerColors = ['#1d4ed8', '#0ea5e9', '#7c3aed', '#16a34a', '#f59e0b'];
+        var pointers = [];
+        if (hasUgrad && u.qubits && u.qubits.length) {
+          for (var qi = 0; qi < Math.min(5, u.qubits.length); qi++) {
+            var qq = u.qubits[qi] || {};
+            var thetaQ = Number(qq.theta || 0);
+            var phiQ = Number(qq.phi || 0);
+            pointers.push({
+              ax: Math.sin(thetaQ) * Math.cos(phiQ) * radius * 0.92,
+              ay: Math.sin(thetaQ) * Math.sin(phiQ) * radius * 0.92
+            });
+          }
+        }
+        for (var pv = 0; pv < pointers.length; pv++) {
+          var pvec = pointers[pv];
+          bctx.strokeStyle = pointerColors[pv % pointerColors.length];
+          bctx.lineWidth = pv === 0 ? 1.5 : 1.2;
+          bctx.beginPath();
+          bctx.moveTo(cx, cy);
+          bctx.lineTo(cx + pvec.ax, cy - pvec.ay);
+          bctx.stroke();
+          bctx.fillStyle = pointerColors[pv % pointerColors.length];
+          bctx.beginPath();
+          bctx.arc(cx + pvec.ax, cy - pvec.ay, pv === 0 ? 2.8 : 2.2, 0, Math.PI * 2);
+          bctx.fill();
+        }
+        if (!hasUgrad || !pointers.length) {
+          bctx.fillStyle = '#64748b';
+          bctx.font = '8px sans-serif';
+          bctx.fillText('idle', 4, bh - 5);
+        }
+
+        gctx.clearRect(0, 0, gw, gh);
+        gctx.fillStyle = '#f3f8ff';
+        gctx.fillRect(0, 0, gw, gh);
+        var rows = 6;
+        var cols = 6;
+        var genSeed = hasUgrad ? (u.gen || 0) : 0;
+        var qMag = hasUgrad && u.qubits && u.qubits[0] ? Math.abs(Math.sin(Number(u.qubits[0].theta || 0))) : 0;
+        for (var y = 0; y < rows; y++) {
+          for (var x = 0; x < cols; x++) {
+            var px = 8 + x * 8.4;
+            var py = 8 + y * 8.4;
+            var wave = hasUgrad ? Math.sin((x * 0.95) + (y * 0.7) + (genSeed * 0.11)) : 0;
+            var r = hasUgrad ? (1.2 + (wave + 1) * (1 + qMag)) : 1.2;
+            var alpha = hasUgrad ? (0.25 + ((wave + 1) / 2) * 0.65) : 0.18;
+            gctx.fillStyle = 'rgba(37,99,235,' + alpha.toFixed(3) + ')';
+            gctx.beginPath();
+            gctx.arc(px, py, r, 0, Math.PI * 2);
+            gctx.fill();
+          }
+        }
+
+        thumbAnimId = requestAnimationFrame(frame);
+      }
+      thumbAnimId = requestAnimationFrame(frame);
+    }
+
+    function resetBrain() {
+      brain = clone(DEFAULT_STATE);
+      session = [];
+      saveState();
+      saveSession();
+      try { localStorage.removeItem(LS_BG_LEARNED); } catch (_) {}
+      if (trainerWorker) {
+        try { trainerWorker.postMessage({ type: 'reset' }); } catch (_) {}
+      }
+      renderJumpLog();
+      renderRouteStats();
+      renderMetrics();
+      laneChip.textContent = 'router: reset';
+      refreshStatus('brain memory reset');
+    }
+
+    function saveSessionWith(packet, promptText) {
+      session.push({
+        ts: Date.now(),
+        prompt: String(promptText || ''),
+        route: packet.route,
+        lanes: packet.lanes,
+        nextAction: packet.nextAction
+      });
+      saveSession();
+    }
+
+    function submit() {
+      var raw = String(prompt.value || '').trim();
+      if (!raw) return;
+      markUiActivity();
+      prompt.value = '';
+      add('user', raw);
+      lastPromptText = raw;
+
+      var text = normalizePrompt(raw);
+      var direct = directCommandPacket(text);
+      var packet;
+      if (direct) {
+        packet = direct;
+      } else {
+        var route = routePrompt(text);
+        packet = buildResponse(text, route);
+      }
+      packet.promptText = text;
+      learnPromptBias(text, packet.lanes && packet.lanes[0] ? packet.lanes[0] : packet.route, 0.05);
+      if (packet.autoPlan) {
+        var autoRes = runAutoDispatch(packet.autoPlan, text, packet);
+        packet.autoExec = autoRes;
+        if (autoRes && autoRes.ok) {
+          brain.metrics.evolveAutoRuns = Number(brain.metrics.evolveAutoRuns || 0) + 1;
+          pushImprovement(autoRes.detail);
+          emitFlowLine(autoRes.detail + ' | ' + ugradTrainingSnapshot());
+          refreshStatus('auto execute: ' + autoRes.detail);
+        }
+      }
+
+      brain.routeStats[packet.route] = (brain.routeStats[packet.route] || 0) + 1;
+      saveState();
+      saveSessionWith(packet, raw);
+      renderRouteStats();
+      laneChip.textContent = 'router: ' + packet.route;
+      emitRouteTelemetry(packet);
+      trainerIngest({
+        text: text,
+        route: packet.route,
+        lanes: packet.lanes,
+        ok: null,
+        ts: Date.now()
+      });
+      add('assistant', packet.text, packet);
+      lastPacket = packet;
+      emitFlowLine();
+      refreshStatus('ready | session=' + brain.sessions + ' | last route=' + packet.route);
+      if (isMajorPrompt(raw, packet)) {
+        brain.metrics.majorPrompts += 1;
+        saveState();
+        renderMetrics();
+        offloadLearnedData('major-response');
+      }
+    }
+
+    send.addEventListener('click', submit);
+    prompt.addEventListener('keydown', function (e) {
+      markUiActivity();
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submit();
+      }
+    });
+    prompt.addEventListener('input', markUiActivity);
+    clear.addEventListener('click', function () {
+      markUiActivity();
+      var nodes = log.querySelectorAll('.msg');
+      nodes.forEach(function (n) { n.remove(); });
+      prompt.value = '';
+      refreshStatus('chat cleared');
+    });
+    if (openTesterBtn) {
+      openTesterBtn.addEventListener('click', function () {
+        markUiActivity();
+        window.location.href = 'ugrad-model-lab.html';
+      });
+    }
+    if (testerCloseBtn) {
+      testerCloseBtn.addEventListener('click', function () { setTesterOpen(false); });
+    }
+    if (testerRunBtn) {
+      testerRunBtn.addEventListener('click', function () {
+        markUiActivity();
+        runPromptSuite();
+      });
+    }
+    if (testerSavePairBtn) {
+      testerSavePairBtn.addEventListener('click', function () {
+        markUiActivity();
+        if (!lastPromptText || !lastPacket) {
+          if (testerOutput) testerOutput.textContent = 'no recent chat pair to save';
+          return;
+        }
+        var row = buildFineTuneRow(lastPromptText, lastPacket, {
+          modelId: (testerModelId && testerModelId.value) ? testerModelId.value : 'devstral-2512',
+          engineTag: (testerEngineTag && testerEngineTag.value) ? testerEngineTag.value.trim() : 'ugrad-default'
+        });
+        captureFineTunePair(row);
+        if (testerOutput) testerOutput.textContent = 'saved pair: score ' + row.score + ' | route ' + row.route;
+      });
+    }
+    if (testerExportJsonlBtn) {
+      testerExportJsonlBtn.addEventListener('click', function () {
+        markUiActivity();
+        if (!testerData.length) {
+          if (testerOutput) testerOutput.textContent = 'dataset is empty';
+          return;
+        }
+        var lines = testerData.map(function (row) { return JSON.stringify(row); }).join('\n') + '\n';
+        downloadTextFile('ugrad-chat-finetune-dataset.jsonl', lines);
+        if (testerOutput) testerOutput.textContent = 'exported JSONL rows: ' + testerData.length;
+      });
+    }
+    if (testerExportReportBtn) {
+      testerExportReportBtn.addEventListener('click', function () {
+        markUiActivity();
+        if (!testerReport) {
+          if (testerOutput) testerOutput.textContent = 'no suite report yet';
+          return;
+        }
+        downloadTextFile('ugrad-chat-prompt-tester-report.json', JSON.stringify(testerReport, null, 2));
+        if (testerOutput) testerOutput.textContent = formatSuiteSummary(testerReport);
+      });
+    }
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && testerPanel && testerPanel.classList.contains('open')) setTesterOpen(false);
+    });
+    jumpToggle.addEventListener('click', function () {
+      setJumpCollapsed(!jumpPanel.classList.contains('collapsed'));
+    });
+    jumpToggle.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setJumpCollapsed(!jumpPanel.classList.contains('collapsed'));
+      }
+    });
+    resetMemory.addEventListener('click', resetBrain);
+
+    renderRouteStats();
+    renderJumpLog();
+    renderMetrics();
+    initTesterModelSelect();
+    renderTesterStatus();
+    setJumpCollapsed(true);
+    flowTick = setInterval(function () { emitFlowLine(); }, 2200);
+    trainerWorker = createBackgroundTrainer();
+    if (trainerWorker) {
+      trainerTick = setInterval(function () {
+        try { trainerWorker.postMessage({ type: 'train' }); } catch (_) {}
+      }, 2500);
+      pushImprovement('background trainer online');
+      renderJumpLog();
+    }
+    initHeaderThumbs();
+    initUgradBridge();
+    startIdleTrainingLoop();
+    initPrefixSync();
+    initServiceWorker();
+    loadOrchestratorStack();
+    loadDeltaPack().then(function (ok) {
+      if (ok) {
+        renderJumpLog();
+        refreshStatus('delta applied: next load jump updated');
+      }
+    });
+
+    add('assistant', ugradTrainingSnapshot());
+    emitFlowLine('chat boot | ' + ugradTrainingSnapshot());
+    prompt.focus();
+    window.addEventListener('pointerdown', markUiActivity);
+    window.addEventListener('keydown', markUiActivity);
+    window.addEventListener('beforeunload', function () {
+      if (trainerTick) clearInterval(trainerTick);
+      if (idleLoop) clearInterval(idleLoop);
+      if (flowTick) clearInterval(flowTick);
+      if (runtimeBridgeCooldown) clearTimeout(runtimeBridgeCooldown);
+      if (ugradTrainCh) ugradTrainCh.close();
+      if (blochStateCh) blochStateCh.close();
+      if (trainerWorker) trainerWorker.terminate();
+      if (thumbAnimId) cancelAnimationFrame(thumbAnimId);
+    });
+  })();
+  </script>
+</body>
+</html>

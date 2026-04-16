@@ -1,0 +1,116 @@
+/**
+ * μgrad game engine slot — matches go-ugrad.html lab panels (.gu-snap-wrap / .gu-log).
+ * Placeholder until trainable policy/tensor hook ships (no iframe).
+ */
+.ugrad-numsy-footer {
+  margin-top: 16px;
+  flex-shrink: 0;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 14px 14px;
+  box-sizing: border-box;
+  width: 100%;
+}
+.ugrad-numsy-details {
+  border: 1px solid var(--qp-border, #30363d);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+.ugrad-engine-game {
+  color: var(--qp-fg-subtle, #6e7681);
+  font-weight: 600;
+}
+.ugrad-numsy-sum {
+  font: 600 10px ui-monospace, monospace;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--qp-fg-muted, #8d97a6);
+  background: rgba(0, 0, 0, 0.15);
+}
+.ugrad-numsy-sum::-webkit-details-marker {
+  display: none;
+}
+.ugrad-numsy-sum::before {
+  content: '▸ ';
+  opacity: 0.55;
+}
+.ugrad-numsy-details[open] .ugrad-numsy-sum::before {
+  content: '▾ ';
+}
+.ugrad-numsy-details[open] .ugrad-numsy-sum {
+  color: var(--qp-fg-primary, #e8edf4);
+}
+.ugrad-engine-body {
+  padding: 0 12px 12px;
+  border-top: 1px solid rgba(48, 54, 61, 0.45);
+}
+.ugrad-engine-hd {
+  font: 600 10px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin: 10px 0 8px;
+}
+.ugrad-engine-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+.ugrad-engine-card {
+  flex: 1 1 100px;
+  min-width: 92px;
+  font: 600 9px ui-monospace, monospace;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--qp-border, #30363d);
+  color: var(--qp-fg-muted, #8d97a6);
+  background: var(--qp-bg-base, #161b22);
+  text-align: center;
+  line-height: 1.35;
+}
+.ugrad-numsy-note {
+  font: 500 9px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  margin: 10px 0 0;
+  padding: 0 2px;
+  line-height: 1.5;
+}
+.ugrad-numsy-note code {
+  font-size: inherit;
+}
+.ugrad-numsy-note a {
+  color: var(--qp-accent, #58a6ff);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(88, 166, 255, 0.35);
+}
+.ugrad-numsy-note a:hover {
+  border-bottom-color: var(--qp-accent, #58a6ff);
+}
+.ugrad-engine-toolbar {
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.45);
+  margin-bottom: 8px;
+}
+.ugrad-engine-toggle {
+  font: 600 10px ui-monospace, monospace;
+  color: var(--qp-fg-muted, #8d97a6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+.ugrad-engine-toggle input {
+  accent-color: var(--qp-accent, #58a6ff);
+}
+.ugrad-numsy-frame iframe {
+  display: block;
+  width: 100%;
+  height: min(420px, 50vh);
+  min-height: 280px;
+  border: 1px solid var(--qp-border, #30363d);
+  border-radius: 10px;
+  background: #0d1117;
+}

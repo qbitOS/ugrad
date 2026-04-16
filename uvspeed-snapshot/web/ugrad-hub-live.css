@@ -1,0 +1,64 @@
+/* ugrad-hub-live.css — hero live deck: Go mirror + tensor lane + Hexcast lane */
+.gh-live{
+  margin:16px 0 0;padding:14px;border:1px solid var(--gh-edge);border-radius:16px;
+  background:var(--gh-surface);box-shadow:0 1px 0 rgba(250,250,252,.04) inset;
+}
+[data-theme="light"] .gh-live{box-shadow:0 1px 3px rgba(31,35,40,.06)}
+.gh-live-hd{
+  font:700 10px ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--gh-muted);
+  margin:0 0 10px;
+}
+.gh-live-grid{
+  display:grid;grid-template-columns:1fr;gap:14px;
+}
+@media (min-width:900px){
+  .gh-live-grid{grid-template-columns:minmax(260px,1fr) minmax(240px,1.1fr) minmax(220px,1fr);align-items:start}
+}
+.gh-live-board{
+  border:1px solid var(--gh-faint);border-radius:12px;padding:10px;background:rgba(0,0,0,.2);
+}
+.gh-live-svg-wrap{
+  max-width:min(100%,360px);margin:0 auto;border-radius:10px;overflow:hidden;
+  border:1px solid var(--gh-faint);background:var(--gh-viz);
+}
+.gh-live-svg-wrap svg{display:block;width:100%;height:auto}
+.gh-live-board .gu-mini9{margin-top:8px;justify-content:center}
+.gu-mini9{display:grid;grid-template-columns:repeat(3,22px);gap:3px;margin-top:6px;justify-content:center}
+.gu-mini9 span{
+  font-size:10px;display:flex;align-items:center;justify-content:center;height:20px;border-radius:4px;
+  border:1px solid var(--gh-faint);background:rgba(128,128,128,.08);color:var(--gh-fg);
+}
+.gh-live-meta{font:600 10px ui-monospace,monospace;color:var(--gh-muted);line-height:1.45;margin:8px 0 0}
+.gh-live-meta strong{color:var(--gh-fg)}
+.gh-live-log{
+  font:500 10px ui-monospace,monospace;white-space:pre-wrap;max-height:min(28vh,200px);overflow:auto;
+  padding:10px;border:1px solid var(--gh-faint);border-radius:10px;background:rgba(0,0,0,.28);color:var(--gh-fg);
+  margin:0 0 12px;
+}
+.gh-live-tb-wrap{overflow:auto;max-height:min(36vh,280px);border:1px solid var(--gh-faint);border-radius:10px}
+.gh-live-tb{width:100%;border-collapse:collapse;font:500 9px ui-monospace,monospace;color:var(--gh-muted)}
+.gh-live-tb th,.gh-live-tb td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--gh-faint);vertical-align:top}
+.gh-live-tb th{color:var(--gh-fg);font-weight:700}
+.gh-live-tb tr:last-child td{border-bottom:none}
+.gh-live-sim{color:#58a6ff;font-weight:600}
+.gh-live-mini{font:600 10px ui-monospace,monospace;letter-spacing:.15em}
+.gh-live-hex{
+  border:1px solid var(--gh-faint);border-radius:12px;padding:10px;background:rgba(0,0,0,.22);
+}
+.gh-live-hex .gh-live-sponsor{margin-top:8px}
+.gh-live-hex canvas,.gh-live-hex video{
+  display:block;width:100%;max-height:200px;background:#000;border-radius:8px;border:1px solid var(--gh-faint);
+}
+.gh-live-hex .gh-live-hint{font:500 9px ui-monospace,monospace;color:var(--gh-muted);line-height:1.45;margin:8px 0}
+.gh-live-hex .gh-live-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.gh-live-hex label{font:500 9px ui-monospace,monospace;color:var(--gh-muted);display:flex;align-items:center;gap:6px}
+.gh-live-hex input[type="password"],.gh-live-hex input[type="text"]{
+  font:600 10px ui-monospace,monospace;padding:5px 8px;border-radius:8px;border:1px solid var(--gh-faint);
+  background:var(--gh-input);color:var(--gh-fg);min-width:12rem;max-width:100%;
+}
+.gh-live-hex button{
+  font:600 10px ui-monospace,monospace;padding:6px 12px;border-radius:999px;border:1px solid var(--gh-edge);
+  background:rgba(250,250,252,.08);color:var(--gh-fg);cursor:pointer;
+}
+.gh-live-hex button:hover{border-color:var(--gh-muted)}
+.gh-live-hex-stats{font:600 9px ui-monospace,monospace;color:#58a6ff;margin-top:8px}

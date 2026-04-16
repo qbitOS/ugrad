@@ -1,0 +1,255 @@
+<!-- beyondBINARY quantum-prefixed | uvspeed | {n, +1, -n, +0, 0, -1, +n, +2, -0, +3, 1} -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1419" id="webgrid-meta-theme">
+<title>WebGrid — μgrad lab · TTRPG arena</title>
+<link rel="stylesheet" href="quantum-theme.css">
+<link rel="stylesheet" href="ugrad-go-board-theme.css">
+<link rel="stylesheet" href="ugrad-parity-lab.css">
+<link rel="stylesheet" href="ugrad-webgrid-ttrpg.css">
+<link rel="stylesheet" href="ugrad-numsy-footer.css">
+<link rel="stylesheet" href="ugrad-game-chrome.css">
+</head>
+<body data-ugrad-game="webgrid" class="ugb-surface">
+<header class="gu-header">
+  <div class="gu-header-brand">
+    <strong>webgrid.ugrad.ai</strong>
+    <span class="gu-bar-out"><a href="games-ugrad-hub.html" class="gu-bar-link" title="μgrad games hub">Hub</a></span>
+    <span class="gu-header-spacer" aria-hidden="true"></span>
+    <div data-qp-theme-host class="gu-theme-host" title="Light / dark (syncs with μgrad stack)"></div>
+  </div>
+  <div class="gu-bar" role="toolbar">
+    <button type="button" class="gu-primary" id="ugc-open-monitor" title="Open multi-board monitor">Monitor</button>
+    <div class="gu-bar-rail-wrap" title="3×3 slices from other tensor envs (BroadcastChannel ugrad-tensor-lane)">
+      <label><input type="checkbox" id="gm-lane-recv" checked> Lane in</label>
+      <label><input type="checkbox" id="gm-lane-send"> Publish slice</label>
+      <div class="gu-bar-rail" id="gu-bar-rail" aria-live="polite"></div>
+    </div>
+    <label>Mode <select id="gm-mode"><option value="play" selected>Play &amp; record</option><option value="analyze">Analyze history</option></select></label>
+    <label>To move <select id="ugc-color"><option value="1">Black (●)</option><option value="-1">White (○)</option></select></label>
+    <button type="button" id="gm-undo">Undo</button>
+    <button type="button" id="gm-clear">Clear</button>
+    <button type="button" id="gm-save-game">Save game</button>
+    <label>Tensor env <select id="gm-tensor-env"></select></label>
+    <label>Train steps <input type="number" id="gm-steps" value="80" min="10" max="2000" step="10"></label>
+    <button type="button" class="gu-primary" id="gm-train">Train slice MLP</button>
+    <button type="button" id="gm-ai-move">AI move</button>
+    <button type="button" id="gm-snap">Snapshot</button>
+    <button type="button" id="gm-export">Export JSON</button>
+    <button type="button" class="gu-primary" id="gm-fs" title="Fullscreen">Fullscreen board</button>
+    <button type="button" id="ugc-open-hub-monitor">Hub monitor</button>
+    <span id="gm-board-size-wrap" style="display:none"><select id="gm-board-size"><option value="15">15×15</option></select></span>
+    <label><input type="checkbox" id="gm-bc-follow"> Follow remote</label>
+    <label><input type="checkbox" id="gm-bc-send" checked> Broadcast</label>
+    <label>Name <input type="text" id="gm-bc-label" maxlength="32" placeholder="room id" style="max-width:7rem"></label>
+    <button type="button" class="gu-primary" id="gm-new">New session</button>
+    <button type="button" onclick="location.href='go-ugrad.html'">Go lab</button>
+  </div>
+</header>
+<div class="gu-main" id="ugc-fs-target">
+  <div class="gu-board-wrap" id="gu-board-wrap">
+    <h2>▦ WebGrid arena · TTRPG</h2>
+    <div class="gu-clock-strip" role="group" aria-label="Game clock">
+      <span class="gu-cs-muted">Clock</span>
+      <div class="gu-clock-pair" aria-live="polite">
+        <span class="gu-clock-face" id="ugc-clock-b">B · —:—</span>
+        <span class="gu-clock-face" id="ugc-clock-w">W · —:—</span>
+      </div>
+      <label><input type="checkbox" id="ugc-clock-on" checked> On</label>
+      <label>Min/side <input type="number" id="ugc-clock-min" value="5" min="1" max="120" step="1"></label>
+      <button type="button" id="ugc-clock-pause">Pause</button>
+      <button type="button" class="gu-primary" id="ugc-clock-reset">Reset clock</button>
+    </div>
+    <div class="gu-board-fs-row" role="toolbar">
+      <button type="button" class="gu-fs-btn gu-primary" id="ugc-fs-inline" title="Fullscreen">⛶</button>
+    </div>
+    <div class="upl-main-slot wg-ttrpg-root" id="webgrid-main">
+      <p class="wg-ttrpg-lede">72×48 <strong>DOM</strong> · <strong>power / zone</strong> strokes spawn <strong>AoE shockwaves</strong> (burst vs erase collapse) — swarm fights the wave + <strong>Ult</strong> super pulse · layers land · power · zone · mark · path + erase · 6 seats · dice.</p>
+      <div class="wg-ttrpg-bar" id="wg-hud-readout">map · —</div>
+      <div class="wg-ttrpg-bar">
+        <label>Layer <select id="wg-layer" title="Stack: land → power → zone → mark → path">
+          <option value="0" selected>land</option>
+          <option value="1">power</option>
+          <option value="2">zone</option>
+          <option value="3">mark</option>
+          <option value="4">path</option>
+        </select></label>
+        <span id="wg-paint-wrap"><label>Swatch <select id="wg-paint">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select></label></span>
+        <label><input type="checkbox" id="wg-erase"> Erase</label>
+        <label>Brush <select id="wg-brush">
+          <option value="0" selected>1 cell</option>
+          <option value="1">3×3</option>
+          <option value="2">5×5</option>
+        </select></label>
+        <label title="Background gravity specks"><input type="checkbox" id="wg-fx-on" checked> FX</label>
+        <label title="Seat-colored sprites orbit pointer"><input type="checkbox" id="wg-swarm-on" checked> Swarm</label>
+        <button type="button" id="wg-import-json" style="font-size:10px;padding:4px 10px;border-radius:8px;border:1px solid var(--qp-border);background:transparent;color:inherit;cursor:pointer">Import JSON</button>
+        <button type="button" class="gu-primary" id="wg-super" title="Super — expanding shockwave at pointer (Dota-style ult)" style="font-size:10px;padding:4px 12px;border-radius:999px">Ult</button>
+      </div>
+      <div class="wg-party" id="wg-party">
+        <div class="wg-party-hd">Party · 6 seats (color = pointer · skill = role) · <strong>mark</strong> paints active seat</div>
+        <div class="wg-party-grid" id="wg-party-seats"></div>
+      </div>
+      <div class="wg-dice" id="wg-dice-tray">
+        <span class="wg-dice-last" id="wg-dice-last">d20 → —</span>
+        <button type="button" data-d="4">d4</button>
+        <button type="button" data-d="6">d6</button>
+        <button type="button" data-d="8">d8</button>
+        <button type="button" data-d="10">d10</button>
+        <button type="button" data-d="12">d12</button>
+        <button type="button" data-d="20">d20</button>
+        <button type="button" data-d="100">d100</button>
+      </div>
+      <div id="wg-stage">
+        <canvas id="wg-fx" aria-hidden="true"></canvas>
+        <canvas id="wg-swarm" aria-hidden="true"></canvas>
+        <div id="wg-map-scroll">
+          <div id="wg-map-grid" role="grid" aria-label="72 by 48 webgrid map"></div>
+        </div>
+        <div id="wg-ripple-layer"></div>
+      </div>
+    </div>
+    <p style="font-size:10px;color:var(--qp-fg-muted);margin:10px 0 0;line-height:1.45"><a href="ugrad-r0.html" style="color:inherit;font-weight:600">ugrad-r0</a> · <a href="go-ugrad.html" style="color:inherit;font-weight:600">go-ugrad</a> · <a href="ugrad-pad-lab.html" style="color:inherit;font-weight:600">μPad lab</a>.</p>
+    <div class="gu-mini9" id="gm-mini9" aria-hidden="true"></div>
+    <section class="gu-cmd" aria-label="Command station">
+      <div class="gu-cmd-hd">Command station · live 3×3 slice</div>
+      <div class="gu-cmd-row">
+        <div class="gu-mini9 gu-cmd-live" id="gm-cmd-live"></div>
+        <div class="gu-cmd-readout" id="gm-cmd-readout">idle · Train or snapshot</div>
+      </div>
+      <p class="gu-cmd-meta">3×3 ℝ⁹ slice sits on the scroll viewport center (moves when you pan the map) · layers stack bottom→top.</p>
+    </section>
+  </div>
+  <div class="gu-side">
+    <div class="gu-snap-wrap">
+      <div class="gu-snap-hd">Iteration snapshots · scroll →</div>
+      <div class="gu-snap-strip" id="gm-snap-strip" role="list"></div>
+    </div>
+    <div>
+      <label style="font-size:10px;color:var(--qp-fg-muted)">Saved games <select id="gm-history" style="max-width:100%;margin-top:4px"></select></label>
+      <div class="gu-log" id="gm-act" aria-live="polite">webgrid-ugrad v0.5.3 · activity log</div>
+    </div>
+    <p id="gm-side-meta" style="font:500 9px ui-monospace,monospace;color:var(--qp-fg-muted);margin:0;line-height:1.45"></p>
+  </div>
+</div>
+<section class="gu-lane-sync" aria-label="Tensor lane">
+  <h3 class="gu-lane-sync-hd">Tensor lane · remote slices</h3>
+  <p class="gu-lane-sync-meta">Same ℝ⁹ shape as <code>#gm-mini9</code> · <code>BroadcastChannel('ugrad-tensor-lane')</code> · Publish slice / Lane in.</p>
+  <div class="gu-lane-sync-grid" id="gm-lane-grid"><p class="gu-lane-empty" id="gm-lane-empty">No remote slices yet.</p></div>
+</section>
+<p class="gu-foot"><code>webgrid-ugrad.html</code> · <a href="go-ugrad-monitor.html">multi-monitor</a> · <a href="games-ugrad-hub.html">μgrad games hub</a> · <a href="arena-ugrad.html">arena</a> · <a href="raw-games-ugrad.html">raw index</a> · <a href="ugrad-pad-lab.html">μPad lab</a> · <a href="https://webgrid.ugrad.ai" target="_blank" rel="noopener">webgrid.ugrad.ai</a></p>
+<script src="quantum-prefixes.js"></script>
+<script src="qbit-dac.js"></script>
+<script src="qbit-steno.js"></script>
+<script src="ugrad-tensor-envs.js"></script>
+<script src="ugrad-parity-lab.js"></script>
+<script src="ugrad-webgrid-ttrpg.js"></script>
+<script src="ugrad-game-chrome.js"></script>
+<script src="ugrad-numsy-footer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var VERSION = '0.5.2';
+  var GAME = 'webgrid';
+  var STORAGE = 'webgrid-ugrad-games-v1';
+  function slice9() {
+    if (window.UgradTensorEnvs) {
+      var sel = document.getElementById('gm-tensor-env');
+      var id = sel ? sel.value : 'go-board';
+      var b = UgradTensorEnvs.synthBatch(id, 1);
+      if (b && b.X && b.X[0]) return b.X[0].map(Number);
+    }
+    return [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  }
+  function exportPayload() {
+    var base = {
+      app: GAME + '-ugrad',
+      version: VERSION,
+      slice9: slice9(),
+      ts: new Date().toISOString(),
+      note: 'WebGrid TTRPG arena · 72×48 · 5 layers · BC room'
+    };
+    if (window.WebgridTtrpg && WebgridTtrpg.serialize) base.map = WebgridTtrpg.serialize();
+    return base;
+  }
+  function refreshMini() {
+    var s = slice9();
+    if (window.UgradParityLab) {
+      UgradParityLab.renderMini9('gm-mini9', s);
+      UgradParityLab.renderMini9('gm-cmd-live', s);
+    }
+    var ro = document.getElementById('gm-cmd-readout');
+    if (ro) ro.textContent = 'slice ℝ⁹ · ' + s.join(',') + ' · ' + new Date().toISOString().slice(11, 19);
+    if (window.WebgridTtrpg && WebgridTtrpg.paintTensorSlice) WebgridTtrpg.paintTensorSlice(s);
+  }
+  document.getElementById('gm-train').addEventListener('click', function () {
+    refreshMini();
+    if (window.WebgridTtrpg && WebgridTtrpg.speckBurst) WebgridTtrpg.speckBurst(10);
+  });
+  document.getElementById('gm-clear').addEventListener('click', function () {
+    if (window.WebgridTtrpg && WebgridTtrpg.clearMap) WebgridTtrpg.clearMap();
+    refreshMini();
+    document.getElementById('gm-act').textContent = GAME + '-ugrad v' + VERSION + ' · map cleared';
+  });
+  document.getElementById('gm-new').addEventListener('click', function () {
+    refreshMini();
+  });
+  document.getElementById('gm-ai-move').addEventListener('click', function () {
+    document.getElementById('gm-act').textContent += '\nAI move · policy hook';
+    if (window.WebgridTtrpg && WebgridTtrpg.speckBurst) WebgridTtrpg.speckBurst(12);
+  });
+  document.getElementById('gm-undo').addEventListener('click', function () {
+    document.getElementById('gm-act').textContent += '\nundo · layer history roadmap';
+  });
+  if (window.UgradParityLab) {
+    UgradParityLab.init({
+      gameId: GAME,
+      version: VERSION,
+      storageKey: STORAGE,
+      tensorDefault: 'gomoku-density',
+      getSlice9: slice9,
+      getExportPayload: exportPayload,
+      getSavePayload: function () {
+        var o = { slice9: slice9() };
+        if (window.WebgridTtrpg && WebgridTtrpg.serialize) o.map = WebgridTtrpg.serialize();
+        return o;
+      },
+      hideBoardSize: true,
+      hideAiMove: false
+    });
+  }
+  if (window.WebgridTtrpg) WebgridTtrpg.init();
+  refreshMini();
+  var wgSnap = document.getElementById('gm-snap');
+  if (wgSnap)
+    wgSnap.addEventListener('click', function () {
+      setTimeout(function () {
+        refreshMini();
+      }, 0);
+    });
+  if (window.QuantumPrefixes && QuantumPrefixes.broadcastState)
+    QuantumPrefixes.broadcastState(GAME + '-ugrad', { app: GAME + '-ugrad', version: VERSION, ts: Date.now() });
+})();
+</script>
+<script>
+(function () {
+  if (typeof BroadcastChannel === 'undefined' || !window.QuantumPrefixes) return;
+  var ch = new BroadcastChannel('quantum-prefixes');
+  ch.onmessage = function (e) {
+    if (e.data && e.data.type === 'requestSync' && QuantumPrefixes.broadcastState)
+      QuantumPrefixes.broadcastState('webgrid-ugrad', { app: 'webgrid-ugrad', version: '0.5.3', ts: Date.now() });
+  };
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+</script>
+<script src="ugrad-game-presence.js"></script>
+</body>
+</html>

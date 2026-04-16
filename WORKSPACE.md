@@ -28,6 +28,10 @@ This folder is the **qbitOS/ugrad** org repo. **Runnable μgrad code** lives in 
 
 `web/ugrad-r0.html` and sibling `*ugrad*` files **load** `quantum-prefixes.js`, `qbit-dac.js`, `sw.js`, etc. from the **same** `web/` tree. Copying only `*ugrad*` files into this repo breaks those imports. The full monorepo link is the supported working surface.
 
+## Deployable copy (`site/`)
+
+For **static hosting** without the full tree, this repo includes **`site/`** — a curated copy of R0 plus those shared modules, calibration CSVs, icons, a μgrad-specific `manifest.json`, and a minimal `sw.js`. Refresh from your uvspeed checkout with **`./scripts/sync-site-from-uvspeed.sh`**. See **[site/README.md](site/README.md)**.
+
 ## Regenerate manifest
 
 With `workspace/uvspeed` linked (or set `UVSPEED` to a checkout):
